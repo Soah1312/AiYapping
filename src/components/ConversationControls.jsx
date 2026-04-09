@@ -12,9 +12,23 @@ export default function ConversationControls({
   const paused = status === 'paused';
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-20 border-t border-white/10 bg-[#0b0b12]/95 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur md:px-6">
+    <div
+      className="fixed inset-x-0 bottom-0 z-20 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 md:px-6"
+      style={{
+        background: 'color-mix(in oklab, var(--bg) 94%, transparent)',
+        backdropFilter: 'blur(14px)',
+        borderTop: '1px solid var(--border)',
+      }}
+    >
       <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-2">
-        <div className="rounded-full border border-white/10 px-3 py-1 text-xs text-[var(--text-muted)]">
+        <div
+          className="px-3 py-1 text-xs"
+          style={{
+            border: '1px solid var(--border)',
+            borderRadius: '999px',
+            color: 'var(--text-muted)',
+          }}
+        >
           Turns: {turnCount}
         </div>
 
@@ -23,35 +37,51 @@ export default function ConversationControls({
             <button
               type="button"
               onClick={onResume}
-              className="inline-flex items-center gap-1 rounded-lg bg-[var(--ai1)] px-3 py-2 text-xs font-medium text-black"
+              className="btn-primary"
+              style={{ fontSize: '0.75rem', padding: '0.375rem 0.875rem' }}
             >
-              <Play size={14} /> Resume
+              <Play size={13} /> Resume
             </button>
           ) : (
             <button
               type="button"
               onClick={onPause}
-              className="inline-flex items-center gap-1 rounded-lg border border-white/20 px-3 py-2 text-xs"
+              className="btn-secondary"
+              style={{ fontSize: '0.75rem', padding: '0.375rem 0.75rem' }}
             >
-              <Pause size={14} /> Pause
+              <Pause size={13} /> Pause
             </button>
           )}
 
           <button
             type="button"
             onClick={onOpenRedirect}
-            className="inline-flex items-center gap-1 rounded-lg border border-white/20 px-3 py-2 text-xs"
+            className="btn-secondary"
+            style={{ fontSize: '0.75rem', padding: '0.375rem 0.75rem' }}
           >
-            <CornerDownLeft size={14} /> Redirect
+            <CornerDownLeft size={13} /> Redirect
           </button>
 
           {allowManualStop && (
             <button
               type="button"
               onClick={onStop}
-              className="inline-flex items-center gap-1 rounded-lg bg-[var(--danger)] px-3 py-2 text-xs font-medium text-white"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+                background: 'var(--danger)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 'var(--radius-btn)',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                padding: '0.375rem 0.875rem',
+                cursor: 'pointer',
+                fontFamily: 'var(--font-body)',
+              }}
             >
-              <Square size={14} /> Stop
+              <Square size={13} /> Stop
             </button>
           )}
         </div>

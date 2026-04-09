@@ -1,48 +1,219 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@500;700;800&display=swap');
+/* ============================================================
+   FONT IMPORTS
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Karla:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --bg: #0a0a0f;
-  --surface: #13131a;
-  --surface-soft: #1a1a24;
-  --ai1: #4f9eff;
-  --ai2: #ff7043;
-  --text-primary: #f0f0f5;
-  --text-muted: #6b6b80;
-  --danger: #ff4d4f;
+/* ============================================================
+   THEME: CLAUDE  (light, warm, editorial)
+   Faithfully imitates claude.ai — parchment canvas, terracotta,
+   warm serif headings, generous whitespace.
+   ============================================================ */
+[data-theme='claude'] {
+  --bg:           #f5f4ed;
+  --bg-dark:      #141413;
+  --surface:      #faf9f5;
+  --surface-soft: #f0eee6;
+  --surface-dark: #30302e;
+
+  --ai1:          #c96442;  /* terracotta */
+  --ai2:          #5e5d59;  /* warm olive-gray */
+
+  --text-primary: #141413;
+  --text-muted:   #87867f;
+  --text-soft:    #5e5d59;
+
+  --border:       #e8e6dc;
+  --border-soft:  #f0eee6;
+
+  --accent:       #c96442;
+  --danger:       #b53333;
+
+  --font-display: 'Lora', Georgia, 'Times New Roman', serif;
+  --font-body:    'Karla', 'Segoe UI', system-ui, sans-serif;
+  --font-mono:    'DM Mono', 'Courier New', monospace;
+
+  --radius-card:  12px;
+  --radius-btn:   8px;
+  --radius-input: 10px;
+
+  --shadow-card:  0 4px 24px rgba(0,0,0,0.06), 0 0 0 1px #e8e6dc;
+  --shadow-glow:  0 8px 32px rgba(201,100,66,0.12);
+
+  --nav-bg:       #faf9f5;
+  --nav-border:   #e8e6dc;
+  --nav-text:     #141413;
+
+  color-scheme: light;
 }
 
-* {
+/* ============================================================
+   THEME: GPT  (dark, clean, minimal — imitates ChatGPT)
+   #212121 base, GPT green accent, ultra-clean sans
+   ============================================================ */
+[data-theme='gpt'] {
+  --bg:           #212121;
+  --bg-dark:      #171717;
+  --surface:      #2f2f2f;
+  --surface-soft: #3a3a3a;
+  --surface-dark: #171717;
+
+  --ai1:          #10a37f;  /* ChatGPT green */
+  --ai2:          #8e8ea0;  /* muted violet-gray */
+
+  --text-primary: #ececec;
+  --text-muted:   #8e8ea0;
+  --text-soft:    #b0b0bf;
+
+  --border:       rgba(255,255,255,0.08);
+  --border-soft:  rgba(255,255,255,0.05);
+
+  --accent:       #10a37f;
+  --danger:       #ef4444;
+
+  --font-display: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
+  --font-body:    'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
+  --font-mono:    'SFMono-Regular', 'Consolas', monospace;
+
+  --radius-card:  16px;
+  --radius-btn:   999px;
+  --radius-input: 14px;
+
+  --shadow-card:  0 2px 8px rgba(0,0,0,0.4);
+  --shadow-glow:  0 0 0 1px rgba(16,163,127,0.3);
+
+  --nav-bg:       #171717;
+  --nav-border:   rgba(255,255,255,0.06);
+  --nav-text:     #ececec;
+
+  color-scheme: dark;
+}
+
+/* ============================================================
+   THEME: GEMINI  (dark, colorful — imitates Google Gemini)
+   #1e1f20 base, blue×purple gradient brand, rounded Material You
+   ============================================================ */
+[data-theme='gemini'] {
+  --bg:           #131314;
+  --bg-dark:      #0d0d0e;
+  --surface:      #1e1f20;
+  --surface-soft: #282a2c;
+  --surface-dark: #101011;
+
+  --ai1:          #4285f4;  /* Google blue */
+  --ai2:          #a142f4;  /* Google purple */
+
+  --text-primary: #e3e3e3;
+  --text-muted:   #9aa0a6;
+  --text-soft:    #bdc1c6;
+
+  --border:       rgba(255,255,255,0.10);
+  --border-soft:  rgba(255,255,255,0.06);
+
+  --accent:       #4285f4;
+  --danger:       #ea4335;
+
+  --font-display: 'DM Sans', 'Google Sans', system-ui, sans-serif;
+  --font-body:    'DM Sans', 'Google Sans', system-ui, sans-serif;
+  --font-mono:    'Roboto Mono', 'Consolas', monospace;
+
+  --radius-card:  24px;
+  --radius-btn:   24px;
+  --radius-input: 28px;
+
+  --shadow-card:  0 4px 20px rgba(0,0,0,0.5);
+  --shadow-glow:  0 0 32px rgba(66,133,244,0.18);
+
+  --nav-bg:       #1e1f20;
+  --nav-border:   rgba(255,255,255,0.08);
+  --nav-text:     #e3e3e3;
+
+  color-scheme: dark;
+}
+
+/* ============================================================
+   GLOBAL RESET
+   ============================================================ */
+*, *::before, *::after {
   box-sizing: border-box;
 }
 
-html,
-body,
-#root {
+html, body, #root {
   min-height: 100%;
 }
 
 body {
   margin: 0;
   color: var(--text-primary);
-  font-family: 'DM Mono', monospace;
   background-color: var(--bg);
-  background-image:
-    radial-gradient(circle at 12% 10%, rgb(79 158 255 / 14%) 0%, transparent 28%),
-    radial-gradient(circle at 88% 18%, rgb(255 112 67 / 12%) 0%, transparent 26%),
-    linear-gradient(120deg, rgb(18 18 30 / 70%) 0%, rgb(10 10 15 / 100%) 52%, rgb(12 12 20 / 85%) 100%);
-  background-attachment: fixed;
+  font-family: var(--font-body);
+  transition: background-color 0.35s ease, color 0.25s ease;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-h1,
-h2,
-h3,
-.display-font {
-  font-family: 'Syne', sans-serif;
-  letter-spacing: 0.01em;
+/* Background textures per theme */
+[data-theme='claude'] body {
+  background-image:
+    radial-gradient(
+      ellipse at 20% 0%,
+      rgba(201, 100, 66, 0.06) 0%,
+      transparent 50%
+    );
+}
+
+[data-theme='gpt'] body {
+  background-image: none;
+}
+
+[data-theme='gemini'] body {
+  background-image:
+    radial-gradient(
+      ellipse at 70% 0%,
+      rgba(66, 133, 244, 0.08) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse at 20% 80%,
+      rgba(161, 66, 244, 0.06) 0%,
+      transparent 45%
+    );
+}
+
+/* ============================================================
+   TYPOGRAPHY
+   ============================================================ */
+h1, h2, h3, h4, .display-font {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+[data-theme='claude'] h1,
+[data-theme='claude'] h2,
+[data-theme='claude'] h3,
+[data-theme='claude'] .display-font {
+  font-weight: 500;
+  letter-spacing: 0.005em;
+  line-height: 1.15;
+}
+
+[data-theme='gpt'] h1,
+[data-theme='gpt'] h2,
+[data-theme='gpt'] h3,
+[data-theme='gpt'] .display-font {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+[data-theme='gemini'] h1,
+[data-theme='gemini'] h2,
+[data-theme='gemini'] h3,
+[data-theme='gemini'] .display-font {
+  font-weight: 500;
+  letter-spacing: -0.01em;
 }
 
 .small-caps {
@@ -50,23 +221,458 @@ h3,
   letter-spacing: 0.12em;
 }
 
+/* ============================================================
+   SURFACE CARD  (cross-theme)
+   ============================================================ */
 .surface-card {
-  background: linear-gradient(160deg, rgb(20 20 30 / 90%), rgb(12 12 18 / 90%));
-  border: 1px solid rgb(255 255 255 / 7%);
-  border-radius: 0.75rem;
-  box-shadow: 0 20px 40px rgb(0 0 0 / 25%);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
+[data-theme='claude'] .surface-card {
+  background: linear-gradient(160deg, #faf9f5 60%, #f5f4ef 100%);
+}
+
+[data-theme='gpt'] .surface-card {
+  background: #2f2f2f;
+  border-color: rgba(255,255,255,0.07);
+}
+
+[data-theme='gemini'] .surface-card {
+  background: linear-gradient(135deg, #1e1f20 0%, #222426 100%);
+  border-color: rgba(255,255,255,0.09);
+}
+
+/* ============================================================
+   SCROLLBAR
+   ============================================================ */
 .scrollbar-thin {
   scrollbar-width: thin;
-  scrollbar-color: rgb(255 255 255 / 25%) transparent;
+  scrollbar-color: var(--border) transparent;
 }
-
-.scrollbar-thin::-webkit-scrollbar {
-  width: 8px;
-}
-
+.scrollbar-thin::-webkit-scrollbar { width: 6px; }
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  background: rgb(255 255 255 / 25%);
+  background: var(--border);
   border-radius: 999px;
+}
+
+/* ============================================================
+   GEMINI GRADIENT TEXT UTILITY
+   ============================================================ */
+.gemini-gradient-text {
+  background: linear-gradient(90deg, #4285f4 0%, #1ea4b3 40%, #a142f4 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ============================================================
+   TOP NAV BAR  (persistent across all pages)
+   ============================================================ */
+.top-nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.25rem;
+  background: var(--nav-bg);
+  border-bottom: 1px solid var(--nav-border);
+  transition: background 0.35s ease, border-color 0.3s ease;
+}
+
+[data-theme='claude'] .top-nav {
+  backdrop-filter: none;
+}
+
+[data-theme='gpt'] .top-nav,
+[data-theme='gemini'] .top-nav {
+  backdrop-filter: blur(12px);
+  background: color-mix(in oklab, var(--nav-bg) 92%, transparent);
+}
+
+.top-nav-brand {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  user-select: none;
+}
+
+[data-theme='claude'] .top-nav-brand {
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: #141413;
+}
+
+/* ============================================================
+   THEME SWITCHER
+   ============================================================ */
+.theme-switcher {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 12px;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+}
+
+[data-theme='claude'] .theme-switcher {
+  background: #f0eee6;
+  border-color: #e8e6dc;
+}
+
+[data-theme='gpt'] .theme-switcher {
+  background: #2f2f2f;
+  border-color: rgba(255,255,255,0.08);
+}
+
+[data-theme='gemini'] .theme-switcher {
+  background: #282a2c;
+  border-color: rgba(255,255,255,0.1);
+}
+
+.theme-tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 28px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.theme-tab-indicator {
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  pointer-events: none;
+}
+
+.theme-tab-icon {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+}
+
+/* Active states per "active on" theme (what the indicator gets) */
+.theme-tab--claude-active { color: #c96442; }
+.theme-tab--claude-inactive { color: #87867f; }
+.theme-tab--claude-active .theme-tab-indicator { background: #faf9f5; box-shadow: 0 1px 4px rgba(0,0,0,0.1), 0 0 0 1px #e8e6dc; }
+
+.theme-tab--gpt-active { color: #10a37f; }
+.theme-tab--gpt-inactive { color: #8e8ea0; }
+.theme-tab--gpt-active .theme-tab-indicator { background: #3a3a3a; box-shadow: 0 1px 4px rgba(0,0,0,0.4); }
+
+.theme-tab--gemini-active { color: #4285f4; }
+.theme-tab--gemini-inactive { color: #9aa0a6; }
+.theme-tab--gemini-active .theme-tab-indicator { background: #303234; box-shadow: 0 1px 6px rgba(66,133,244,0.25); }
+
+.theme-tab:hover:not([aria-pressed='true']) {
+  color: var(--text-primary);
+}
+
+/* ============================================================
+   CLAUDE SIDEBAR LAYOUT  (arena page, left panel)
+   ============================================================ */
+.claude-layout {
+  display: flex;
+  height: calc(100vh - 52px);
+  overflow: hidden;
+}
+
+.claude-sidebar {
+  width: 260px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: #faf9f5;
+  border-right: 1px solid #e8e6dc;
+  overflow-y: auto;
+  padding: 1.5rem 1.25rem;
+  gap: 1.25rem;
+}
+
+.claude-sidebar-section {
+  border-top: 1px solid #f0eee6;
+  padding-top: 1rem;
+}
+
+.claude-sidebar-section:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.claude-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .claude-layout {
+    flex-direction: column;
+    height: auto;
+    min-height: calc(100vh - 52px);
+  }
+  .claude-sidebar {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding: 0.75rem 1rem;
+    border-right: none;
+    border-bottom: 1px solid #e8e6dc;
+    gap: 0.75rem;
+  }
+  .claude-sidebar-section {
+    border-top: none;
+    padding-top: 0;
+  }
+}
+
+/* ============================================================
+   FORM INPUTS  (theme-aware)
+   ============================================================ */
+.theme-input {
+  width: 100%;
+  border-radius: var(--radius-input);
+  border: 1px solid var(--border);
+  background: var(--surface-soft);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  padding: 0.625rem 0.875rem;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.theme-input::placeholder {
+  color: var(--text-muted);
+}
+
+.theme-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 15%, transparent);
+}
+
+[data-theme='claude'] .theme-input {
+  background: #fff;
+  border-color: #e8e6dc;
+  color: #141413;
+}
+[data-theme='claude'] .theme-input:focus {
+  border-color: #c96442;
+  box-shadow: 0 0 0 3px rgba(201, 100, 66, 0.12);
+}
+
+/* ============================================================
+   PRIMARY BUTTON  (theme-aware)
+   ============================================================ */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1.1rem;
+  border-radius: var(--radius-btn);
+  border: none;
+  background: var(--ai1);
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+.btn-primary:hover:not(:disabled) {
+  opacity: 0.88;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px color-mix(in oklab, var(--ai1) 35%, transparent);
+}
+.btn-primary:active:not(:disabled) {
+  opacity: 1;
+  transform: translateY(0);
+}
+.btn-primary:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+[data-theme='claude'] .btn-primary {
+  background: #c96442;
+  color: #faf9f5;
+  border-radius: 8px;
+}
+
+[data-theme='gpt'] .btn-primary {
+  background: #10a37f;
+  color: #fff;
+  border-radius: 999px;
+}
+
+[data-theme='gemini'] .btn-primary {
+  background: linear-gradient(135deg, #4285f4, #1a8cd8);
+  color: #fff;
+  border-radius: 24px;
+}
+
+/* ============================================================
+   SECONDARY BUTTON
+   ============================================================ */
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.875rem;
+  border-radius: var(--radius-btn);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+.btn-secondary:hover {
+  background: var(--surface-soft);
+  border-color: var(--text-muted);
+}
+
+[data-theme='claude'] .btn-secondary {
+  background: #f0eee6;
+  border-color: #e8e6dc;
+  color: #4d4c48;
+  border-radius: 8px;
+}
+[data-theme='claude'] .btn-secondary:hover {
+  background: #e8e6dc;
+}
+
+/* ============================================================
+   MESSAGE CARD  — per-theme overrides
+   ============================================================ */
+
+/* Claude: warm card, flush alignment, left = left | right = right */
+[data-theme='claude'] .msg-card {
+  background: linear-gradient(160deg, #faf9f5 60%, #f5f4ef 100%);
+  border: 1px solid #e8e6dc;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+}
+
+/* GPT: clean minimal — no visible card, just subtle divider */
+[data-theme='gpt'] .msg-card {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+[data-theme='gpt'] .msg-card.msg-card--ai1 {
+  background: transparent;
+}
+[data-theme='gpt'] .msg-card.msg-card--ai2 {
+  background: #2f2f2f;
+  border-radius: 16px;
+  border: none;
+  box-shadow: none;
+}
+
+/* Gemini: rounded card with gradient left border */
+[data-theme='gemini'] .msg-card {
+  background: #1e1f20;
+  border-radius: 24px;
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+}
+[data-theme='gemini'] .msg-card.msg-card--ai1 {
+  border-left: 3px solid #4285f4;
+}
+[data-theme='gemini'] .msg-card.msg-card--ai2 {
+  border-left: 3px solid #a142f4;
+}
+
+/* ============================================================
+   GEMINI HERO GRADIENT STRIP  (arena page header)
+   ============================================================ */
+.gemini-arena-header {
+  background: linear-gradient(135deg, rgba(66,133,244,0.15) 0%, rgba(161,66,244,0.12) 100%);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  padding: 1rem 1.5rem;
+}
+
+/* ============================================================
+   GPT ARENA LAYOUT  — centered narrow column
+   ============================================================ */
+.gpt-arena-layout {
+  max-width: 48rem;   /* ~768px */
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ============================================================
+   VERDICT / SUMMARY THEMING
+   ============================================================ */
+[data-theme='claude'] .verdict-winner {
+  color: #c96442;
+  font-family: 'Lora', Georgia, serif;
+  font-weight: 500;
+}
+
+[data-theme='gpt'] .verdict-winner {
+  color: #10a37f;
+}
+
+[data-theme='gemini'] .verdict-winner {
+  background: linear-gradient(90deg, #4285f4, #a142f4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ============================================================
+   RANGE INPUT THEMING
+   ============================================================ */
+input[type='range'] {
+  accent-color: var(--accent);
+  width: 100%;
+}
+
+/* ============================================================
+   CHECKBOX THEMING
+   ============================================================ */
+input[type='checkbox'] {
+  accent-color: var(--accent);
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* ============================================================
+   SMOOTH THEME TRANSITIONS
+   ============================================================ */
+.surface-card,
+.theme-input,
+.top-nav,
+.claude-sidebar,
+body {
+  transition:
+    background-color 0.3s ease,
+    background 0.3s ease,
+    border-color 0.3s ease,
+    color 0.2s ease;
 }
