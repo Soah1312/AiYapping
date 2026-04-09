@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useConversationStore } from '../store/conversationStore';
-import { MODEL_BY_ID } from '../lib/modelConfig';
 import { buildTurnSystemPrompt, getPersonaLabel } from '../lib/prompts';
 import { useStream } from './useStream';
 
@@ -70,7 +69,6 @@ export function useConversation() {
     transcript,
     status,
     isStreaming,
-    apiKeys,
     summary,
     startConversation,
     pauseConversation,
@@ -155,9 +153,6 @@ export function useConversation() {
       abortControllerRef.current = controller;
 
       try {
-        const provider = MODEL_BY_ID[speakerModel]?.provider;
-        const apiKey = apiKeys[provider] || '';
-
         const messages = buildContextMessages({
           transcript,
           systemPrompt: prompt,
@@ -168,7 +163,6 @@ export function useConversation() {
           model: speakerModel,
           messages,
           sessionId,
-          apiKey,
           signal: controller.signal,
           onDelta: (delta) => {
             fullContent += delta;
@@ -200,7 +194,6 @@ export function useConversation() {
       } catch (error) {
         const errorText = String(error?.message || 'Unknown stream error');
         const interrupted = controller.signal.aborted;
-        const invalidKey = errorText.includes('401') && Boolean(apiKeys[MODEL_BY_ID[speakerModel]?.provider]);
 
         const suffix = interrupted ? '\n\n[interrupted]' : '';
         const safeContent = (fullContent || '').trim() + suffix;
@@ -209,16 +202,10 @@ export function useConversation() {
           content: safeContent,
           status: interrupted ? 'interrupted' : 'error',
           interrupted,
-          error: invalidKey
-            ? 'Invalid API key provided for this model. Update your key and retry.'
-            : errorText,
+          error: errorText,
         });
 
-        setStreamError(
-          invalidKey
-            ? 'Invalid API key provided. Free turns were not consumed for this request.'
-            : errorText,
-        );
+        setStreamError(errorText);
         pauseConversation();
       } finally {
         abortControllerRef.current = null;
@@ -229,7 +216,6 @@ export function useConversation() {
     [
       aiTurnCount,
       addMessage,
-      apiKeys,
       completeConversation,
       sessionId,
       setConsensus,

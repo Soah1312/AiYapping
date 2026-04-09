@@ -1,25 +1,66 @@
 import { useCallback, useState } from 'react';
 
-function parseEventBlock(block) {
-  const lines = block.split('\n').map((line) => line.trim()).filter(Boolean);
-  if (!lines.length) {
-    return null;
+function parseLine(line, onDelta) {
+  const trimmed = line.trim();
+  if (!trimmed) {
+    return;
   }
 
-  let event = 'message';
-  let data = '';
-
-  lines.forEach((line) => {
-    if (line.startsWith('event:')) {
-      event = line.slice(6).trim();
+  if (trimmed.startsWith('data:')) {
+    const data = trimmed.slice(5).trim();
+    if (data === '[DONE]') {
+      return;
     }
 
-    if (line.startsWith('data:')) {
-      data += line.slice(5).trim();
+    try {
+      const payload = JSON.parse(data);
+      if (payload?.delta) {
+        onDelta(payload.delta);
+      }
+      if (payload?.error) {
+        throw new Error(payload.error);
+      }
+      return;
+    } catch {
+      onDelta(data);
+      return;
     }
-  });
+  }
 
-  return { event, data };
+  const splitIndex = trimmed.indexOf(':');
+  if (splitIndex === -1) {
+    return;
+  }
+
+  const partCode = trimmed.slice(0, splitIndex);
+  const rawValue = trimmed.slice(splitIndex + 1);
+
+  if (!rawValue) {
+    return;
+  }
+
+  if (partCode === '3') {
+    try {
+      const parsed = JSON.parse(rawValue);
+      throw new Error(typeof parsed === 'string' ? parsed : parsed?.error || 'Stream error');
+    } catch {
+      throw new Error(rawValue.replace(/^"|"$/g, '') || 'Stream error');
+    }
+  }
+
+  try {
+    const parsed = JSON.parse(rawValue);
+    if (partCode === '0') {
+      if (typeof parsed === 'string') {
+        onDelta(parsed);
+      }
+      return;
+    }
+  } catch {
+    if (partCode === '0') {
+      onDelta(rawValue.replace(/^"|"$/g, ''));
+    }
+  }
 }
 
 function readErrorPayload(text) {
@@ -35,22 +76,15 @@ export function useStream() {
   const [isRequesting, setIsRequesting] = useState(false);
 
   const streamModelResponse = useCallback(
-    async ({ model, messages, sessionId, apiKey, onDelta, signal }) => {
+    async ({ model, messages, sessionId, onDelta, signal }) => {
       setIsRequesting(true);
-
-      const headers = {
-        'Content-Type': 'application/json',
-        'x-session-id': sessionId,
-      };
-
-      if (apiKey) {
-        headers['x-provider-api-key'] = apiKey;
-      }
 
       try {
         const response = await fetch('/api/chat', {
           method: 'POST',
-          headers,
+          headers: {
+            'Content-Type': 'application/json',
+          },
           body: JSON.stringify({ model, messages, sessionId }),
           signal,
         });
@@ -67,6 +101,8 @@ export function useStream() {
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
+        const contentType = response.headers.get('content-type') || '';
+        const isPlainText = contentType.includes('text/plain');
         let buffer = '';
 
         while (true) {
@@ -75,34 +111,21 @@ export function useStream() {
             break;
           }
 
-          buffer += decoder.decode(value, { stream: true });
-          const blocks = buffer.split('\n\n');
-          buffer = blocks.pop() || '';
+          const chunk = decoder.decode(value, { stream: true });
 
-          for (const block of blocks) {
-            const parsed = parseEventBlock(block);
-            if (!parsed || !parsed.data) {
-              continue;
+          if (isPlainText) {
+            if (chunk) {
+              onDelta?.(chunk);
             }
+            continue;
+          }
 
-            if (parsed.data === '[DONE]') {
-              return;
-            }
+          buffer += chunk;
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
 
-            let payload;
-            try {
-              payload = JSON.parse(parsed.data);
-            } catch {
-              payload = { delta: parsed.data };
-            }
-
-            if (payload.error) {
-              throw new Error(payload.error);
-            }
-
-            if (payload.delta) {
-              onDelta?.(payload.delta);
-            }
+          for (const line of lines) {
+            parseLine(line, (delta) => onDelta?.(delta));
           }
         }
       } finally {

@@ -22,7 +22,7 @@ export default function ModelPicker({
         />
         <div>
           <p className="text-sm font-medium">{activeModel.label}</p>
-          <p className="text-xs text-[var(--text-muted)]">{activeModel.provider}</p>
+          <p className="text-xs text-[var(--text-muted)]">{activeModel.flavor}</p>
         </div>
       </div>
 

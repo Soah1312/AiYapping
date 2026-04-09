@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import ModelPicker from '../components/ModelPicker';
 import ModeToggle from '../components/ModeToggle';
-import ApiKeyPanel from '../components/ApiKeyPanel';
-import { MODEL_BY_ID } from '../lib/modelConfig';
+import { ensureAnonymousUser } from '../lib/firebaseClient';
 import { useConversationStore } from '../store/conversationStore';
 
 export default function SetupPage() {
@@ -12,17 +11,18 @@ export default function SetupPage() {
   const {
     sessionId,
     setup,
-    apiKeys,
     usage,
     resetConversation,
     startConversation,
-    setApiKeys,
+    setSessionId,
+    setConversationId,
     setUsage,
   } = useConversationStore();
 
   const [form, setForm] = useState(setup);
-  const [localKeys, setLocalKeys] = useState(apiKeys);
   const [loadingUsage, setLoadingUsage] = useState(false);
+  const [authReady, setAuthReady] = useState(false);
+  const [authError, setAuthError] = useState('');
   const [starting, setStarting] = useState(false);
 
   useEffect(() => {
@@ -30,13 +30,40 @@ export default function SetupPage() {
   }, [setup]);
 
   useEffect(() => {
-    setLocalKeys(apiKeys);
-  }, [apiKeys]);
+    let mounted = true;
+
+    async function initSession() {
+      try {
+        const uid = await ensureAnonymousUser();
+        if (mounted) {
+          setSessionId(uid);
+        }
+      } catch (error) {
+        if (mounted) {
+          setAuthError(String(error?.message || 'Failed to initialize anonymous session.'));
+        }
+      } finally {
+        if (mounted) {
+          setAuthReady(true);
+        }
+      }
+    }
+
+    void initSession();
+
+    return () => {
+      mounted = false;
+    };
+  }, [setSessionId]);
 
   useEffect(() => {
     let mounted = true;
 
     async function fetchUsage() {
+      if (!sessionId) {
+        return;
+      }
+
       setLoadingUsage(true);
       try {
         const response = await fetch('/api/usage', {
@@ -71,16 +98,7 @@ export default function SetupPage() {
     };
   }, [sessionId, setUsage]);
 
-  const missingProviderKeys = useMemo(() => {
-    const providers = [
-      MODEL_BY_ID[form.ai1Model]?.provider,
-      MODEL_BY_ID[form.ai2Model]?.provider,
-    ];
-
-    return [...new Set(providers)].filter((provider) => provider && !localKeys[provider]);
-  }, [form.ai1Model, form.ai2Model, localKeys]);
-
-  const isFreeQuotaBlocked = usage.remaining <= 0 && missingProviderKeys.length > 0;
+  const isFreeQuotaBlocked = usage.remaining <= 0;
 
   function patchForm(patch) {
     setForm((prev) => ({
@@ -96,7 +114,7 @@ export default function SetupPage() {
   async function handleStart(event) {
     event.preventDefault();
 
-    if (!form.topic.trim() || isFreeQuotaBlocked) {
+    if (!form.topic.trim() || isFreeQuotaBlocked || !sessionId) {
       return;
     }
 
@@ -108,10 +126,35 @@ export default function SetupPage() {
     };
 
     setStarting(true);
-    setApiKeys(localKeys);
     resetConversation({ keepSetup: true, nextSetup });
+
+    try {
+      const initResponse = await fetch('/api/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          initialize: true,
+          sessionId,
+          topic: nextSetup.topic,
+          config: {
+            model1: nextSetup.ai1Model,
+            model2: nextSetup.ai2Model,
+            mode: nextSetup.mode,
+          },
+        }),
+      });
+
+      if (initResponse.ok) {
+        const payload = await initResponse.json();
+        setConversationId(payload.conversationId || null);
+      }
+    } catch {
+      setConversationId(null);
+    }
+
     startConversation();
     navigate('/arena');
+    setStarting(false);
   }
 
   return (
@@ -222,8 +265,6 @@ export default function SetupPage() {
           </div>
         </section>
 
-        <ApiKeyPanel keys={localKeys} onChange={setLocalKeys} />
-
         <section className="surface-card p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -235,16 +276,18 @@ export default function SetupPage() {
                 </span>{' '}
                 / {usage.limit}
               </p>
+              {!authReady && <p className="mt-2 text-xs text-[var(--text-muted)]">Initializing session...</p>}
+              {authError && <p className="mt-2 text-xs text-[var(--danger)]">{authError}</p>}
               {isFreeQuotaBlocked && (
                 <p className="mt-2 text-xs text-[var(--danger)]">
-                  Free turn limit reached. Add keys for: {missingProviderKeys.join(', ')}
+                  Free turn limit reached for today.
                 </p>
               )}
             </div>
 
             <button
               type="submit"
-              disabled={!form.topic.trim() || starting || isFreeQuotaBlocked}
+              disabled={!form.topic.trim() || starting || isFreeQuotaBlocked || !authReady || !sessionId}
               className="inline-flex items-center gap-2 rounded-xl bg-[var(--ai1)] px-4 py-2 font-medium text-black disabled:cursor-not-allowed disabled:opacity-50"
             >
               {starting ? 'Starting...' : 'Start Arena'}
