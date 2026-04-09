@@ -1,0 +1,72 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@500;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0a0a0f;
+  --surface: #13131a;
+  --surface-soft: #1a1a24;
+  --ai1: #4f9eff;
+  --ai2: #ff7043;
+  --text-primary: #f0f0f5;
+  --text-muted: #6b6b80;
+  --danger: #ff4d4f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--text-primary);
+  font-family: 'DM Mono', monospace;
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(circle at 12% 10%, rgb(79 158 255 / 14%) 0%, transparent 28%),
+    radial-gradient(circle at 88% 18%, rgb(255 112 67 / 12%) 0%, transparent 26%),
+    linear-gradient(120deg, rgb(18 18 30 / 70%) 0%, rgb(10 10 15 / 100%) 52%, rgb(12 12 20 / 85%) 100%);
+  background-attachment: fixed;
+}
+
+h1,
+h2,
+h3,
+.display-font {
+  font-family: 'Syne', sans-serif;
+  letter-spacing: 0.01em;
+}
+
+.small-caps {
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.12em;
+}
+
+.surface-card {
+  background: linear-gradient(160deg, rgb(20 20 30 / 90%), rgb(12 12 18 / 90%));
+  border: 1px solid rgb(255 255 255 / 7%);
+  border-radius: 0.75rem;
+  box-shadow: 0 20px 40px rgb(0 0 0 / 25%);
+}
+
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(255 255 255 / 25%) transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgb(255 255 255 / 25%);
+  border-radius: 999px;
+}
