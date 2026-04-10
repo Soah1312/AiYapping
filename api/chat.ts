@@ -22,16 +22,6 @@ function resolveProvider(provider: string | undefined, modelId: string) {
   return modelId.includes('/') ? 'huggingface' : 'groq';
 }
 
-function toPrompt(messages: Array<{ role: string; content: string }>) {
-  return messages
-    .map((message) => {
-      const role = String(message.role || 'user').toUpperCase();
-      return `[${role}]\n${String(message.content || '')}`;
-    })
-    .join('\n\n')
-    .concat('\n\n[ASSISTANT]\n');
-}
-
 function extractHfDelta(payload: Record<string, unknown>) {
   const tokenText =
     typeof payload.token === 'object' && payload.token && 'text' in payload.token
@@ -49,12 +39,20 @@ function extractHfDelta(payload: Record<string, unknown>) {
       ? String((payload.choices[0] as { delta?: { content?: string } }).delta?.content || '')
       : '';
 
+  const choiceMessage =
+    Array.isArray(payload.choices) &&
+    payload.choices[0] &&
+    typeof payload.choices[0] === 'object' &&
+    (payload.choices[0] as { message?: { content?: string } }).message?.content
+      ? String((payload.choices[0] as { message?: { content?: string } }).message?.content || '')
+      : '';
+
   const directDelta =
     typeof payload.delta === 'object' && payload.delta && 'text' in payload.delta
       ? String((payload.delta as { text?: string }).text || '')
       : '';
 
-  return tokenText || choiceDelta || directDelta || generatedText || '';
+  return tokenText || choiceDelta || choiceMessage || directDelta || generatedText || '';
 }
 
 async function createHuggingFaceStreamResponse({
@@ -71,22 +69,63 @@ async function createHuggingFaceStreamResponse({
     return Response.json({ error: 'Missing HUGGINGFACE_API_KEY environment variable.' }, { status: 500 });
   }
 
-  const upstream = await fetch(`https://api-inference.huggingface.co/models/${encodeURIComponent(modelId)}`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-      Accept: 'text/event-stream, application/json',
-    },
-    body: JSON.stringify({
-      inputs: toPrompt(messages),
-      stream: true,
-      parameters: {
-        max_new_tokens: 500,
-        return_full_text: false,
+  const normalizedMessages = normalizeMessages(messages).map((message) => ({
+    role: message.role,
+    content: typeof message.content === 'string' ? message.content : String(message.content || ''),
+  }));
+
+  const HF_SAFE_FALLBACK_MODEL = 'katanemo/Arch-Router-1.5B:hf-inference';
+  const explicitModel = modelId;
+  const hfInferenceVariant = modelId.includes(':') ? modelId : `${modelId}:hf-inference`;
+  const plainVariant = modelId.replace(/:hf-inference$/, '');
+  const modelCandidates = [explicitModel, plainVariant, hfInferenceVariant, HF_SAFE_FALLBACK_MODEL].filter(
+    (candidate, index, arr) => candidate && arr.indexOf(candidate) === index,
+  );
+
+  let upstream: Response | null = null;
+  let upstreamModel = modelCandidates[0];
+  let lastErrorText = '';
+
+  for (const candidateModel of modelCandidates) {
+    const candidateResponse = await fetch('https://router.huggingface.co/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream, application/json',
       },
-    }),
-  });
+      body: JSON.stringify({
+        model: candidateModel,
+        messages: normalizedMessages,
+        stream: true,
+        max_tokens: 500,
+      }),
+    });
+
+    upstream = candidateResponse;
+    upstreamModel = candidateModel;
+
+    if (candidateResponse.ok || candidateResponse.status === 503) {
+      break;
+    }
+
+    lastErrorText = await candidateResponse.text();
+    const lowerError = lastErrorText.toLowerCase();
+    const retryableModelError =
+      candidateResponse.status === 404 ||
+      lowerError.includes('model_not_supported') ||
+      lowerError.includes('not supported by provider') ||
+      lowerError.includes('invalid_request_error') ||
+      lowerError.includes('param":"model');
+
+    if (!retryableModelError) {
+      break;
+    }
+  }
+
+  if (!upstream) {
+    return Response.json({ error: 'Hugging Face request failed before reaching upstream.' }, { status: 500 });
+  }
 
   if (upstream.status === 503) {
     return Response.json(
@@ -96,8 +135,11 @@ async function createHuggingFaceStreamResponse({
   }
 
   if (!upstream.ok) {
-    const errorText = await upstream.text();
-    return Response.json({ error: `Hugging Face error ${upstream.status}: ${errorText}` }, { status: upstream.status });
+    const errorText = lastErrorText || (await upstream.text());
+    return Response.json(
+      { error: `Hugging Face error ${upstream.status} (${upstreamModel}): ${errorText}` },
+      { status: upstream.status },
+    );
   }
 
   if (!upstream.body) {
