@@ -2,36 +2,36 @@ export const FREE_TURN_LIMIT = 10;
 
 export const MODEL_OPTIONS = [
   {
-    id: 'claude-sonnet-4-5',
-    label: 'Claude Sonnet 4.5',
-    provider: 'anthropic',
-    icon: '/icons/claude.svg',
+    id: 'llama-3.3-70b-versatile',
+    label: 'Llama 3.3 70B Versatile',
+    flavor: 'Deep reasoning',
+    icon: '/icons/llama.svg',
   },
   {
-    id: 'gpt-4o',
-    label: 'GPT-4o',
-    provider: 'openai',
-    icon: '/icons/openai.svg',
+    id: 'llama-3.1-8b-instant',
+    label: 'Llama 3.1 8B Instant',
+    flavor: 'Lightning fast',
+    icon: '/icons/llama.svg',
   },
   {
-    id: 'gemini-1.5-flash',
-    label: 'Gemini 1.5 Flash',
-    provider: 'google',
-    icon: '/icons/gemini.svg',
+    id: 'mixtral-8x7b-32768',
+    label: 'Mixtral 8x7B 32768',
+    flavor: 'Alternative logic',
+    icon: '/icons/mixtral.svg',
+  },
+  {
+    id: 'gemma2-9b-it',
+    label: 'Gemma2 9B IT',
+    flavor: "Google's open model",
+    icon: '/icons/gemma.svg',
   },
 ];
 
 export const MODEL_BY_ID = Object.fromEntries(MODEL_OPTIONS.map((model) => [model.id, model]));
 
-export const PROVIDER_KEY_STORAGE_KEYS = {
-  anthropic: 'ai-arena-api-key-anthropic',
-  openai: 'ai-arena-api-key-openai',
-  google: 'ai-arena-api-key-google',
-};
-
 export const DEFAULT_SETUP = {
-  ai1Model: 'claude-sonnet-4-5',
-  ai2Model: 'gpt-4o',
+  ai1Model: 'llama-3.3-70b-versatile',
+  ai2Model: 'llama-3.1-8b-instant',
   persona1: '',
   persona2: '',
   mode: 'debate',

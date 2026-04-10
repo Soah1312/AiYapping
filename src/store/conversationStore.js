@@ -1,66 +1,17 @@
 import { create } from 'zustand';
-import { DEFAULT_SETUP, FREE_TURN_LIMIT, PROVIDER_KEY_STORAGE_KEYS } from '../lib/modelConfig';
+import { DEFAULT_SETUP, FREE_TURN_LIMIT } from '../lib/modelConfig';
 
-const SESSION_STORAGE_KEY = 'ai-arena-session-id';
-
-function generateSessionId() {
+function createId(prefix) {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID();
+    return `${prefix}-${crypto.randomUUID()}`;
   }
 
-  return `sess-${Math.random().toString(36).slice(2, 10)}${Date.now()}`;
+  return `${prefix}-${Math.random().toString(36).slice(2, 10)}${Date.now()}`;
 }
-
-function getOrCreateSessionId() {
-  if (typeof window === 'undefined') {
-    return generateSessionId();
-  }
-
-  const existing = window.localStorage.getItem(SESSION_STORAGE_KEY);
-  if (existing) {
-    return existing;
-  }
-
-  const id = generateSessionId();
-  window.localStorage.setItem(SESSION_STORAGE_KEY, id);
-  return id;
-}
-
-function readApiKeysFromStorage() {
-  if (typeof window === 'undefined') {
-    return {
-      anthropic: '',
-      openai: '',
-      google: '',
-    };
-  }
-
-  return {
-    anthropic: window.localStorage.getItem(PROVIDER_KEY_STORAGE_KEYS.anthropic) || '',
-    openai: window.localStorage.getItem(PROVIDER_KEY_STORAGE_KEYS.openai) || '',
-    google: window.localStorage.getItem(PROVIDER_KEY_STORAGE_KEYS.google) || '',
-  };
-}
-
-function saveApiKeysToStorage(keys) {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  Object.entries(PROVIDER_KEY_STORAGE_KEYS).forEach(([provider, storageKey]) => {
-    const value = keys[provider] || '';
-    if (value) {
-      window.localStorage.setItem(storageKey, value);
-    } else {
-      window.localStorage.removeItem(storageKey);
-    }
-  });
-}
-
-const initialApiKeys = readApiKeysFromStorage();
 
 export const useConversationStore = create((set, get) => ({
-  sessionId: getOrCreateSessionId(),
+  sessionId: '',
+  conversationId: null,
   setup: { ...DEFAULT_SETUP },
   transcript: [],
   status: 'idle',
@@ -76,9 +27,11 @@ export const useConversationStore = create((set, get) => ({
     consensus: null,
   },
   shareId: null,
-  apiKeys: initialApiKeys,
 
   setSetup: (nextSetup) => set({ setup: nextSetup }),
+
+  setSessionId: (sessionId) => set({ sessionId }),
+  setConversationId: (conversationId) => set({ conversationId }),
 
   patchSetup: (patch) =>
     set((state) => ({
@@ -92,21 +45,13 @@ export const useConversationStore = create((set, get) => ({
       },
     })),
 
-  setApiKeys: (keys) => {
-    saveApiKeysToStorage(keys);
-    set({ apiKeys: keys });
-  },
-
-  refreshApiKeysFromStorage: () => {
-    set({ apiKeys: readApiKeysFromStorage() });
-  },
-
   resetConversation: ({ keepSetup = true, nextSetup = null } = {}) => {
     const current = get();
     const resolvedSetup = nextSetup || (keepSetup ? current.setup : { ...DEFAULT_SETUP });
 
     set({
       setup: resolvedSetup,
+      conversationId: null,
       transcript: [],
       status: 'idle',
       isStreaming: false,
@@ -163,8 +108,9 @@ export const useConversationStore = create((set, get) => ({
       return;
     }
 
+    const noteId = createId('note');
     const note = {
-      id: crypto.randomUUID(),
+      id: noteId,
       role: 'system',
       side: 'system',
       model: 'director',

@@ -12,7 +12,7 @@ export default function SharePage() {
     async function fetchShare() {
       setState({ loading: true, data: null, notFound: false });
       try {
-        const response = await fetch(`/api/share/${id}`);
+        const response = await fetch(`/api/share?id=${encodeURIComponent(id || '')}`);
 
         if (response.status === 404) {
           if (mounted) {
@@ -70,7 +70,7 @@ export default function SharePage() {
     );
   }
 
-  const { topic, mode, models, turn_count: turnCount, transcript } = state.data;
+  const { topic, config, turnCount, transcript } = state.data;
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-5xl px-4 py-8 md:px-6">
@@ -78,7 +78,7 @@ export default function SharePage() {
         <p className="small-caps text-xs text-[var(--text-muted)]">Shared Arena</p>
         <h1 className="display-font mt-1 text-3xl">{topic}</h1>
         <p className="mt-2 text-sm text-[var(--text-muted)]">
-          Mode: {mode} | {models?.ai1} vs {models?.ai2} | Turns: {turnCount}
+          Mode: {config?.mode} | {config?.model1} vs {config?.model2} | Turns: {turnCount}
         </p>
       </header>
 
