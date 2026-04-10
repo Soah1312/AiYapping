@@ -74,6 +74,10 @@ export default defineConfig(({ mode }) => {
     process.env.GROQ_API_KEY = env.GROQ_API_KEY;
   }
 
+  if (env.HUGGINGFACE_API_KEY && !process.env.HUGGINGFACE_API_KEY) {
+    process.env.HUGGINGFACE_API_KEY = env.HUGGINGFACE_API_KEY;
+  }
+
   if (env.VITE_FIREBASE_CONFIG && !process.env.VITE_FIREBASE_CONFIG) {
     process.env.VITE_FIREBASE_CONFIG = env.VITE_FIREBASE_CONFIG;
   }
