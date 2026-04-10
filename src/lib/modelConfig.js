@@ -18,40 +18,52 @@ export const MODEL_OPTIONS = [
     icon: '/icons/llama.svg',
   },
   {
-    id: 'groq-mixtral-8x7b',
+    id: 'groq-llama-4-scout-17b',
     provider: 'groq',
-    model: 'mixtral-8x7b-32768',
-    label: 'Mixtral 8x7B',
-    flavor: 'Groq • balanced',
-    icon: '/icons/mixtral.svg',
-  },
-  {
-    id: 'hf-gemma2-9b-it',
-    provider: 'huggingface',
-    model: 'google/gemma-2-9b-it',
-    label: 'Gemma 2 9B',
-    flavor: 'HF Inference • open',
-    icon: '/icons/gemma.svg',
-  },
-  {
-    id: 'hf-mistral-7b-instruct',
-    provider: 'huggingface',
-    model: 'mistralai/Mistral-7B-Instruct-v0.3',
-    label: 'Mistral 7B Instruct',
-    flavor: 'HF Inference • versatile',
-    icon: '/icons/mixtral.svg',
-  },
-  {
-    id: 'hf-llama-3.1-8b-instruct',
-    provider: 'huggingface',
-    model: 'meta-llama/Llama-3.1-8B-Instruct',
-    label: 'Llama 3.1 8B Instruct',
-    flavor: 'HF Inference • popular',
+    model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+    label: 'Llama 4 Scout 17B',
+    flavor: 'Groq • latest Llama family',
     icon: '/icons/llama.svg',
+  },
+  {
+    id: 'groq-qwen3-32b',
+    provider: 'groq',
+    model: 'qwen/qwen3-32b',
+    label: 'Qwen3 32B',
+    flavor: 'Groq • strong reasoning',
+    icon: '/icons/llama.svg',
+  },
+  {
+    id: 'groq-kimi-k2',
+    provider: 'groq',
+    model: 'moonshotai/kimi-k2-instruct',
+    label: 'Kimi K2 Instruct',
+    flavor: 'Groq • long-context capable',
+    icon: '/icons/mixtral.svg',
+  },
+  {
+    id: 'groq-gpt-oss-20b',
+    provider: 'groq',
+    model: 'openai/gpt-oss-20b',
+    label: 'GPT-OSS 20B',
+    flavor: 'Groq • open-weight option',
+    icon: '/icons/llama.svg',
+  },
+  {
+    id: 'hf-arch-router-1.5b',
+    provider: 'huggingface',
+    model: 'katanemo/Arch-Router-1.5B',
+    label: 'Arch-Router 1.5B',
+    flavor: 'HF Inference • supported chat',
+    icon: '/icons/gemma.svg',
   },
 ];
 
-export const MODEL_BY_ID = Object.fromEntries(MODEL_OPTIONS.map((model) => [model.id, model]));
+export const MODEL_BY_ID = MODEL_OPTIONS.reduce((acc, model) => {
+  acc[model.id] = model;
+  acc[model.model] = model;
+  return acc;
+}, {});
 
 export const DEFAULT_SETUP = {
   ai1Model: 'groq-llama-3.3-70b',
