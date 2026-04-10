@@ -15,17 +15,6 @@ export default function ModelPicker({
   const activeModel = MODEL_BY_ID[model] || MODEL_OPTIONS[0];
   const seedValue = typeof openingSeed === 'string' ? openingSeed : (persona || '');
   const handleSeedChange = onOpeningSeedChange || onPersonaChange;
-  const grouped = MODEL_OPTIONS.reduce(
-    (acc, item) => {
-      if (item.provider === 'huggingface') {
-        acc.huggingface.push(item);
-      } else {
-        acc.groq.push(item);
-      }
-      return acc;
-    },
-    { groq: [], huggingface: [] },
-  );
 
   return (
     <section className="surface-card p-4" style={{ borderColor: `${accent}66` }}>
@@ -40,9 +29,6 @@ export default function ModelPicker({
         <div>
           <p className="text-sm font-medium">{activeModel.label}</p>
           <p className="text-xs text-[var(--text-muted)]">{activeModel.flavor}</p>
-          <p className="mt-0.5 text-[11px] uppercase tracking-wide text-[var(--text-muted)]">
-            Provider: {activeModel.provider === 'huggingface' ? 'Hugging Face' : 'Groq'}
-          </p>
         </div>
       </div>
 
@@ -55,20 +41,11 @@ export default function ModelPicker({
         value={model}
         onChange={(event) => onModelChange(event.target.value)}
       >
-        <optgroup label="Groq">
-          {grouped.groq.map((option) => (
-            <option key={option.id} value={option.id}>
-              {option.label}
-            </option>
-          ))}
-        </optgroup>
-        <optgroup label="Hugging Face">
-          {grouped.huggingface.map((option) => (
-            <option key={option.id} value={option.id}>
-              {option.label}
-            </option>
-          ))}
-        </optgroup>
+        {MODEL_OPTIONS.map((option) => (
+          <option key={option.id} value={option.id}>
+            {option.label}
+          </option>
+        ))}
       </select>
 
       <label className="mt-4 block text-xs text-[var(--text-muted)]" htmlFor={`${title}-seed`}>
