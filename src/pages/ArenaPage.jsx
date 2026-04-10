@@ -18,7 +18,7 @@ export default function ArenaPage() {
     retryLatestInterrupted,
   } = useConversation();
 
-  const { redirectDraft, setRedirectDraft, injectRedirectNote } = useConversationStore();
+  const { redirectDraft, setRedirectDraft, injectRedirectNote, streamError, setStreamError } = useConversationStore();
 
   const [showRedirect, setShowRedirect] = useState(false);
   const feedRef = useRef(null);
@@ -44,6 +44,17 @@ export default function ArenaPage() {
   }, [transcript.length]);
 
   const modeLabel = useMemo(() => (setup.mode === 'debate' ? 'Debate' : 'Chat'), [setup.mode]);
+  const toastMessage = useMemo(() => {
+    if (!streamError) {
+      return '';
+    }
+
+    if (streamError.toLowerCase().includes('hugging face is waking up this model')) {
+      return 'Hugging Face is waking up this model. Please wait about 20 seconds and retry.';
+    }
+
+    return streamError;
+  }, [streamError]);
 
   function handleRedirectSubmit(event) {
     event.preventDefault();
@@ -79,6 +90,21 @@ export default function ArenaPage() {
         ref={feedRef}
         className="scrollbar-thin mx-auto flex w-full max-w-5xl flex-1 flex-col gap-3 overflow-y-auto px-4 py-4 pb-36 md:px-6"
       >
+        {toastMessage && (
+          <div className="sticky top-2 z-10 mx-auto w-full max-w-3xl rounded-lg border border-amber-400/40 bg-amber-500/15 px-3 py-2 text-sm text-amber-200 backdrop-blur">
+            <div className="flex items-start justify-between gap-3">
+              <span>{toastMessage}</span>
+              <button
+                type="button"
+                className="rounded border border-amber-300/40 px-2 py-0.5 text-xs hover:bg-amber-300/10"
+                onClick={() => setStreamError(null)}
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        )}
+
         {transcript.length === 0 && (
           <div className="surface-card p-4 text-sm text-[var(--text-muted)]">
             Initializing arena. First turn should stream within a couple of seconds.

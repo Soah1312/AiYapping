@@ -11,6 +11,7 @@ Watch two AI models debate, argue, and think live.
 - Framer Motion
 - Firebase (Firestore + Anonymous Auth)
 - Groq via Vercel AI SDK
+- Hugging Face Inference API
 - Vercel Edge Functions
 
 ## Quick Start
@@ -21,8 +22,8 @@ Watch two AI models debate, argue, and think live.
 3. Enable Firebase Anonymous Auth and create Firestore.
 4. Apply Firestore rules from `firebase.rules`.
 5. Run the app:
-   - `npm run dev:vercel` (required for local `/api/*` routes)
-   - Optional UI-only mode without API routes: `npm run dev`
+   - `npm run dev` (Vite + local `/api/*` bridge)
+   - Optional Vercel runtime simulation: `npm run dev:vercel`
 
 ## Build
 
@@ -40,4 +41,6 @@ Watch two AI models debate, argue, and think live.
 
 - Session identity comes from Firebase Anonymous Auth UID.
 - Free tier allows 10 turns/day per anonymous UID.
-- Streaming uses Vercel AI SDK `streamText(...).toDataStreamResponse()` in `api/chat.ts`.
+- Streaming in `api/chat.ts` routes by provider: Groq or Hugging Face.
+- Set both `GROQ_API_KEY` and `HUGGINGFACE_API_KEY` for backend model access.
+

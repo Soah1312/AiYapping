@@ -1,5 +1,8 @@
 import { useCallback, useState } from 'react';
 
+const HF_WARMUP_WAIT_MS = 20000;
+const HF_WARMUP_RETRIES = 1;
+
 function parseLine(line, onDelta) {
   const trimmed = line.trim();
   if (!trimmed) {
@@ -72,26 +75,74 @@ function readErrorPayload(text) {
   }
 }
 
+function delay(ms, signal) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      if (signal) {
+        signal.removeEventListener('abort', onAbort);
+      }
+      resolve();
+    }, ms);
+
+    function onAbort() {
+      clearTimeout(timer);
+      reject(new Error('Request aborted while waiting for retry.'));
+    }
+
+    if (signal) {
+      signal.addEventListener('abort', onAbort, { once: true });
+    }
+  });
+}
+
 export function useStream() {
   const [isRequesting, setIsRequesting] = useState(false);
 
   const streamModelResponse = useCallback(
-    async ({ model, messages, sessionId, onDelta, signal }) => {
+    async ({ provider, modelId, messages, sessionId, onDelta, signal }) => {
       setIsRequesting(true);
 
       try {
-        const response = await fetch('/api/chat', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ model, messages, sessionId }),
-          signal,
-        });
+        let attempts = 0;
+        let response;
+
+        while (attempts <= HF_WARMUP_RETRIES) {
+          response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              provider,
+              modelId,
+              model: modelId,
+              messages,
+              sessionId,
+            }),
+            signal,
+          });
+
+          if (response.status === 503 && provider === 'huggingface' && attempts < HF_WARMUP_RETRIES) {
+            attempts += 1;
+            await delay(HF_WARMUP_WAIT_MS, signal);
+            continue;
+          }
+
+          break;
+        }
+
+        if (!response) {
+          throw new Error('No response returned by chat endpoint.');
+        }
 
         if (!response.ok) {
           const text = await response.text();
           const payload = readErrorPayload(text);
+
+          if (response.status === 503 && provider === 'huggingface') {
+            throw new Error('Hugging Face is waking up this model... please wait 20 seconds.');
+          }
+
           throw new Error(`${response.status}:${payload}`);
         }
 

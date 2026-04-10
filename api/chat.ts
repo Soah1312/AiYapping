@@ -7,10 +7,209 @@ export const config = {
 };
 
 type ChatRequestBody = {
-  model: string;
+  provider?: 'groq' | 'huggingface' | string;
+  model?: string;
+  modelId?: string;
   messages: Array<{ role: string; content: string }>;
   sessionId: string;
 };
+
+function resolveProvider(provider: string | undefined, modelId: string) {
+  if (provider === 'groq' || provider === 'huggingface') {
+    return provider;
+  }
+
+  return modelId.includes('/') ? 'huggingface' : 'groq';
+}
+
+function toPrompt(messages: Array<{ role: string; content: string }>) {
+  return messages
+    .map((message) => {
+      const role = String(message.role || 'user').toUpperCase();
+      return `[${role}]\n${String(message.content || '')}`;
+    })
+    .join('\n\n')
+    .concat('\n\n[ASSISTANT]\n');
+}
+
+function extractHfDelta(payload: Record<string, unknown>) {
+  const tokenText =
+    typeof payload.token === 'object' && payload.token && 'text' in payload.token
+      ? String((payload.token as { text?: string }).text || '')
+      : '';
+
+  const generatedText =
+    typeof payload.generated_text === 'string' ? payload.generated_text : '';
+
+  const choiceDelta =
+    Array.isArray(payload.choices) &&
+    payload.choices[0] &&
+    typeof payload.choices[0] === 'object' &&
+    (payload.choices[0] as { delta?: { content?: string } }).delta?.content
+      ? String((payload.choices[0] as { delta?: { content?: string } }).delta?.content || '')
+      : '';
+
+  const directDelta =
+    typeof payload.delta === 'object' && payload.delta && 'text' in payload.delta
+      ? String((payload.delta as { text?: string }).text || '')
+      : '';
+
+  return tokenText || choiceDelta || directDelta || generatedText || '';
+}
+
+async function createHuggingFaceStreamResponse({
+  modelId,
+  messages,
+  sessionId,
+}: {
+  modelId: string;
+  messages: Array<{ role: string; content: string }>;
+  sessionId: string;
+}) {
+  const apiKey = process.env.HUGGINGFACE_API_KEY;
+  if (!apiKey) {
+    return Response.json({ error: 'Missing HUGGINGFACE_API_KEY environment variable.' }, { status: 500 });
+  }
+
+  const upstream = await fetch(`https://api-inference.huggingface.co/models/${encodeURIComponent(modelId)}`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      Accept: 'text/event-stream, application/json',
+    },
+    body: JSON.stringify({
+      inputs: toPrompt(messages),
+      stream: true,
+      parameters: {
+        max_new_tokens: 500,
+        return_full_text: false,
+      },
+    }),
+  });
+
+  if (upstream.status === 503) {
+    return Response.json(
+      { error: 'Hugging Face is waking up this model... please wait 20 seconds.' },
+      { status: 503 },
+    );
+  }
+
+  if (!upstream.ok) {
+    const errorText = await upstream.text();
+    return Response.json({ error: `Hugging Face error ${upstream.status}: ${errorText}` }, { status: upstream.status });
+  }
+
+  if (!upstream.body) {
+    return Response.json({ error: 'Hugging Face stream body is empty.' }, { status: 500 });
+  }
+
+  const upstreamBody = upstream.body;
+
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+  const contentType = upstream.headers.get('content-type') || '';
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      const write = (payload: Record<string, unknown>) => {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+      };
+
+      try {
+        if (contentType.includes('application/json')) {
+          const text = await new Response(upstreamBody).text();
+          let parsed: unknown = null;
+
+          try {
+            parsed = JSON.parse(text);
+          } catch {
+            parsed = text;
+          }
+
+          if (Array.isArray(parsed)) {
+            for (const item of parsed) {
+              if (item && typeof item === 'object' && 'generated_text' in item) {
+                const delta = String((item as { generated_text?: string }).generated_text || '');
+                if (delta) {
+                  write({ delta });
+                }
+              }
+            }
+          } else if (parsed && typeof parsed === 'object') {
+            const delta = extractHfDelta(parsed as Record<string, unknown>);
+            if (delta) {
+              write({ delta });
+            }
+          } else if (typeof parsed === 'string' && parsed) {
+            write({ delta: parsed });
+          }
+        } else {
+          const reader = upstreamBody.getReader();
+          let buffer = '';
+
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) {
+              break;
+            }
+
+            buffer += decoder.decode(value, { stream: true });
+            const blocks = buffer.split('\n\n');
+            buffer = blocks.pop() || '';
+
+            for (const block of blocks) {
+              const lines = block.split('\n').map((line) => line.trim());
+              const dataLine = lines.find((line) => line.startsWith('data:'));
+
+              if (!dataLine) {
+                continue;
+              }
+
+              const raw = dataLine.slice(5).trim();
+              if (!raw || raw === '[DONE]') {
+                continue;
+              }
+
+              let payload: Record<string, unknown>;
+              try {
+                payload = JSON.parse(raw) as Record<string, unknown>;
+              } catch {
+                write({ delta: raw });
+                continue;
+              }
+
+              if (payload.error) {
+                throw new Error(String(payload.error));
+              }
+
+              const delta = extractHfDelta(payload);
+              if (delta) {
+                write({ delta });
+              }
+            }
+          }
+        }
+
+        await incrementUsage(sessionId);
+        controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+      } catch (error) {
+        write({ error: String((error as Error)?.message || 'Hugging Face stream failed') });
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache, no-transform',
+      Connection: 'keep-alive',
+    },
+  });
+}
 
 function normalizeMessages(messages: Array<{ role: string; content: string }>): ModelMessage[] {
   return messages.map((message) => {
@@ -34,12 +233,15 @@ export default async function handler(request: Request): Promise<Response> {
   try {
     const body = (await request.json()) as ChatRequestBody;
 
-    if (!body?.model || !Array.isArray(body?.messages) || !body?.sessionId) {
+    const modelId = String(body?.modelId || body?.model || '');
+    if (!modelId || !Array.isArray(body?.messages) || !body?.sessionId) {
       return Response.json(
-        { error: 'Missing required body fields: model, messages, sessionId' },
+        { error: 'Missing required body fields: provider, modelId/model, messages, sessionId' },
         { status: 400 },
       );
     }
+
+    const provider = resolveProvider(body?.provider, modelId);
 
     const usage = await getUsageStatus(body.sessionId);
     if (usage.turnsUsed >= usage.limit) {
@@ -55,8 +257,16 @@ export default async function handler(request: Request): Promise<Response> {
       );
     }
 
+    if (provider === 'huggingface') {
+      return createHuggingFaceStreamResponse({
+        modelId,
+        messages: body.messages,
+        sessionId: body.sessionId,
+      });
+    }
+
     const result = streamText({
-      model: groq(body.model),
+      model: groq(modelId),
       messages: normalizeMessages(body.messages),
       maxOutputTokens: 500,
       onFinish: async () => {

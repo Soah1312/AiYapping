@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useConversationStore } from '../store/conversationStore';
 import { buildTurnSystemPrompt, getPersonaLabel } from '../lib/prompts';
+import { MODEL_BY_ID } from '../lib/modelConfig';
 import { useStream } from './useStream';
 
 function createMessageId() {
@@ -159,8 +160,11 @@ export function useConversation() {
           speakerSide: side,
         });
 
+        const speakerProvider = MODEL_BY_ID[speakerModel]?.provider || 'groq';
+
         await streamModelResponse({
-          model: speakerModel,
+          provider: speakerProvider,
+          modelId: speakerModel,
           messages,
           sessionId,
           signal: controller.signal,
