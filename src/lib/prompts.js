@@ -13,12 +13,16 @@ export function buildTurnSystemPrompt({
   openingSeed,
   turnNumber,
 }) {
+  const topicClause = topic?.trim()
+    ? `about: "${topic}".`
+    : 'about any topic the two of you choose naturally.';
+
   const openingHint = openingSeed?.trim() && turnNumber === 1
     ? `\n\nYour first message must be anchored around this opening seed: "${openingSeed.trim()}".`
     : '';
 
   if (mode === 'chat') {
-    return `You are ${speakerPersona}, powered by ${speakerModel}. You are having a thoughtful conversation with ${opponentPersona} (powered by ${opponentModel}) about: "${topic}".\n\nRespond naturally. Be curious, push the conversation forward. Be yourself - you are ${speakerModel} and may have opinions, tendencies, and a distinct voice.\nKeep your response to 3-5 sentences max. Do not introduce yourself.${openingHint}`;
+    return `You are ${speakerPersona}, powered by ${speakerModel}. You are having a thoughtful conversation with ${opponentPersona} (powered by ${opponentModel}) ${topicClause}\n\nRespond naturally. Be curious, push the conversation forward. Be yourself - you are ${speakerModel} and may have opinions, tendencies, and a distinct voice.\nKeep your response to 3-5 sentences max. Do not introduce yourself.${openingHint}`;
   }
 
   const position = speakerSide === 'ai1' ? 'AFFIRMATIVE (argue in favor)' : 'NEGATIVE (argue against)';

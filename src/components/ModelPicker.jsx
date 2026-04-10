@@ -6,6 +6,8 @@ export default function ModelPicker({
   model,
   openingSeed,
   onOpeningSeedChange,
+  seedLabel,
+  seedPlaceholder,
   persona,
   onModelChange,
   onPersonaChange,
@@ -47,14 +49,14 @@ export default function ModelPicker({
       </select>
 
       <label className="mt-4 block text-xs text-[var(--text-muted)]" htmlFor={`${title}-seed`}>
-        Opening Seed (optional)
+        {seedLabel || 'Prompt (required)'}
       </label>
       <textarea
         id={`${title}-seed`}
         className="theme-input mt-1 min-h-20 resize-none"
         value={seedValue}
         onChange={(event) => handleSeedChange?.(event.target.value.slice(0, 200))}
-        placeholder="e.g. Start by arguing from a practical perspective"
+        placeholder={seedPlaceholder || 'Describe how this AI should start speaking'}
       />
     </section>
   );
