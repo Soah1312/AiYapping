@@ -50,6 +50,22 @@ export const MODEL_OPTIONS = [
     icon: '/icons/llama.svg',
   },
   {
+    id: 'hf-gemma-2-9b',
+    provider: 'huggingface',
+    model: 'google/gemma-2-9b-it',
+    label: 'Gemma 2 9B',
+    flavor: 'HF Inference • best free Gemma',
+    icon: '/icons/gemma.svg',
+  },
+  {
+    id: 'hf-mistral-7b',
+    provider: 'huggingface',
+    model: 'mistral-community/Mistral-7B-Instruct-v0.2',
+    label: 'Mistral 7B',
+    flavor: 'HF Inference • best free Mistral',
+    icon: '/icons/mixtral.svg',
+  },
+  {
     id: 'hf-arch-router-1.5b',
     provider: 'huggingface',
     model: 'katanemo/Arch-Router-1.5B',
