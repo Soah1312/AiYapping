@@ -10,14 +10,20 @@ export function buildTurnSystemPrompt({
   speakerModel,
   opponentPersona,
   opponentModel,
+  openingSeed,
+  turnNumber,
 }) {
+  const openingHint = openingSeed?.trim() && turnNumber === 1
+    ? `\n\nYour first message must be anchored around this opening seed: "${openingSeed.trim()}".`
+    : '';
+
   if (mode === 'chat') {
-    return `You are ${speakerPersona}, powered by ${speakerModel}. You are having a thoughtful conversation with ${opponentPersona} (powered by ${opponentModel}) about: "${topic}".\n\nRespond naturally. Be curious, push the conversation forward. Be yourself - you are ${speakerModel} and may have opinions, tendencies, and a distinct voice.\nKeep your response to 3-5 sentences max. Do not introduce yourself.`;
+    return `You are ${speakerPersona}, powered by ${speakerModel}. You are having a thoughtful conversation with ${opponentPersona} (powered by ${opponentModel}) about: "${topic}".\n\nRespond naturally. Be curious, push the conversation forward. Be yourself - you are ${speakerModel} and may have opinions, tendencies, and a distinct voice.\nKeep your response to 3-5 sentences max. Do not introduce yourself.${openingHint}`;
   }
 
   const position = speakerSide === 'ai1' ? 'AFFIRMATIVE (argue in favor)' : 'NEGATIVE (argue against)';
 
-  return `You are ${speakerPersona}, powered by ${speakerModel}. You are in a structured debate.\nTopic: "${topic}"\nYour position: ${position}\nYour opponent is ${opponentPersona} (${opponentModel}).\n\nMake a sharp, well-reasoned argument for your position.\nReference your opponent's previous point and counter it directly.\n3-5 sentences. No filler. No hedging.`;
+  return `You are ${speakerPersona}, powered by ${speakerModel}. You are in a structured debate.\nTopic: "${topic}"\nYour position: ${position}\nYour opponent is ${opponentPersona} (${opponentModel}).\n\nMake a sharp, well-reasoned argument for your position.\nReference your opponent's previous point and counter it directly.\n3-5 sentences. No filler. No hedging.${openingHint}`;
 }
 
 export function buildJudgePrompt({ topic, transcript }) {

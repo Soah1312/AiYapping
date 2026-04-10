@@ -469,9 +469,18 @@ h1, h2, h3, h4, .display-font {
   box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 15%, transparent);
 }
 
+.theme-select option {
+  background: var(--surface);
+  color: var(--text-primary);
+}
+
 [data-theme='claude'] .theme-input {
   background: #fff;
   border-color: #e8e6dc;
+  color: #141413;
+}
+[data-theme='claude'] .theme-select option {
+  background: #fff;
   color: #141413;
 }
 [data-theme='claude'] .theme-input:focus {

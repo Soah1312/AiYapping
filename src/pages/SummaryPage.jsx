@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Copy, RotateCcw, Save } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -22,23 +22,20 @@ export default function SummaryPage() {
   const { theme } = useTheme();
   const {
     sessionId,
+    conversationId,
     setup,
     transcript,
     summary,
     shareId,
     setVerdict,
     setShareId,
+    setConversationId,
     resetConversation,
   } = useConversationStore();
 
   const [saving, setSaving] = useState(false);
   const [judging, setJudging] = useState(false);
   const [shareState, setShareState] = useState('idle');
-
-  const aiTranscript = useMemo(
-    () => transcript.filter((m) => m.side === 'ai1' || m.side === 'ai2'),
-    [transcript],
-  );
 
   useEffect(() => {
     if (!setup.topic || transcript.length === 0) navigate('/');
@@ -67,19 +64,22 @@ export default function SummaryPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          sessionId, transcript, topic: setup.topic, mode: setup.mode,
-          models: {
-            ai1: setup.ai1Model, ai2: setup.ai2Model,
-            persona1: setup.persona1 || setup.ai1Model,
-            persona2: setup.persona2 || setup.ai2Model,
+          sessionId,
+          conversationId,
+          transcript,
+          topic: setup.topic,
+          config: {
+            model1: setup.ai1Model,
+            model2: setup.ai2Model,
+            mode: setup.mode,
           },
-          turnCount: aiTranscript.length,
           verdict: summary.verdict,
         }),
       });
       if (!res.ok) throw new Error('Unable to save');
       const payload = await res.json();
       setShareId(payload.shareId);
+      setConversationId(payload.conversationId || conversationId || null);
       return payload.shareId;
     } finally {
       setSaving(false);

@@ -12,19 +12,23 @@ function parseLine(line, onDelta) {
       return;
     }
 
+    let payload;
     try {
-      const payload = JSON.parse(data);
-      if (payload?.delta) {
-        onDelta(payload.delta);
-      }
-      if (payload?.error) {
-        throw new Error(payload.error);
-      }
-      return;
+      payload = JSON.parse(data);
     } catch {
       onDelta(data);
       return;
     }
+
+    if (payload?.error) {
+      throw new Error(payload.error);
+    }
+
+    if (payload?.delta) {
+      onDelta(payload.delta);
+    }
+
+    return;
   }
 
   const splitIndex = trimmed.indexOf(':');
@@ -40,12 +44,16 @@ function parseLine(line, onDelta) {
   }
 
   if (partCode === '3') {
+    let errorMessage;
+
     try {
       const parsed = JSON.parse(rawValue);
-      throw new Error(typeof parsed === 'string' ? parsed : parsed?.error || 'Stream error');
+      errorMessage = typeof parsed === 'string' ? parsed : parsed?.error || 'Stream error';
     } catch {
-      throw new Error(rawValue.replace(/^"|"$/g, '') || 'Stream error');
+      errorMessage = rawValue.replace(/^"|"$/g, '') || 'Stream error';
     }
+
+    throw new Error(errorMessage);
   }
 
   try {
@@ -76,7 +84,7 @@ export function useStream() {
   const [isRequesting, setIsRequesting] = useState(false);
 
   const streamModelResponse = useCallback(
-    async ({ model, messages, sessionId, onDelta, signal }) => {
+    async ({ provider = 'groq', model, messages, sessionId, onDelta, signal }) => {
       setIsRequesting(true);
 
       try {
@@ -85,7 +93,7 @@ export function useStream() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ model, messages, sessionId }),
+          body: JSON.stringify({ provider, model, messages, sessionId }),
           signal,
         });
 

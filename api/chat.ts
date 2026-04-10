@@ -7,6 +7,7 @@ export const config = {
 };
 
 type ChatRequestBody = {
+  provider?: 'groq' | 'huggingface';
   model: string;
   messages: Array<{ role: string; content: string }>;
   sessionId: string;
@@ -24,6 +25,55 @@ function normalizeMessages(messages: Array<{ role: string; content: string }>): 
       content: String(message.content || ''),
     };
   }) as ModelMessage[];
+}
+
+function toPrompt(messages: Array<{ role: string; content: string }>) {
+  return messages
+    .map((message) => `${message.role.toUpperCase()}: ${String(message.content || '')}`)
+    .join('\n\n');
+}
+
+async function runHuggingFace(model: string, messages: Array<{ role: string; content: string }>) {
+  const token = process.env.HUGGINGFACE_API_KEY;
+  if (!token) {
+    throw new Error('Missing HUGGINGFACE_API_KEY for Hugging Face inference.');
+  }
+
+  const response = await fetch(`https://api-inference.huggingface.co/models/${encodeURIComponent(model)}`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      inputs: toPrompt(messages),
+      parameters: {
+        max_new_tokens: 500,
+        return_full_text: false,
+        temperature: 0.8,
+      },
+    }),
+  });
+
+  const payload = await response.json();
+  if (!response.ok) {
+    const message = payload?.error || payload?.message || 'Hugging Face request failed';
+    throw new Error(String(message));
+  }
+
+  if (Array.isArray(payload) && payload[0]?.generated_text) {
+    return String(payload[0].generated_text);
+  }
+
+  if (typeof payload?.generated_text === 'string') {
+    return payload.generated_text;
+  }
+
+  if (Array.isArray(payload) && payload[0]?.summary_text) {
+    return String(payload[0].summary_text);
+  }
+
+  return String(payload?.text || payload?.output || '');
 }
 
 export default async function handler(request: Request): Promise<Response> {
@@ -53,6 +103,20 @@ export default async function handler(request: Request): Promise<Response> {
         },
         { status: 429 },
       );
+    }
+
+    const provider = body.provider || 'groq';
+
+    if (provider === 'huggingface') {
+      const text = await runHuggingFace(body.model, body.messages);
+      await incrementUsage(body.sessionId);
+
+      return new Response(text, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+        },
+      });
     }
 
     const result = streamText({

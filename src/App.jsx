@@ -1,13 +1,15 @@
 import { Navigate, Route, Routes, Link } from 'react-router-dom';
-import SetupPage from './pages/SetupPage';
 import ArenaPage from './pages/ArenaPage';
-import SummaryPage from './pages/SummaryPage';
 import SharePage from './pages/SharePage';
 import ThemeSwitcher from './components/ThemeSwitcher';
 import { useTheme } from './context/ThemeContext';
 
 function TopNav() {
   const { theme } = useTheme();
+
+  if (theme !== 'claude') {
+    return null;
+  }
 
   const brandLabel =
     theme === 'claude'
@@ -31,9 +33,8 @@ export default function App() {
     <>
       <TopNav />
       <Routes>
-        <Route path="/" element={<SetupPage />} />
+        <Route path="/" element={<ArenaPage />} />
         <Route path="/arena" element={<ArenaPage />} />
-        <Route path="/summary" element={<SummaryPage />} />
         <Route path="/share/:id" element={<SharePage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

@@ -1,7 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useConversationStore } from '../store/conversationStore';
+import { MODEL_BY_ID } from '../lib/modelConfig';
 import { buildTurnSystemPrompt, getPersonaLabel } from '../lib/prompts';
 import { useStream } from './useStream';
+
+const PER_SIDE_LIMIT = 10;
+const REVEAL_INITIAL_DELAY_MS = 220;
+const REVEAL_STEP_MS = 16;
+
+function wait(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
 
 function createMessageId() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -40,28 +51,6 @@ function buildContextMessages({ transcript, systemPrompt, speakerSide }) {
   return context;
 }
 
-async function requestConsensus({ transcript, topic, mode }) {
-  const response = await fetch('/api/judge', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      transcript,
-      topic,
-      mode,
-      consensusCheck: true,
-    }),
-  });
-
-  if (!response.ok) {
-    return null;
-  }
-
-  const payload = await response.json();
-  return payload;
-}
-
 export function useConversation() {
   const {
     sessionId,
@@ -69,7 +58,6 @@ export function useConversation() {
     transcript,
     status,
     isStreaming,
-    summary,
     startConversation,
     pauseConversation,
     resumeConversation,
@@ -80,7 +68,6 @@ export function useConversation() {
     removeMessage,
     setStreamError,
     setStreaming,
-    setConsensus,
   } = useConversationStore();
 
   const { streamModelResponse, isRequesting } = useStream();
@@ -92,13 +79,37 @@ export function useConversation() {
     [transcript],
   );
 
-  const shouldStopByFixedTurns = useMemo(() => {
-    if (!setup.endConditions.fixedTurnsEnabled) {
-      return false;
-    }
+  const ai1TurnCount = useMemo(
+    () => transcript.filter((message) => message.side === 'ai1' && isAiMessage(message)).length,
+    [transcript],
+  );
 
-    return aiTurnCount >= setup.endConditions.fixedTurns;
-  }, [aiTurnCount, setup.endConditions.fixedTurns, setup.endConditions.fixedTurnsEnabled]);
+  const ai2TurnCount = useMemo(
+    () => transcript.filter((message) => message.side === 'ai2' && isAiMessage(message)).length,
+    [transcript],
+  );
+
+  const shouldStopBySideCap = ai1TurnCount >= PER_SIDE_LIMIT && ai2TurnCount >= PER_SIDE_LIMIT;
+
+  const revealBufferedContent = useCallback(
+    async (messageId, fullText, signal) => {
+      const chunks = fullText.split(/(\s+)/).filter(Boolean);
+      let visible = '';
+
+      await wait(REVEAL_INITIAL_DELAY_MS);
+
+      for (const chunk of chunks) {
+        if (signal.aborted) {
+          throw new Error('reveal-interrupted');
+        }
+
+        visible += chunk;
+        updateMessage(messageId, { content: visible });
+        await wait(REVEAL_STEP_MS);
+      }
+    },
+    [updateMessage],
+  );
 
   const executeTurn = useCallback(
     async ({ forcedSide = null, forcedTurn = null } = {}) => {
@@ -106,18 +117,47 @@ export function useConversation() {
         return;
       }
 
-      const side = forcedSide || (aiTurnCount % 2 === 0 ? 'ai1' : 'ai2');
+      if (shouldStopBySideCap) {
+        completeConversation();
+        return;
+      }
+
+      let side = forcedSide || (aiTurnCount % 2 === 0 ? 'ai1' : 'ai2');
+
+      if (!forcedSide) {
+        if (side === 'ai1' && ai1TurnCount >= PER_SIDE_LIMIT) {
+          side = 'ai2';
+        }
+
+        if (side === 'ai2' && ai2TurnCount >= PER_SIDE_LIMIT) {
+          side = 'ai1';
+        }
+      }
+
+      if ((side === 'ai1' && ai1TurnCount >= PER_SIDE_LIMIT) || (side === 'ai2' && ai2TurnCount >= PER_SIDE_LIMIT)) {
+        completeConversation();
+        return;
+      }
+
       const turnNumber = forcedTurn || aiTurnCount + 1;
-      const speakerModel = side === 'ai1' ? setup.ai1Model : setup.ai2Model;
-      const opponentModel = side === 'ai1' ? setup.ai2Model : setup.ai1Model;
+      const speakerModelId = side === 'ai1' ? setup.ai1Model : setup.ai2Model;
+      const opponentModelId = side === 'ai1' ? setup.ai2Model : setup.ai1Model;
+      const speakerModelMeta = MODEL_BY_ID[speakerModelId];
+      const opponentModelMeta = MODEL_BY_ID[opponentModelId];
+      const speakerModel = speakerModelMeta?.model || speakerModelId;
+      const opponentModel = opponentModelMeta?.model || opponentModelId;
+
       const speakerPersona = getPersonaLabel(
-        speakerModel,
+        speakerModelMeta?.label || speakerModel,
         side === 'ai1' ? setup.persona1 : setup.persona2,
       );
       const opponentPersona = getPersonaLabel(
-        opponentModel,
+        opponentModelMeta?.label || opponentModel,
         side === 'ai1' ? setup.persona2 : setup.persona1,
       );
+
+      const sideTurnNumber = side === 'ai1' ? ai1TurnCount + 1 : ai2TurnCount + 1;
+      const openingSeed = side === 'ai1' ? setup.openingSeed1 : setup.openingSeed2;
 
       const prompt = buildTurnSystemPrompt({
         mode: setup.mode,
@@ -127,6 +167,8 @@ export function useConversation() {
         opponentModel,
         speakerPersona,
         opponentPersona,
+        openingSeed,
+        turnNumber: sideTurnNumber,
       });
 
       const messageId = createMessageId();
@@ -160,37 +202,24 @@ export function useConversation() {
         });
 
         await streamModelResponse({
+          provider: speakerModelMeta?.provider || 'groq',
           model: speakerModel,
           messages,
           sessionId,
           signal: controller.signal,
           onDelta: (delta) => {
             fullContent += delta;
-            updateMessage(messageId, { content: fullContent });
           },
         });
 
+        const trimmed = fullContent.trim();
+        await revealBufferedContent(messageId, trimmed, controller.signal);
+
         updateMessage(messageId, {
-          content: fullContent.trim(),
+          content: trimmed,
           status: 'done',
           interrupted: false,
         });
-
-        if (setup.mode === 'debate' && setup.endConditions.autoConsensus && side === 'ai2') {
-          const consensus = await requestConsensus({
-            transcript: [...transcript, { ...message, content: fullContent.trim(), status: 'done' }],
-            topic: setup.topic,
-            mode: setup.mode,
-          });
-
-          if (consensus?.consensusTriggered) {
-            setConsensus({
-              ...consensus,
-              turn: turnNumber,
-            });
-            completeConversation();
-          }
-        }
       } catch (error) {
         const errorText = String(error?.message || 'Unknown stream error');
         const interrupted = controller.signal.aborted;
@@ -215,15 +244,19 @@ export function useConversation() {
     },
     [
       aiTurnCount,
+      ai1TurnCount,
+      ai2TurnCount,
       addMessage,
       completeConversation,
+      shouldStopBySideCap,
+      revealBufferedContent,
       sessionId,
-      setConsensus,
       setStreamError,
       setStreaming,
       setup.ai1Model,
       setup.ai2Model,
-      setup.endConditions.autoConsensus,
+      setup.openingSeed1,
+      setup.openingSeed2,
       setup.mode,
       setup.persona1,
       setup.persona2,
@@ -244,12 +277,7 @@ export function useConversation() {
       return;
     }
 
-    if (summary.consensus?.consensusTriggered) {
-      completeConversation();
-      return;
-    }
-
-    if (shouldStopByFixedTurns) {
+    if (shouldStopBySideCap) {
       completeConversation();
       return;
     }
@@ -260,9 +288,8 @@ export function useConversation() {
     executeTurn,
     isRequesting,
     isStreaming,
-    shouldStopByFixedTurns,
+    shouldStopBySideCap,
     status,
-    summary.consensus?.consensusTriggered,
   ]);
 
   const pause = useCallback(() => {
@@ -303,6 +330,9 @@ export function useConversation() {
     isStreaming,
     isRequesting,
     aiTurnCount,
+    ai1TurnCount,
+    ai2TurnCount,
+    sideTurnLimit: PER_SIDE_LIMIT,
     startConversation,
     pause,
     resume,

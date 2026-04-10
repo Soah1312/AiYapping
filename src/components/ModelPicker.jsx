@@ -4,11 +4,15 @@ export default function ModelPicker({
   title,
   accent,
   model,
+  openingSeed,
+  onOpeningSeedChange,
   persona,
   onModelChange,
   onPersonaChange,
 }) {
   const activeModel = MODEL_BY_ID[model] || MODEL_OPTIONS[0];
+  const seedValue = typeof openingSeed === 'string' ? openingSeed : (persona || '');
+  const handleSeedChange = onOpeningSeedChange || onPersonaChange;
 
   return (
     <section className="surface-card p-4" style={{ borderColor: `${accent}66` }}>
@@ -31,7 +35,7 @@ export default function ModelPicker({
       </label>
       <select
         id={`${title}-model`}
-        className="mt-1 w-full rounded-lg border border-white/10 bg-[#0f0f16] p-2 text-sm"
+        className="theme-input theme-select mt-1"
         value={model}
         onChange={(event) => onModelChange(event.target.value)}
       >
@@ -42,15 +46,15 @@ export default function ModelPicker({
         ))}
       </select>
 
-      <label className="mt-4 block text-xs text-[var(--text-muted)]" htmlFor={`${title}-persona`}>
-        Persona Label (optional)
+      <label className="mt-4 block text-xs text-[var(--text-muted)]" htmlFor={`${title}-seed`}>
+        Opening Seed (optional)
       </label>
-      <input
-        id={`${title}-persona`}
-        className="mt-1 w-full rounded-lg border border-white/10 bg-[#0f0f16] p-2 text-sm"
-        value={persona}
-        onChange={(event) => onPersonaChange(event.target.value.slice(0, 60))}
-        placeholder="e.g. The Optimist"
+      <textarea
+        id={`${title}-seed`}
+        className="theme-input mt-1 min-h-20 resize-none"
+        value={seedValue}
+        onChange={(event) => handleSeedChange?.(event.target.value.slice(0, 200))}
+        placeholder="e.g. Start by arguing from a practical perspective"
       />
     </section>
   );
