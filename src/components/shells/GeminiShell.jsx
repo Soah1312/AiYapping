@@ -44,7 +44,7 @@ export default function GeminiShell({
             </button>
 
             <Link to="/" className="brand-name gemini-sidebar-brand">
-              <span className="gemini-collapse-hide gemini-gradient-text">Gemini</span>
+              <span className="gemini-collapse-hide gemini-gradient-text">Ai Yapping</span>
             </Link>
           </div>
 
@@ -95,8 +95,9 @@ export default function GeminiShell({
             <p className="gemini-empty-recents">You haven't seen them yap yet</p>
           )}
 
-          <p className="gemini-section-label gemini-collapse-hide">Quick prompts</p>
-          {(sidebarChats || []).map((chat) => (
+          <p className="gemini-section-label gemini-collapse-hide quick-prompts-label">Quick prompts</p>
+          <div className="quick-prompts-section">
+            {(sidebarChats || []).map((chat) => (
             <button
               key={chat.id}
               className={`gemini-nav-item ${activeChatId === chat.id ? 'active' : ''}`}
@@ -108,6 +109,7 @@ export default function GeminiShell({
               <span className="gemini-collapse-hide sidebar-item-title truncate">{chat.title}</span>
             </button>
           ))}
+          </div>
         </div>
       </aside>
 
@@ -116,7 +118,7 @@ export default function GeminiShell({
         <header className="app-header">
           <div className="flex items-center gap-3">
             <Link to="/" className="brand-name">
-              <span className="gemini-gradient-text">Gemini</span>
+              <span className="gemini-gradient-text">Ai Yapping</span>
             </Link>
           </div>
           <div className="flex items-center gap-3">

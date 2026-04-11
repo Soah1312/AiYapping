@@ -29,7 +29,7 @@ export default function GptShell({
         <div className="gpt-sidebar-top">
           <Link to="/" className="gpt-wordmark">
             <img src="/icons/openai-color.svg" alt="" className="gpt-logo-image" aria-hidden="true" />
-            <span className="gpt-wordmark-text gpt-collapse-hide">ChatGPT</span>
+            <span className="gpt-wordmark-text gpt-collapse-hide">Ai Yapping</span>
           </Link>
         </div>
 
@@ -67,8 +67,9 @@ export default function GptShell({
 
           <div className="gpt-divider gpt-collapse-hide" />
 
-          <p className="sidebar-section-label gpt-collapse-hide">Quick prompts</p>
-          {(sidebarChats || []).map((chat) => (
+          <p className="sidebar-section-label gpt-collapse-hide quick-prompts-label">Quick prompts</p>
+          <div className="quick-prompts-section">
+            {(sidebarChats || []).map((chat) => (
             <button
               key={chat.id}
               className={`sidebar-item ${activeChatId === chat.id ? 'active' : ''}`}
@@ -80,6 +81,7 @@ export default function GptShell({
               <span className="sidebar-item-title block truncate">{chat.title}</span>
             </button>
           ))}
+          </div>
         </div>
 
         <div className="gpt-sidebar-bottom">
@@ -102,7 +104,7 @@ export default function GptShell({
               {sidebarOpen ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
             </button>
             <Link to="/" className="brand-name">
-              ChatGPT
+              Ai Yapping
             </Link>
           </div>
           <div className="flex items-center gap-3">

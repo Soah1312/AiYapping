@@ -12,22 +12,22 @@
    THEME: CLAUDE  (light, warm, editorial — matches claude.ai)
    ============================================================ */
 [data-theme='claude'] {
-  --bg-primary:   #1a1a1a;
-  --bg-sidebar:   #1a1a1a;
-  --bg-card:      #2f2f2f;
-  --bg-hover:     #2a2a2a;
-  --bg-active:    #323232;
+  --bg-primary:   #FAF9F5;
+  --bg-sidebar:   #F3F2ED;
+  --bg-card:      #FFFFFF;
+  --bg-hover:     #E5E4DE;
+  --bg-active:    #DCDAD3;
 
-  --text-primary: #ccc8c1;
-  --text-secondary: #6b6459;
-  --text-placeholder: #6b6459;
+  --text-primary: #2D2A26;
+  --text-secondary: #716E69;
+  --text-placeholder: #A6A39C;
 
-  --border-color: #3d3b38;
-  --accent:       #c96442;
+  --border-color: #E2E0D9;
+  --accent:       #C15F3C;
 
-  --btn-bg:       #c96442;
-  --btn-hover:    #b5573a;
-  --btn-text:     #ffffff;
+  --btn-bg:       #C15F3C;
+  --btn-hover:    #A84D2F;
+  --btn-text:     #FFFFFF;
   --btn-radius:   8px;
 
   --card-radius:  12px;
@@ -41,7 +41,7 @@
   --surface-dark: var(--bg-card);
 
   --ai1:          var(--accent);
-  --ai2:          #a19c94;
+  --ai2:          #A19C94;
 
   --text-muted:   var(--text-secondary);
   --text-soft:    var(--text-secondary);
@@ -49,9 +49,9 @@
   --border:       var(--border-color);
   --border-soft:  var(--border-color);
 
-  --danger:       #d15858;
+  --danger:       #D15858;
 
-  --font-display: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-display: 'Recoleta', 'Playfair Display', serif;
   --font-body:    -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono:    'DM Mono', 'Courier New', monospace;
 
@@ -59,7 +59,7 @@
   --radius-btn:   var(--btn-radius);
   --radius-input: var(--input-radius);
 
-  --shadow-card:  none;
+  --shadow-card:  0 1px 3px rgba(0,0,0,0.05);
   --shadow-glow:  none;
 
   --nav-bg:       var(--bg-primary);
@@ -68,7 +68,7 @@
 
   --sidebar-w:    var(--sidebar-width);
 
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 /* ============================================================
@@ -278,11 +278,11 @@ h1, h2, h3, h4, .display-font {
 }
 
 [data-theme='claude'] .brand-name {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  font-weight: 600;
-  font-size: 1.1rem;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 1.15rem;
   color: var(--text-primary);
-  letter-spacing: 0;
+  letter-spacing: -0.02em;
 }
 
 .brand-name-mobile-only {
@@ -364,6 +364,13 @@ h1, h2, h3, h4, .display-font {
 
   .sidebar-backdrop.sidebar-open {
     display: block;
+  }
+
+  .prompt-starters-section,
+  .prompt-starters-label,
+  .quick-prompts-section,
+  .quick-prompts-label {
+    display: none;
   }
 }
 
@@ -713,6 +720,16 @@ h1, h2, h3, h4, .display-font {
   border-color: var(--border-color);
 }
 
+[data-theme='claude'] .app-header > div:last-child {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  [data-theme='claude'] .app-header > div:last-child {
+    display: flex;
+  }
+}
+
 [data-theme='chatgpt'] .app-header {
   background: #212121;
   border-color: rgba(255,255,255,0.06);
@@ -795,7 +812,7 @@ h1, h2, h3, h4, .display-font {
 }
 
 /* ============================================================
-   THEME SWITCHER
+   THEME SWITCHER - Floating pinned to top-right on mobile
    ============================================================ */
 .theme-switcher {
   display: flex;
@@ -806,6 +823,26 @@ h1, h2, h3, h4, .display-font {
   background: var(--surface-soft);
   border: 1px solid var(--border);
   flex-shrink: 0;
+}
+
+@media (max-width: 767px) {
+  .theme-switcher {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    z-index: 200;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  }
+}
+
+@media (min-width: 768px) {
+  .theme-switcher {
+    position: static;
+    top: auto;
+    right: auto;
+    z-index: auto;
+    box-shadow: none;
+  }
 }
 
 [data-theme='claude'] .theme-switcher {
@@ -852,9 +889,9 @@ h1, h2, h3, h4, .display-font {
   align-items: center;
 }
 
-.theme-tab--claude-active { color: #C96442; }
-.theme-tab--claude-inactive { color: #6b6459; }
-.theme-tab--claude-active .theme-tab-indicator { background: #323232; box-shadow: none; }
+.theme-tab--claude-active { color: #C15F3C; }
+.theme-tab--claude-inactive { color: #A6A39C; }
+.theme-tab--claude-active .theme-tab-indicator { background: #E2E0D9; box-shadow: none; }
 
 .theme-tab--gpt-active { color: #10A37F; }
 .theme-tab--gpt-inactive { color: #8E8EA0; }

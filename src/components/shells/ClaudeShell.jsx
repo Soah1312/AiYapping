@@ -39,7 +39,7 @@ export default function ClaudeShell({
       <aside className={`app-sidebar claude-sidebar scrollbar-thin ${mobileSidebarOpen ? 'sidebar-open' : ''} ${sidebarOpen ? 'sidebar-expanded' : 'sidebar-collapsed'}`}>
         <div className="claude-sidebar-top">
           <Link to="/" className="brand-name claude-sidebar-brand" onClick={() => setMobileSidebarOpen(false)}>
-            {sidebarOpen ? 'Claude' : 'C'}
+            {sidebarOpen ? 'Ai Yapping' : 'AY'}
           </Link>
 
           <div className="claude-top-actions">
@@ -89,8 +89,8 @@ export default function ClaudeShell({
 
         <div className="claude-divider" />
 
-        <p className="sidebar-section-label claude-collapse-hide">Prompt Starters</p>
-        <div className="flex flex-col gap-0.5 flex-1 overflow-y-auto scrollbar-thin claude-recents-wrap">
+        <p className="sidebar-section-label claude-collapse-hide prompt-starters-label">Prompt Starters</p>
+        <div className="flex flex-col gap-0.5 flex-1 overflow-y-auto scrollbar-thin claude-recents-wrap prompt-starters-section">
           {(sidebarChats || []).map((chat) => (
             <button
               key={chat.id}
@@ -164,8 +164,8 @@ export default function ClaudeShell({
                 <line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" />
               </svg>
             </button>
-            <Link to="/" className="brand-name brand-name-mobile-only">
-              Claude
+            <Link to="/" className="brand-name brand-name-mobile-only" style={{ fontFamily: 'var(--font-display)', fontWeight: '500' }}>
+              Ai Yapping
             </Link>
           </div>
           <ThemeSwitcher />
