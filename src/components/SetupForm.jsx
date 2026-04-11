@@ -15,13 +15,13 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
 
   const headingText = theme === 'claude'
     ? 'Let the yapping begin.'
-    : theme === 'gpt'
+    : theme === 'chatgpt'
       ? 'What can I help with?'
       : '✦ Where should we start?';
 
   const subText = theme === 'claude'
     ? "Pick two AIs, drop a prompt, and watch the sparks fly."
-    : theme === 'gpt'
+    : theme === 'chatgpt'
       ? 'Pick a topic below or type your own prompt.'
       : 'Set prompts for two models, then run.';
 
@@ -37,7 +37,7 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
       <div className="setup-hero-inner">
         {/* Heading */}
         <h1
-          className={`display-font ${theme === 'gemini' ? 'gemini-gradient-text' : ''}`}
+          className={`main-heading display-font ${theme === 'gemini' ? 'gemini-gradient-text' : ''}`}
           style={{
             fontSize: 'clamp(1.75rem, 4.5vw, 3rem)',
             lineHeight: 1.15,

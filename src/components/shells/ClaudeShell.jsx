@@ -1,6 +1,17 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Trash2 } from 'lucide-react';
+import {
+  Trash2,
+  Plus,
+  Search,
+  SlidersHorizontal,
+  MessageSquare,
+  Sparkles,
+  PanelLeftClose,
+  PanelLeftOpen,
+  User,
+  X,
+} from 'lucide-react';
 import ThemeSwitcher from '../ThemeSwitcher';
 
 export default function ClaudeShell({
@@ -13,99 +24,177 @@ export default function ClaudeShell({
   activeChatId,
   activeSavedChatId,
 }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+
+  const filteredSavedChats = useMemo(() => {
+    if (!normalizedQuery) {
+      return savedChats || [];
+    }
+
+    return (savedChats || []).filter((chat) =>
+      String(chat.title || '').toLowerCase().includes(normalizedQuery)
+      || String(chat.snippet || '').toLowerCase().includes(normalizedQuery),
+    );
+  }, [normalizedQuery, savedChats]);
+
+  const filteredSidebarChats = useMemo(() => {
+    if (!normalizedQuery) {
+      return sidebarChats || [];
+    }
+
+    return (sidebarChats || []).filter((chat) =>
+      String(chat.title || '').toLowerCase().includes(normalizedQuery)
+      || String(chat.snippet || '').toLowerCase().includes(normalizedQuery),
+    );
+  }, [normalizedQuery, sidebarChats]);
 
   return (
     <div className="app-shell">
       {/* Mobile backdrop */}
       <div
-        className={`sidebar-backdrop ${sidebarOpen ? 'sidebar-open' : ''}`}
-        onClick={() => setSidebarOpen(false)}
+        className={`sidebar-backdrop ${mobileSidebarOpen ? 'sidebar-open' : ''}`}
+        onClick={() => setMobileSidebarOpen(false)}
         aria-hidden="true"
       />
 
       {/* Sidebar */}
-      <aside className={`app-sidebar scrollbar-thin ${sidebarOpen ? 'sidebar-open' : ''}`}>
-        <div className="flex items-center justify-between px-2 pb-2">
-          <Link to="/" className="brand-name" onClick={() => setSidebarOpen(false)}>
-            AiYapping
+      <aside className={`app-sidebar claude-sidebar scrollbar-thin ${mobileSidebarOpen ? 'sidebar-open' : ''} ${sidebarOpen ? 'sidebar-expanded' : 'sidebar-collapsed'}`}>
+        <div className="claude-sidebar-top">
+          <Link to="/" className="brand-name claude-sidebar-brand" onClick={() => setMobileSidebarOpen(false)}>
+            {sidebarOpen ? 'Claude' : 'C'}
           </Link>
-          <button
-            className="hamburger-btn"
-            onClick={() => setSidebarOpen(false)}
-            aria-label="Close sidebar"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
+
+          <div className="claude-top-actions">
+            <button
+              type="button"
+              className="claude-collapse-btn"
+              aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+              onClick={() => setSidebarOpen((value) => !value)}
+            >
+              {sidebarOpen ? <PanelLeftClose size={15} /> : <PanelLeftOpen size={15} />}
+            </button>
+
+            <button
+              className="hamburger-btn"
+              onClick={() => setMobileSidebarOpen(false)}
+              aria-label="Close sidebar"
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         <button
-          className="sidebar-item"
-          style={{ background: '#F0EEE6', marginBottom: '0.5rem' }}
+          className="claude-nav-item"
+          style={{ border: '1px solid var(--border-color)' }}
           onClick={() => {
             onSelectChat?.(null);
-            setSidebarOpen(false);
+            setMobileSidebarOpen(false);
           }}
         >
-          <span className="sidebar-item-title" style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            New Duel
-          </span>
+          <Plus size={16} />
+          <span className="claude-collapse-hide">New chat</span>
         </button>
 
-        <div className="flex flex-col gap-0.5 flex-1 overflow-y-auto scrollbar-thin">
-          {(savedChats || []).length > 0 && (
-            <>
-              <p className="sidebar-section-label" style={{ marginTop: '0.25rem' }}>Saved Chats</p>
-              {(savedChats || []).map((chat) => (
-                <div
-                  key={chat.id}
-                  className={`sidebar-item ${activeSavedChatId === chat.id ? 'active' : ''}`}
-                >
-                  <button
-                    type="button"
-                    className="history-open-btn"
-                    onClick={() => {
-                      onSelectSavedChat?.(chat.id);
-                      setSidebarOpen(false);
-                    }}
-                  >
-                    <span className="sidebar-item-title block truncate">{chat.title}</span>
-                    <span className="sidebar-item-snippet block truncate">{chat.snippet}</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="history-delete-btn"
-                    aria-label="Delete saved chat"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onDeleteSavedChat?.(chat.id);
-                    }}
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                </div>
-              ))}
-            </>
-          )}
+        <button
+          type="button"
+          className={`claude-nav-item ${showSearch ? 'active' : ''}`}
+          onClick={() => {
+            setShowSearch((value) => !value);
+            if (showSearch) {
+              setSearchQuery('');
+            }
+          }}
+        >
+          <Search size={16} />
+          <span className="claude-collapse-hide">Search</span>
+        </button>
 
-          <p className="sidebar-section-label" style={{ marginTop: '0.5rem' }}>Prompt Starters</p>
-          {(sidebarChats || []).map((chat) => (
+        <button type="button" className="claude-nav-item">
+          <SlidersHorizontal size={16} />
+          <span className="claude-collapse-hide">Customize</span>
+        </button>
+
+        {sidebarOpen && showSearch && (
+          <div className="claude-search-wrap">
+            <Search size={14} />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              className="theme-input claude-search-input"
+              placeholder="Search chats and prompts"
+            />
+          </div>
+        )}
+
+        <div className="claude-divider" />
+
+        <p className="sidebar-section-label claude-collapse-hide">Prompt Starters</p>
+        <div className="flex flex-col gap-0.5 flex-1 overflow-y-auto scrollbar-thin claude-recents-wrap">
+          {filteredSidebarChats.map((chat) => (
             <button
               key={chat.id}
-              className={`sidebar-item ${activeChatId === chat.id ? 'active' : ''}`}
+              className={`claude-nav-item ${activeChatId === chat.id ? 'active' : ''}`}
               onClick={() => {
                 onSelectChat?.(chat);
-                setSidebarOpen(false);
+                setMobileSidebarOpen(false);
               }}
             >
-              <span className="sidebar-item-title">{chat.title}</span>
+              <Sparkles size={16} />
+              <span className="claude-collapse-hide sidebar-item-title">{chat.title}</span>
             </button>
           ))}
+
+          <div className="claude-divider" />
+
+          <p className="sidebar-section-label claude-collapse-hide" style={{ marginTop: 0 }}>Recents</p>
+
+          {filteredSavedChats.map((chat) => (
+            <div
+              key={chat.id}
+              className={`claude-history-item ${activeSavedChatId === chat.id ? 'active' : ''}`}
+            >
+              <button
+                type="button"
+                className="history-open-btn claude-history-open"
+                onClick={() => {
+                  onSelectSavedChat?.(chat.id);
+                  setMobileSidebarOpen(false);
+                }}
+              >
+                <MessageSquare size={15} />
+                <span className="claude-history-title claude-collapse-hide">{chat.title}</span>
+              </button>
+              <button
+                type="button"
+                className="history-delete-btn"
+                aria-label="Delete saved chat"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onDeleteSavedChat?.(chat.id);
+                }}
+              >
+                <Trash2 size={13} />
+              </button>
+            </div>
+          ))}
+
+          {sidebarOpen && filteredSavedChats.length === 0 && (
+            <p className="claude-empty-recents">You haven't seen them yap yet.</p>
+          )}
+        </div>
+
+        <div className="claude-sidebar-bottom">
+          <div className="claude-user-row">
+            <User size={16} />
+            <span className="claude-collapse-hide">You</span>
+          </div>
         </div>
       </aside>
 
@@ -115,7 +204,7 @@ export default function ClaudeShell({
           <div className="flex items-center gap-2">
             <button
               className="hamburger-btn"
-              onClick={() => setSidebarOpen(true)}
+              onClick={() => setMobileSidebarOpen(true)}
               aria-label="Open sidebar"
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -123,7 +212,7 @@ export default function ClaudeShell({
               </svg>
             </button>
             <Link to="/" className="brand-name brand-name-mobile-only">
-              AiYapping
+              Claude
             </Link>
           </div>
           <ThemeSwitcher />

@@ -35,8 +35,8 @@ const THEME_CONFIG = {
     activeClass: 'theme-tab--claude-active',
     inactiveClass: 'theme-tab--claude-inactive',
   },
-  gpt: {
-    label: 'GPT',
+  chatgpt: {
+    label: 'ChatGPT',
     Icon: GPTIcon,
     activeClass: 'theme-tab--gpt-active',
     inactiveClass: 'theme-tab--gpt-inactive',

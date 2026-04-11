@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
-export const THEMES = ['claude', 'gpt', 'gemini'];
+export const THEMES = ['claude', 'chatgpt', 'gemini'];
 const STORAGE_KEY = 'ai-arena-theme';
 
 const ThemeContext = createContext(null);

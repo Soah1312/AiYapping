@@ -1,7 +1,7 @@
 /* ============================================================
    FONT IMPORTS
    ============================================================ */
-@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Karla:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,400&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Karla:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -11,49 +11,69 @@
    THEME: CLAUDE  (light, warm, editorial — matches claude.ai)
    ============================================================ */
 [data-theme='claude'] {
-  --bg:           #FAF9F5;
-  --bg-dark:      #141413;
-  --surface:      #FFFFFF;
-  --surface-soft: #F5F3EB;
-  --surface-dark: #30302e;
+  --bg-primary:   #1a1a1a;
+  --bg-sidebar:   #1a1a1a;
+  --bg-card:      #2f2f2f;
+  --bg-hover:     #2a2a2a;
+  --bg-active:    #323232;
 
-  --ai1:          #C96442;
-  --ai2:          #5E5D59;
+  --text-primary: #ccc8c1;
+  --text-secondary: #6b6459;
+  --text-placeholder: #6b6459;
 
-  --text-primary: #1A1915;
-  --text-muted:   #8C8B84;
-  --text-soft:    #6B6A64;
+  --border-color: #3d3b38;
+  --accent:       #c96442;
 
-  --border:       #E8E5DC;
-  --border-soft:  #F0EEE6;
+  --btn-bg:       #c96442;
+  --btn-hover:    #b5573a;
+  --btn-text:     #ffffff;
+  --btn-radius:   8px;
 
-  --accent:       #C96442;
-  --danger:       #B53333;
+  --card-radius:  12px;
+  --input-radius: 16px;
+  --sidebar-width: 260px;
 
-  --font-display: 'Lora', Georgia, 'Times New Roman', serif;
-  --font-body:    'Karla', 'Segoe UI', system-ui, sans-serif;
+  --bg:           var(--bg-primary);
+  --bg-dark:      var(--bg-primary);
+  --surface:      var(--bg-card);
+  --surface-soft: var(--bg-card);
+  --surface-dark: var(--bg-card);
+
+  --ai1:          var(--accent);
+  --ai2:          #a19c94;
+
+  --text-muted:   var(--text-secondary);
+  --text-soft:    var(--text-secondary);
+
+  --border:       var(--border-color);
+  --border-soft:  var(--border-color);
+
+  --danger:       #d15858;
+
+  --font-display: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-body:    -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono:    'DM Mono', 'Courier New', monospace;
 
-  --radius-card:  12px;
-  --radius-btn:   8px;
-  --radius-input: 10px;
+  --radius-card:  var(--card-radius);
+  --radius-btn:   var(--btn-radius);
+  --radius-input: var(--input-radius);
 
-  --shadow-card:  0 1px 3px rgba(0,0,0,0.04), 0 0 0 1px #E8E5DC;
-  --shadow-glow:  0 8px 32px rgba(201,100,66,0.12);
+  --shadow-card:  none;
+  --shadow-glow:  none;
 
-  --nav-bg:       #FAF9F5;
-  --nav-border:   #E8E5DC;
-  --nav-text:     #1A1915;
+  --nav-bg:       var(--bg-primary);
+  --nav-border:   var(--border-color);
+  --nav-text:     var(--text-primary);
 
-  --sidebar-w:    260px;
+  --sidebar-w:    var(--sidebar-width);
 
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 /* ============================================================
    THEME: GPT  (dark, clean, minimal — matches ChatGPT)
    ============================================================ */
-[data-theme='gpt'] {
+[data-theme='chatgpt'] {
   --bg:           #212121;
   --bg-dark:      #171717;
   --surface:      #2F2F2F;
@@ -174,14 +194,14 @@ h1, h2, h3, h4, .display-font {
 [data-theme='claude'] h3,
 [data-theme='claude'] .display-font {
   font-weight: 500;
-  letter-spacing: 0.005em;
+  letter-spacing: 0;
   line-height: 1.15;
 }
 
-[data-theme='gpt'] h1,
-[data-theme='gpt'] h2,
-[data-theme='gpt'] h3,
-[data-theme='gpt'] .display-font {
+[data-theme='chatgpt'] h1,
+[data-theme='chatgpt'] h2,
+[data-theme='chatgpt'] h3,
+[data-theme='chatgpt'] .display-font {
   font-weight: 600;
   letter-spacing: -0.02em;
 }
@@ -216,11 +236,11 @@ h1, h2, h3, h4, .display-font {
 }
 
 [data-theme='claude'] .brand-name {
-  font-family: 'Lora', Georgia, serif;
-  font-weight: 500;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-weight: 600;
   font-size: 1.1rem;
-  color: #1A1915;
-  letter-spacing: 0.01em;
+  color: var(--text-primary);
+  letter-spacing: 0;
 }
 
 .brand-name-mobile-only {
@@ -233,7 +253,7 @@ h1, h2, h3, h4, .display-font {
   }
 }
 
-[data-theme='gpt'] .brand-name {
+[data-theme='chatgpt'] .brand-name {
   font-weight: 600;
   font-size: 1.15rem;
   color: #ECECEC;
@@ -314,60 +334,77 @@ h1, h2, h3, h4, .display-font {
    CLAUDE SIDEBAR
    ============================================================ */
 [data-theme='claude'] .app-sidebar {
-  background: #FAF9F5;
-  border-right: 1px solid #E8E5DC;
-  padding: 1rem 0.75rem;
-  gap: 0.25rem;
+  background: var(--bg-sidebar);
+  border-right: none;
+  padding: 12px;
+  gap: 2px;
+  transition: width 0.2s ease, transform 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+
+[data-theme='claude'] .app-sidebar.sidebar-expanded {
+  width: 260px;
+}
+
+[data-theme='claude'] .app-sidebar.sidebar-collapsed {
+  width: 60px;
+  padding-left: 8px;
+  padding-right: 8px;
 }
 
 [data-theme='claude'] .sidebar-item {
   display: flex;
   align-items: flex-start;
   gap: 0.5rem;
-  padding: 0.625rem 0.75rem;
-  border-radius: 10px;
+  padding: 6px 12px;
+  border-radius: 8px;
   border: none;
   background: transparent;
-  color: #1A1915;
+  color: var(--text-primary);
   text-align: left;
   width: 100%;
   cursor: pointer;
   font-family: var(--font-body);
-  font-size: 0.8125rem;
-  line-height: 1.4;
+  font-size: 0.9rem;
+  line-height: 1.3;
   transition: background 0.15s ease;
 }
 
 [data-theme='claude'] .sidebar-item:hover {
-  background: #F0EEE6;
+  background: var(--bg-hover);
 }
 
 [data-theme='claude'] .sidebar-item.active {
-  background: #EDEAE0;
+  background: var(--bg-active);
 }
 
 [data-theme='claude'] .sidebar-item-title {
   font-weight: 500;
-  color: #1A1915;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 [data-theme='claude'] .sidebar-item-snippet {
-  font-size: 0.6875rem;
-  color: #8C8B84;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
   margin-top: 2px;
   line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ============================================================
    GPT SIDEBAR — matches ChatGPT's #171717 dark
    ============================================================ */
-[data-theme='gpt'] .app-sidebar {
+[data-theme='chatgpt'] .app-sidebar {
   background: #171717;
   padding: 0.75rem 0.5rem;
   gap: 0.125rem;
 }
 
-[data-theme='gpt'] .sidebar-item {
+[data-theme='chatgpt'] .sidebar-item {
   display: flex;
   align-items: center;
   gap: 0.625rem;
@@ -385,20 +422,20 @@ h1, h2, h3, h4, .display-font {
   transition: background 0.15s ease;
 }
 
-[data-theme='gpt'] .sidebar-item:hover {
+[data-theme='chatgpt'] .sidebar-item:hover {
   background: #2F2F2F;
 }
 
-[data-theme='gpt'] .sidebar-item.active {
+[data-theme='chatgpt'] .sidebar-item.active {
   background: #2F2F2F;
 }
 
-[data-theme='gpt'] .sidebar-item-title {
+[data-theme='chatgpt'] .sidebar-item-title {
   font-weight: 500;
   color: #ECECEC;
 }
 
-[data-theme='gpt'] .sidebar-item-snippet {
+[data-theme='chatgpt'] .sidebar-item-snippet {
   font-size: 0.6875rem;
   color: #8E8EA0;
   margin-top: 1px;
@@ -500,11 +537,11 @@ h1, h2, h3, h4, .display-font {
 }
 
 [data-theme='claude'] .app-header {
-  background: #FAF9F5;
-  border-color: #E8E5DC;
+  background: var(--bg-primary);
+  border-color: var(--border-color);
 }
 
-[data-theme='gpt'] .app-header {
+[data-theme='chatgpt'] .app-header {
   background: #212121;
   border-color: rgba(255,255,255,0.06);
 }
@@ -544,11 +581,13 @@ h1, h2, h3, h4, .display-font {
 }
 
 [data-theme='claude'] .surface-card {
-  background: #FFFFFF;
-  border-color: #E8E5DC;
+  background: var(--bg-card);
+  border-color: var(--border-color);
+  border-radius: var(--card-radius);
+  box-shadow: none;
 }
 
-[data-theme='gpt'] .surface-card {
+[data-theme='chatgpt'] .surface-card {
   background: #2F2F2F;
   border-color: rgba(255,255,255,0.07);
 }
@@ -596,11 +635,11 @@ h1, h2, h3, h4, .display-font {
 }
 
 [data-theme='claude'] .theme-switcher {
-  background: #F0EEE6;
-  border-color: #E8E5DC;
+  background: var(--bg-card);
+  border-color: var(--border-color);
 }
 
-[data-theme='gpt'] .theme-switcher {
+[data-theme='chatgpt'] .theme-switcher {
   background: #2F2F2F;
   border-color: rgba(255,255,255,0.08);
 }
@@ -640,8 +679,8 @@ h1, h2, h3, h4, .display-font {
 }
 
 .theme-tab--claude-active { color: #C96442; }
-.theme-tab--claude-inactive { color: #8C8B84; }
-.theme-tab--claude-active .theme-tab-indicator { background: #FFFFFF; box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 0 0 1px #E8E5DC; }
+.theme-tab--claude-inactive { color: #6b6459; }
+.theme-tab--claude-active .theme-tab-indicator { background: #323232; box-shadow: none; }
 
 .theme-tab--gpt-active { color: #10A37F; }
 .theme-tab--gpt-inactive { color: #8E8EA0; }
@@ -696,7 +735,7 @@ h1, h2, h3, h4, .display-font {
   border-radius: 0;
   box-shadow: none;
   padding: 1rem 0;
-  border-bottom: 1px solid #F0EEE6;
+  border-bottom: 1px solid var(--border-color);
 }
 
 [data-theme='claude'] .msg-card:last-child {
@@ -704,7 +743,7 @@ h1, h2, h3, h4, .display-font {
 }
 
 /* GPT: transparent base, subtle top border */
-[data-theme='gpt'] .msg-card {
+[data-theme='chatgpt'] .msg-card {
   background: transparent;
   border: none;
   border-radius: 0;
@@ -802,11 +841,11 @@ h1, h2, h3, h4, .display-font {
 }
 
 [data-theme='claude'] .bottom-bar {
-  background: #FAF9F5;
-  border-color: #E8E5DC;
+  background: var(--bg-primary);
+  border-color: var(--border-color);
 }
 
-[data-theme='gpt'] .bottom-bar {
+[data-theme='chatgpt'] .bottom-bar {
   background: #212121;
   border-color: rgba(255,255,255,0.06);
 }
@@ -865,20 +904,25 @@ h1, h2, h3, h4, .display-font {
 }
 
 [data-theme='claude'] .theme-input {
-  background: #FFFFFF;
-  border-color: #E8E5DC;
-  color: #1A1915;
+  background: var(--bg-card);
+  border-color: var(--border-color);
+  color: var(--text-primary);
   font-size: 0.9375rem;
+  border-radius: var(--input-radius);
+}
+
+[data-theme='claude'] .theme-input::placeholder {
+  color: var(--text-placeholder);
 }
 
 [data-theme='claude'] .theme-input:focus {
-  border-color: #C96442;
-  box-shadow: 0 0 0 3px rgba(201, 100, 66, 0.12);
+  border-color: var(--accent);
+  box-shadow: none;
 }
 
 [data-theme='claude'] .theme-select option {
-  background: #FFF;
-  color: #1A1915;
+  background: var(--bg-card);
+  color: var(--text-primary);
 }
 
 /* ============================================================
@@ -917,12 +961,21 @@ h1, h2, h3, h4, .display-font {
 }
 
 [data-theme='claude'] .btn-primary {
-  background: #C96442;
-  color: #FAF9F5;
-  border-radius: 8px;
+  background: var(--btn-bg);
+  color: var(--btn-text);
+  border-radius: var(--btn-radius);
+  box-shadow: none;
+  transform: none;
 }
 
-[data-theme='gpt'] .btn-primary {
+[data-theme='claude'] .btn-primary:hover:not(:disabled) {
+  background: var(--btn-hover);
+  opacity: 1;
+  box-shadow: none;
+  transform: none;
+}
+
+[data-theme='chatgpt'] .btn-primary {
   background: #ECECEC;
   color: #171717;
   border-radius: 999px;
@@ -959,13 +1012,13 @@ h1, h2, h3, h4, .display-font {
 }
 
 [data-theme='claude'] .btn-secondary {
-  background: #F5F3EB;
-  border-color: #E8E5DC;
-  color: #4D4C48;
+  background: transparent;
+  border-color: var(--border-color);
+  color: var(--text-primary);
   border-radius: 8px;
 }
 [data-theme='claude'] .btn-secondary:hover {
-  background: #EDEAE0;
+  background: var(--bg-hover);
 }
 
 /* ============================================================
@@ -1049,18 +1102,22 @@ h1, h2, h3, h4, .display-font {
 }
 
 [data-theme='claude'] .suggestion-chip {
-  border-radius: 10px;
-  border-color: #E8E5DC;
+  background: var(--bg-card);
+  border-radius: var(--card-radius);
+  border-color: var(--border-color);
+  color: var(--text-secondary);
 }
 [data-theme='claude'] .suggestion-chip:hover {
-  background: #F0EEE6;
+  background: var(--bg-card);
+  border-color: var(--accent);
+  color: var(--text-primary);
 }
 
-[data-theme='gpt'] .suggestion-chip {
+[data-theme='chatgpt'] .suggestion-chip {
   border-radius: 16px;
   border-color: rgba(255,255,255,0.10);
 }
-[data-theme='gpt'] .suggestion-chip:hover {
+[data-theme='chatgpt'] .suggestion-chip:hover {
   background: #2F2F2F;
 }
 
@@ -1076,12 +1133,12 @@ h1, h2, h3, h4, .display-font {
    VERDICT / SUMMARY
    ============================================================ */
 [data-theme='claude'] .verdict-winner {
-  color: #C96442;
-  font-family: 'Lora', Georgia, serif;
-  font-weight: 500;
+  color: var(--accent);
+  font-family: 'Crimson Pro', Georgia, serif;
+  font-weight: 400;
 }
 
-[data-theme='gpt'] .verdict-winner {
+[data-theme='chatgpt'] .verdict-winner {
   color: #10A37F;
 }
 
@@ -1148,6 +1205,199 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--text-muted);
+}
+
+[data-theme='claude'] .sidebar-section-label {
+  margin-top: 16px;
+  margin-bottom: 4px;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+[data-theme='claude'] .main-heading {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 3rem !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme='claude'] .claude-sidebar-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 2px 8px;
+}
+
+[data-theme='claude'] .claude-sidebar-brand {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+[data-theme='claude'] .claude-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+[data-theme='claude'] .claude-collapse-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+[data-theme='claude'] .claude-collapse-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+[data-theme='claude'] .claude-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+[data-theme='claude'] .claude-nav-item:hover {
+  background: var(--bg-hover);
+}
+
+[data-theme='claude'] .claude-nav-item.active {
+  background: var(--bg-active);
+}
+
+[data-theme='claude'] .claude-divider {
+  margin: 10px 0 4px;
+  border-top: 1px solid var(--border-color);
+}
+
+[data-theme='claude'] .claude-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 0 2px;
+  color: var(--text-secondary);
+}
+
+[data-theme='claude'] .claude-search-input {
+  height: 34px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+[data-theme='claude'] .claude-recents-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+[data-theme='claude'] .claude-history-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 8px;
+  padding: 0 4px;
+}
+
+[data-theme='claude'] .claude-history-item:hover {
+  background: var(--bg-hover);
+}
+
+[data-theme='claude'] .claude-history-item.active {
+  background: var(--bg-active);
+}
+
+[data-theme='claude'] .claude-history-open {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+}
+
+[data-theme='claude'] .claude-history-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+[data-theme='claude'] .claude-empty-recents {
+  margin: 6px 10px;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+[data-theme='claude'] .claude-sidebar-bottom {
+  margin-top: auto;
+  padding-top: 10px;
+}
+
+[data-theme='claude'] .claude-user-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border-color);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+[data-theme='claude'] .app-sidebar.sidebar-collapsed .claude-collapse-hide {
+  display: none;
+}
+
+[data-theme='claude'] .app-sidebar.sidebar-collapsed .claude-nav-item,
+[data-theme='claude'] .app-sidebar.sidebar-collapsed .claude-history-open {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+[data-theme='claude'] .app-sidebar.sidebar-collapsed .claude-history-item {
+  justify-content: center;
+}
+
+[data-theme='claude'] .app-sidebar.sidebar-collapsed .claude-empty-recents {
+  display: none;
+}
+
+[data-theme='claude'] .app-sidebar.sidebar-collapsed .claude-nav-item,
+[data-theme='claude'] .app-sidebar.sidebar-collapsed .claude-history-open {
+  min-height: 34px;
+}
+
+[data-theme='claude'] .app-sidebar.sidebar-collapsed .history-delete-btn {
+  display: none;
+}
+
+[data-theme='claude'] select.theme-input {
+  border-radius: 8px;
+}
+
+[data-theme='claude'] textarea.theme-input {
+  border-radius: var(--input-radius);
 }
 
 /* ============================================================
