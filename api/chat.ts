@@ -7,19 +7,56 @@ export const config = {
 };
 
 type ChatRequestBody = {
-  provider?: 'groq' | 'huggingface' | string;
+  provider?: 'groq' | 'huggingface' | 'nvidia' | string;
   model?: string;
   modelId?: string;
   messages: Array<{ role: string; content: string }>;
   sessionId: string;
 };
 
+const NVIDIA_MODEL_MATCHERS = [
+  /^deepseek-ai\//i,
+  /^z-ai\//i,
+  /^google\/gemma-7b$/i,
+  /^mistralai\/mistral-large-3-675b-instruct-2512$/i,
+  /^moonshotai\/kimi-k2-instruct@nvidia$/i,
+];
+
+const GROQ_MODEL_MATCHERS = [
+  /^llama-3\.3-70b-versatile$/i,
+  /^llama-3\.1-8b-instant$/i,
+  /^meta-llama\/llama-4-scout-17b-16e-instruct$/i,
+  /^qwen\/qwen3-32b$/i,
+  /^moonshotai\/kimi-k2-instruct$/i,
+  /^openai\/gpt-oss-20b$/i,
+];
+
 function resolveProvider(provider: string | undefined, modelId: string) {
-  if (provider === 'groq' || provider === 'huggingface') {
+  if (provider === 'groq' || provider === 'huggingface' || provider === 'nvidia') {
     return provider;
   }
 
+  if (modelId.endsWith('@nvidia')) {
+    return 'nvidia';
+  }
+
+  if (NVIDIA_MODEL_MATCHERS.some((pattern) => pattern.test(modelId))) {
+    return 'nvidia';
+  }
+
+  if (GROQ_MODEL_MATCHERS.some((pattern) => pattern.test(modelId))) {
+    return 'groq';
+  }
+
   return modelId.includes('/') ? 'huggingface' : 'groq';
+}
+
+function normalizeNvidiaModelId(modelId: string) {
+  if (modelId.endsWith('@nvidia')) {
+    return modelId.slice(0, -'@nvidia'.length);
+  }
+
+  return modelId;
 }
 
 function extractHfDelta(payload: Record<string, unknown>) {
@@ -53,6 +90,245 @@ function extractHfDelta(payload: Record<string, unknown>) {
       : '';
 
   return tokenText || choiceDelta || choiceMessage || directDelta || generatedText || '';
+}
+
+function extractNvidiaDelta(payload: Record<string, unknown>) {
+  const choice =
+    Array.isArray(payload.choices) && payload.choices[0] && typeof payload.choices[0] === 'object'
+      ? (payload.choices[0] as { delta?: { content?: string; reasoning_content?: string }; message?: { content?: string } })
+      : null;
+
+  const content = choice?.delta?.content ? String(choice.delta.content) : '';
+  const message = choice?.message?.content ? String(choice.message.content) : '';
+
+  return content || message || '';
+}
+
+function resolveNvidiaApiKey(modelId: string) {
+  const resolvedModelId = normalizeNvidiaModelId(modelId);
+  const isDeepseekModel = resolvedModelId === 'deepseek-ai/deepseek-v3.2' || resolvedModelId.includes('deepseek');
+  const isGemmaModel = resolvedModelId.includes('gemma-7b') || resolvedModelId.includes('/gemma-7b');
+  const isGlmModel = resolvedModelId === 'z-ai/glm4.7' || resolvedModelId.startsWith('z-ai/glm');
+  const isMistralLargeModel = resolvedModelId === 'mistralai/mistral-large-3-675b-instruct-2512';
+  const isKimiModel = resolvedModelId === 'moonshotai/kimi-k2-instruct';
+
+  if (isDeepseekModel) {
+    return process.env.NVIDIA_API_KEY_DEEPSEEK || '';
+  }
+
+  if (isGemmaModel) {
+    return process.env.NVIDIA_API_KEY_GEMMA || '';
+  }
+
+  if (isGlmModel) {
+    return process.env.NVIDIA_API_KEY_GLM_MODEL || '';
+  }
+
+  if (isMistralLargeModel) {
+    return process.env.NVIDIA_API_KEY_MISTRAL_LARGE || '';
+  }
+
+  if (isKimiModel) {
+    return process.env.NVIDIA_API_KEY_KIMI || '';
+  }
+
+  return process.env.NVIDIA_API_KEY_GENERAL || '';
+}
+
+async function createNvidiaStreamResponse({
+  modelId,
+  messages,
+  sessionId,
+}: {
+  modelId: string;
+  messages: Array<{ role: string; content: string }>;
+  sessionId: string;
+}) {
+  const apiKey = resolveNvidiaApiKey(modelId);
+  if (!apiKey) {
+    return Response.json(
+      {
+        error:
+          'Missing NVIDIA API key for this model. Set the exact model key: NVIDIA_API_KEY_DEEPSEEK, NVIDIA_API_KEY_GEMMA, NVIDIA_API_KEY_GLM_MODEL, NVIDIA_API_KEY_MISTRAL_LARGE, NVIDIA_API_KEY_KIMI, or NVIDIA_API_KEY_GENERAL.',
+      },
+      { status: 500 },
+    );
+  }
+
+  const normalizedMessages = normalizeMessages(messages).map((message) => ({
+    role: message.role,
+    content: typeof message.content === 'string' ? message.content : String(message.content || ''),
+  }));
+
+  const nvidiaMessages = normalizedMessages.map((message) => {
+    if (message.role === 'system') {
+      return {
+        role: 'user',
+        content: `[Instruction]\n${message.content}`,
+      };
+    }
+
+    return message;
+  });
+
+  const resolvedModelId = normalizeNvidiaModelId(modelId);
+  const isGlmModel = resolvedModelId === 'z-ai/glm4.7' || resolvedModelId.startsWith('z-ai/glm');
+  const isMistralLargeModel = resolvedModelId === 'mistralai/mistral-large-3-675b-instruct-2512';
+  const isKimiModel = resolvedModelId === 'moonshotai/kimi-k2-instruct';
+  const nvidiaBaseBody: Record<string, unknown> = {
+    model: resolvedModelId,
+    messages: nvidiaMessages,
+    temperature: isGlmModel ? 1 : isMistralLargeModel ? 0.15 : isKimiModel ? 0.6 : 0.7,
+    top_p: isGlmModel ? 1 : isMistralLargeModel ? 1 : isKimiModel ? 0.9 : 0.9,
+    max_tokens: isGlmModel ? 16384 : isMistralLargeModel ? 2048 : isKimiModel ? 4096 : 900,
+    frequency_penalty: isMistralLargeModel ? 0 : 0,
+    presence_penalty: isMistralLargeModel ? 0 : 0,
+    stream: true,
+  };
+
+  const nvidiaBodies: Array<Record<string, unknown>> = isGlmModel
+    ? [
+        {
+          ...nvidiaBaseBody,
+          extra_body: {
+            chat_template_kwargs: {
+              enable_thinking: true,
+              clear_thinking: true,
+            },
+          },
+        },
+        {
+          ...nvidiaBaseBody,
+          chat_template_kwargs: {
+            enable_thinking: true,
+            clear_thinking: true,
+          },
+        },
+        {
+          ...nvidiaBaseBody,
+        },
+      ]
+    : [nvidiaBaseBody];
+
+  let upstream: Response | null = null;
+  let lastErrorText = '';
+
+  for (const nvidiaBody of nvidiaBodies) {
+    const candidate = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream, application/json',
+      },
+      body: JSON.stringify(nvidiaBody),
+    });
+
+    upstream = candidate;
+    if (candidate.ok) {
+      break;
+    }
+
+    lastErrorText = await candidate.text();
+    const lowerError = lastErrorText.toLowerCase();
+    const retryablePayloadError =
+      candidate.status === 400 &&
+      (lowerError.includes('unsupported parameter') ||
+        lowerError.includes('extra_body') ||
+        lowerError.includes('chat_template_kwargs'));
+
+    if (!retryablePayloadError) {
+      break;
+    }
+  }
+
+  if (!upstream) {
+    return Response.json({ error: 'NVIDIA request failed before reaching upstream.' }, { status: 500 });
+  }
+
+  if (!upstream.ok) {
+    const errorText = lastErrorText || (await upstream.text());
+    return Response.json({ error: `NVIDIA error ${upstream.status}: ${errorText}` }, { status: upstream.status });
+  }
+
+  if (!upstream.body) {
+    return Response.json({ error: 'NVIDIA stream body is empty.' }, { status: 500 });
+  }
+
+  const upstreamBody = upstream.body;
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      const write = (payload: Record<string, unknown>) => {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+      };
+
+      try {
+        const reader = upstreamBody.getReader();
+        let buffer = '';
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) {
+            break;
+          }
+
+          buffer += decoder.decode(value, { stream: true });
+          const blocks = buffer.split('\n\n');
+          buffer = blocks.pop() || '';
+
+          for (const block of blocks) {
+            const lines = block.split('\n').map((line) => line.trim());
+            const dataLine = lines.find((line) => line.startsWith('data:'));
+
+            if (!dataLine) {
+              continue;
+            }
+
+            const raw = dataLine.slice(5).trim();
+            if (!raw || raw === '[DONE]') {
+              continue;
+            }
+
+            let payload: Record<string, unknown>;
+            try {
+              payload = JSON.parse(raw) as Record<string, unknown>;
+            } catch {
+              write({ delta: raw });
+              continue;
+            }
+
+            if (payload.error) {
+              throw new Error(String(payload.error));
+            }
+
+            const delta = extractNvidiaDelta(payload);
+            if (delta) {
+              write({ delta });
+            }
+          }
+        }
+
+        await incrementUsage(sessionId);
+        controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+      } catch (error) {
+        write({ error: String((error as Error)?.message || 'NVIDIA stream failed') });
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache, no-transform',
+      Connection: 'keep-alive',
+    },
+  });
 }
 
 async function createHuggingFaceStreamResponse({
@@ -285,22 +561,18 @@ export default async function handler(request: Request): Promise<Response> {
 
     const provider = resolveProvider(body?.provider, modelId);
 
-    const usage = await getUsageStatus(body.sessionId);
-    if (usage.turnsUsed >= usage.limit) {
-      return Response.json(
-        {
-          error: 'Daily free turn limit reached (10).',
-          usage: {
-            remaining: 0,
-            limit: usage.limit,
-          },
-        },
-        { status: 429 },
-      );
-    }
+    await getUsageStatus(body.sessionId);
 
     if (provider === 'huggingface') {
       return createHuggingFaceStreamResponse({
+        modelId,
+        messages: body.messages,
+        sessionId: body.sessionId,
+      });
+    }
+
+    if (provider === 'nvidia') {
+      return createNvidiaStreamResponse({
         modelId,
         messages: body.messages,
         sessionId: body.sessionId,

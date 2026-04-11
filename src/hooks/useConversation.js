@@ -5,14 +5,7 @@ import { buildTurnSystemPrompt, getPersonaLabel } from '../lib/prompts';
 import { useStream } from './useStream';
 
 const PER_SIDE_LIMIT = 10;
-const REVEAL_INITIAL_DELAY_MS = 220;
-const REVEAL_STEP_MS = 16;
-
-function wait(ms) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
+const STREAM_FLUSH_INTERVAL_MS = 35;
 
 function createMessageId() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -90,26 +83,6 @@ export function useConversation() {
   );
 
   const shouldStopBySideCap = ai1TurnCount >= PER_SIDE_LIMIT && ai2TurnCount >= PER_SIDE_LIMIT;
-
-  const revealBufferedContent = useCallback(
-    async (messageId, fullText, signal) => {
-      const chunks = fullText.split(/(\s+)/).filter(Boolean);
-      let visible = '';
-
-      await wait(REVEAL_INITIAL_DELAY_MS);
-
-      for (const chunk of chunks) {
-        if (signal.aborted) {
-          throw new Error('reveal-interrupted');
-        }
-
-        visible += chunk;
-        updateMessage(messageId, { content: visible });
-        await wait(REVEAL_STEP_MS);
-      }
-    },
-    [updateMessage],
-  );
 
   const executeTurn = useCallback(
     async ({ forcedSide = null, forcedTurn = null } = {}) => {
@@ -191,6 +164,7 @@ export function useConversation() {
       runningTurnRef.current = true;
 
       let fullContent = '';
+      let lastFlushAt = 0;
       const controller = new AbortController();
       abortControllerRef.current = controller;
 
@@ -209,11 +183,18 @@ export function useConversation() {
           signal: controller.signal,
           onDelta: (delta) => {
             fullContent += delta;
+            const now = Date.now();
+            if (now - lastFlushAt >= STREAM_FLUSH_INTERVAL_MS) {
+              lastFlushAt = now;
+              updateMessage(messageId, {
+                content: fullContent,
+                status: 'streaming',
+              });
+            }
           },
         });
 
         const trimmed = fullContent.trim();
-        await revealBufferedContent(messageId, trimmed, controller.signal);
 
         updateMessage(messageId, {
           content: trimmed,
@@ -249,7 +230,6 @@ export function useConversation() {
       addMessage,
       completeConversation,
       shouldStopBySideCap,
-      revealBufferedContent,
       sessionId,
       setStreamError,
       setStreaming,

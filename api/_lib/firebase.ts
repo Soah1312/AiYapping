@@ -13,7 +13,7 @@ import {
   where,
 } from 'firebase/firestore/lite';
 
-const DAILY_TURN_LIMIT = 10;
+const DAILY_TURN_LIMIT = 999999;
 const devUsageStore = new Map<string, { turnsUsed: number; lastReset: string; updatedAt: string }>();
 const devConversationStore = new Map<string, Record<string, unknown>>();
 

@@ -128,8 +128,7 @@ export default function SetupPage() {
     return () => { mounted = false; };
   }, [sessionId, setUsage]);
 
-  const isFreeQuotaBlocked = usage.remaining <= 0;
-  const canStart = Boolean(form.topic.trim()) && !isFreeQuotaBlocked && authReady && Boolean(sessionId);
+  const canStart = Boolean(form.topic.trim()) && authReady && Boolean(sessionId);
 
   function patchForm(patch) {
     setForm((prev) => ({
@@ -301,11 +300,6 @@ export default function SetupPage() {
             {authError && (
               <p className="mt-1 text-xs" style={{ color: 'var(--danger)' }}>
                 {authError}
-              </p>
-            )}
-            {isFreeQuotaBlocked && (
-              <p className="mt-1 text-xs" style={{ color: 'var(--danger)' }}>
-                Daily free turn limit reached.
               </p>
             )}
           </div>
@@ -481,11 +475,6 @@ export default function SetupPage() {
                 </button>
               </div>
             </div>
-            {isFreeQuotaBlocked && (
-              <p className="mt-4 text-center text-xs text-[#ef4444]">
-                Daily free turn limit reached.
-              </p>
-            )}
           </div>
         </main>
       </div>
@@ -615,11 +604,6 @@ export default function SetupPage() {
               </div>
             </div>
             
-            {isFreeQuotaBlocked && (
-              <p className="mt-4 text-center text-xs text-[#ea4335]">
-                Daily free turn limit reached.
-              </p>
-            )}
           </div>
           
           {/* Quick Action Pills */}

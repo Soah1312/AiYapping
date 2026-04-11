@@ -9,7 +9,29 @@ import MessageCard from '../components/MessageCard';
 import ModelPicker from '../components/ModelPicker';
 import { MODEL_BY_ID, MODEL_OPTIONS } from '../lib/modelConfig';
 
+const QUICK_PROMPT_PRESETS = [
+  {
+    id: 'pragmatic-vs-ethical',
+    label: 'Pragmatic vs Ethical',
+    ai1: 'Argue from practical outcomes, cost, and speed. Keep points short and concrete.',
+    ai2: 'Argue from ethics, fairness, and long-term impact. Challenge weak assumptions directly.',
+  },
+  {
+    id: 'builder-vs-guardian',
+    label: 'Builder vs Guardian',
+    ai1: 'Take a bold builder stance: move fast, iterate quickly, and defend experimentation.',
+    ai2: 'Take a cautious guardian stance: prioritize safety, reliability, and measurable risk controls.',
+  },
+];
+
 function SetupForm({ setup, patchSetup, onRun, starting, canRun, usage, authReady, authError }) {
+  const applyPreset = (preset) => {
+    patchSetup({
+      openingSeed1: preset.ai1,
+      openingSeed2: preset.ai2,
+    });
+  };
+
   return (
     <form onSubmit={onRun} className="surface-card grid gap-4 p-4 md:p-5">
       <div className="grid gap-4 md:grid-cols-2">
@@ -33,6 +55,20 @@ function SetupForm({ setup, patchSetup, onRun, starting, canRun, usage, authRead
           onModelChange={(ai2Model) => patchSetup({ ai2Model })}
           onOpeningSeedChange={(openingSeed2) => patchSetup({ openingSeed2 })}
         />
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {QUICK_PROMPT_PRESETS.map((preset) => (
+          <button
+            key={preset.id}
+            type="button"
+            onClick={() => applyPreset(preset)}
+            className="rounded-full border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            {preset.label}
+          </button>
+        ))}
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -422,8 +458,7 @@ export default function ArenaPage() {
   const canRun = Boolean(setup.openingSeed1?.trim())
     && Boolean(setup.openingSeed2?.trim())
     && authReady
-    && Boolean(sessionId)
-    && usage.remaining > 0;
+    && Boolean(sessionId);
   const inSetupState = status === 'idle';
 
   const ai1Label = MODEL_BY_ID[setup.ai1Model]?.label || 'AI-1';

@@ -1,5 +1,7 @@
 import { motion } from 'framer-motion';
 import { AlertTriangle, RotateCcw } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import TypingIndicator from './TypingIndicator';
 import { MODEL_BY_ID } from '../lib/modelConfig';
 import { useTheme } from '../context/ThemeContext';
@@ -92,9 +94,9 @@ export default function MessageCard({ message, onRetry, readOnly = false }) {
                 interrupted
               </p>
             )}
-            <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--text-primary)' }}>
-              {message.content || ' '}
-            </p>
+            <div className="msg-markdown text-sm leading-relaxed" style={{ color: 'var(--text-primary)' }}>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content || ' '}</ReactMarkdown>
+            </div>
             {!readOnly && (hasError || isInterrupted) && onRetry && (
               <button
                 type="button"
@@ -209,16 +211,16 @@ export default function MessageCard({ message, onRetry, readOnly = false }) {
         )}
 
         {/* Content */}
-        <p
-          className="whitespace-pre-wrap text-sm leading-relaxed"
+        <div
+          className="msg-markdown text-sm leading-relaxed"
           style={{
             color: 'var(--text-primary)',
             lineHeight: theme === 'claude' ? 1.7 : 1.6,
             fontFamily: theme === 'claude' ? 'var(--font-body)' : undefined,
           }}
         >
-          {message.content || ' '}
-        </p>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content || ' '}</ReactMarkdown>
+        </div>
 
         {/* Retry */}
         {!readOnly && (hasError || isInterrupted) && onRetry && (
