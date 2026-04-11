@@ -117,16 +117,10 @@ function sanitizeSavedChats(chats) {
   return clean;
 }
 
-function buildSavedChatTitle(setup) {
-  const topic = typeof setup.topic === 'string' ? setup.topic.trim() : '';
-  if (topic) {
-    return topic;
-  }
-
-  const seed1 = typeof setup.openingSeed1 === 'string' ? setup.openingSeed1.trim() : '';
-  const seed2 = typeof setup.openingSeed2 === 'string' ? setup.openingSeed2.trim() : '';
-  if (seed1 || seed2) {
-    return `AI-1: ${seed1 || 'Prompt 1'} | AI-2: ${seed2 || 'Prompt 2'}`;
+function buildSavedChatTitle(_setup, generatedTitle = '') {
+  const cleanTitle = String(generatedTitle || '').trim().slice(0, 220);
+  if (cleanTitle) {
+    return cleanTitle;
   }
 
   return 'Untitled chat';
@@ -159,6 +153,7 @@ export const useConversationStore = create(persist((set, get) => ({
     verdict: null,
     consensus: null,
   },
+  generatedChatTitle: '',
   shareId: null,
   savedChats: [],
   activeSavedChatId: null,
@@ -168,6 +163,7 @@ export const useConversationStore = create(persist((set, get) => ({
   setSessionId: (sessionId) => set({ sessionId }),
   setConversationId: (conversationId) => set({ conversationId }),
   setConversationKey: (conversationKey) => set({ conversationKey }),
+  setGeneratedChatTitle: (generatedChatTitle) => set({ generatedChatTitle: String(generatedChatTitle || '').trim() }),
 
   patchSetup: (patch) =>
     set((state) => ({
@@ -198,6 +194,7 @@ export const useConversationStore = create(persist((set, get) => ({
         verdict: null,
         consensus: null,
       },
+      generatedChatTitle: '',
       shareId: null,
       activeSavedChatId: null,
     });
@@ -212,6 +209,7 @@ export const useConversationStore = create(persist((set, get) => ({
         verdict: null,
         consensus: null,
       },
+      generatedChatTitle: '',
       shareId: null,
       activeSavedChatId: null,
     })),
@@ -287,7 +285,7 @@ export const useConversationStore = create(persist((set, get) => ({
 
   setShareId: (shareId) => set({ shareId }),
 
-  saveCurrentChat: () => {
+  saveCurrentChat: ({ title: titleOverride } = {}) => {
     const state = get();
     const transcript = state.transcript.filter(isValidTranscriptMessage);
     const existingCount = state.savedChats.length;
@@ -296,7 +294,7 @@ export const useConversationStore = create(persist((set, get) => ({
       return { ok: false, reason: 'empty', count: existingCount };
     }
 
-    const title = buildSavedChatTitle(state.setup).slice(0, 220);
+    const title = buildSavedChatTitle(state.setup, titleOverride || state.generatedChatTitle).slice(0, 220);
     const snippet = buildSavedChatSnippet(transcript);
     const existingIndex = state.savedChats.findIndex((chat) => (
       state.conversationKey
@@ -358,6 +356,7 @@ export const useConversationStore = create(persist((set, get) => ({
         verdict: chat.summary?.verdict || null,
         consensus: chat.summary?.consensus || null,
       },
+      generatedChatTitle: '',
       shareId: null,
       activeSavedChatId: chat.id,
     });

@@ -32,10 +32,12 @@ export default function ArenaPage() {
   const [starting, setStarting] = useState(false);
   const [toast, setToast] = useState({ message: '', type: 'info' });
   const previousStatusRef = useRef('idle');
+  const titleRequestConversationRef = useRef('');
+  const titleAppliedConversationRef = useRef('');
 
   const {
-    sessionId, setup, usage, summary, savedChats, activeSavedChatId,
-    patchSetup, setSessionId, setUsage,
+    sessionId, conversationKey, setup, usage, summary, savedChats, activeSavedChatId, generatedChatTitle,
+    patchSetup, setSessionId, setUsage, setGeneratedChatTitle,
     resetConversation, startConversation, saveCurrentChat, loadSavedChat, deleteSavedChat,
   } = useConversationStore();
 
@@ -96,7 +98,7 @@ export default function ArenaPage() {
       return;
     }
 
-    const result = saveCurrentChat();
+    const result = saveCurrentChat({ title: generatedChatTitle });
     if (!result?.ok && result?.reason === 'limit') {
       setToast({
         message: 'Storage full (10 chats). Delete an older chat to save this one.',
@@ -111,7 +113,85 @@ export default function ArenaPage() {
         type: 'info',
       });
     }
-  }, [saveCurrentChat, status]);
+  }, [generatedChatTitle, saveCurrentChat, status]);
+
+  /* ── Generate chat title with Mistral after first agent output begins ── */
+  useEffect(() => {
+    if (status !== 'running' || !conversationKey) {
+      return;
+    }
+
+    const hasAgentOutputStarted = transcript.some((message) => {
+      const isAgent = message.side === 'ai1' || message.side === 'ai2';
+      const hasStatus = message.status === 'streaming' || message.status === 'done';
+      return isAgent && hasStatus;
+    });
+
+    if (!hasAgentOutputStarted) {
+      return;
+    }
+
+    if (titleRequestConversationRef.current === conversationKey) {
+      return;
+    }
+
+    titleRequestConversationRef.current = conversationKey;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const response = await fetch('/api/title', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            topic: setup.topic,
+            prompt1: setup.openingSeed1,
+            prompt2: setup.openingSeed2,
+          }),
+        });
+
+        if (!response.ok || cancelled) {
+          return;
+        }
+
+        const payload = await response.json();
+        const title = String(payload?.title || '').trim();
+        if (title && !cancelled) {
+          setGeneratedChatTitle(title);
+        }
+      } catch {
+        // Non-blocking: chat save falls back to Untitled if title generation fails.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    conversationKey,
+    setGeneratedChatTitle,
+    setup.openingSeed1,
+    setup.openingSeed2,
+    setup.topic,
+    status,
+    transcript,
+  ]);
+
+  /* ── If title arrives after completion, update saved chat title once ── */
+  useEffect(() => {
+    if (status !== 'completed' || !conversationKey || !generatedChatTitle) {
+      return;
+    }
+
+    const marker = `${conversationKey}:${generatedChatTitle}`;
+    if (titleAppliedConversationRef.current === marker) {
+      return;
+    }
+
+    titleAppliedConversationRef.current = marker;
+    saveCurrentChat({ title: generatedChatTitle });
+  }, [conversationKey, generatedChatTitle, saveCurrentChat, status]);
 
   /* ── Auto-scroll ── */
   useEffect(() => {
@@ -137,6 +217,14 @@ export default function ArenaPage() {
   }
 
   function handleSavedChatSelect(chatId) {
+    if (status === 'running' || status === 'paused' || isStreaming) {
+      setToast({
+        message: 'Finish current duel before opening a recent chat.',
+        type: 'info',
+      });
+      return;
+    }
+
     loadSavedChat(chatId);
   }
 
@@ -155,16 +243,20 @@ export default function ArenaPage() {
     e.preventDefault();
     if (!canRun || starting) return;
     setStarting(true);
+    titleRequestConversationRef.current = '';
+    titleAppliedConversationRef.current = '';
+    setGeneratedChatTitle('');
     const next = normalizeSetup();
     resetConversation({ keepSetup: true, nextSetup: next });
     startConversation();
     setStarting(false);
   }
 
-  function handleTryAgain() {
-    const next = normalizeSetup();
-    resetConversation({ keepSetup: true, nextSetup: next });
-    startConversation();
+  function handleNewChat() {
+    titleRequestConversationRef.current = '';
+    titleAppliedConversationRef.current = '';
+    setGeneratedChatTitle('');
+    resetConversation({ keepSetup: false });
   }
 
   /* ── Pick shell ── */
@@ -199,7 +291,7 @@ export default function ArenaPage() {
               <span className="status-badge claude-chat-pill">{ai1Label} vs {ai2Label}</span>
               <span className="status-badge claude-chat-pill">Turns: {aiTurnCount}</span>
             </div>
-            {theme === 'claude' && (
+            {theme === 'claude' && status !== 'completed' && (
               <div className="claude-chat-header-right">
                 <ShareButton setup={setup} transcript={transcript} summary={summary} />
               </div>
@@ -229,13 +321,7 @@ export default function ArenaPage() {
             onPause={pause}
             onResume={resume}
             onStop={stop}
-            onRetry={handleTryAgain}
-            ai1TurnCount={ai1TurnCount}
-            ai2TurnCount={ai2TurnCount}
-            sideTurnLimit={sideTurnLimit}
-            setup={setup}
-            transcript={transcript}
-            summary={summary}
+            onNewChat={handleNewChat}
           />
         </>
       )}

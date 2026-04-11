@@ -137,24 +137,24 @@
    THEME: GEMINI  (dark, colorful — matches Google Gemini)
    ============================================================ */
 [data-theme='gemini'] {
-  --bg-primary: #131314;
-  --bg-sidebar: #1b1b1f;
-  --bg-card: #1e1d23;
-  --bg-hover: #28272d;
-  --bg-active: #35333c;
+  --bg-primary: #0f1115;
+  --bg-sidebar: #1a1d23;
+  --bg-card: #1f232b;
+  --bg-hover: #292d35;
+  --bg-active: #313743;
 
-  --text-primary: #e3e2e8;
-  --text-secondary: #9aa0a6;
+  --text-primary: #e8eaed;
+  --text-secondary: #bdc1c6;
   --text-placeholder: #9aa0a6;
 
-  --border-color: #3c3c3f;
-  --accent-blue: #4285f4;
-  --accent-purple: #a855f7;
-  --accent-pink: #ea4335;
-  --gemini-gradient: linear-gradient(90deg, #4285f4 0%, #a855f7 55%, #ea4335 100%);
+  --border-color: #31353c;
+  --accent-blue: #8ab4f8;
+  --accent-purple: #8ab4f8;
+  --accent-pink: #8ab4f8;
+  --gemini-gradient: none;
 
-  --btn-bg: #4285f4;
-  --btn-hover: #3b78e7;
+  --btn-bg: #8ab4f8;
+  --btn-hover: #a8c7fa;
 
   --btn-radius: 24px;
   --card-radius: 16px;
@@ -167,7 +167,7 @@
   --surface-dark: var(--bg-card);
 
   --ai1:          var(--accent-blue);
-  --ai2:          var(--accent-purple);
+  --ai2:          #7aa2f8;
 
   --text-muted:   var(--text-secondary);
   --text-soft:    var(--text-secondary);
@@ -178,16 +178,16 @@
   --accent:       var(--accent-blue);
   --danger:       #EA4335;
 
-  --font-display: 'Google Sans', Roboto, sans-serif;
-  --font-body:    'Google Sans Text', 'Google Sans', Roboto, sans-serif;
+  --font-display: 'Google Sans Text', 'Google Sans', 'Segoe UI', Roboto, Arial, sans-serif;
+  --font-body:    'Google Sans Text', 'Google Sans', 'Segoe UI', Roboto, Arial, sans-serif;
   --font-mono:    'Roboto Mono', 'Consolas', monospace;
 
   --radius-card:  var(--card-radius);
   --radius-btn:   var(--btn-radius);
   --radius-input: var(--input-radius);
 
-  --shadow-card:  0 4px 20px rgba(0,0,0,0.5);
-  --shadow-glow:  0 0 32px rgba(66,133,244,0.18);
+  --shadow-card:  none;
+  --shadow-glow:  none;
 
   --nav-bg:       var(--bg-primary);
   --nav-border:   var(--border-color);
@@ -1883,14 +1883,13 @@ h1, h2, h3, h4, .display-font {
 }
 
 [data-theme='gemini'] .main-heading {
-  font-family: 'Google Sans', Roboto, sans-serif;
-  font-weight: 400;
+  font-family: 'Google Sans Text', 'Google Sans', 'Segoe UI', Roboto, Arial, sans-serif;
+  font-weight: 500;
   font-size: 2.8rem;
   font-style: normal;
-  background: var(--gemini-gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--text-primary);
+  background: none;
+  -webkit-text-fill-color: currentColor;
 }
 
 [data-theme='gemini'] .setup-hero p {
@@ -1993,8 +1992,16 @@ h1, h2, h3, h4, .display-font {
 }
 
 [data-theme='gemini'] .gemini-sidebar-brand {
-  font-family: 'Google Sans', Roboto, sans-serif;
-  font-weight: 400;
+  font-family: 'Google Sans Text', 'Google Sans', 'Segoe UI', Roboto, Arial, sans-serif;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+[data-theme='gemini'] .gemini-gradient-text {
+  background: none;
+  -webkit-background-clip: initial;
+  -webkit-text-fill-color: currentColor;
+  background-clip: initial;
   color: var(--text-primary);
 }
 

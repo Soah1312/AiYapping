@@ -163,16 +163,22 @@ function extractGroqDelta(payload: Record<string, unknown>) {
   return content || message || '';
 }
 
+function normalizeApiKeyValue(value: unknown) {
+  return String(value || '')
+    .trim()
+    .replace(/^['"]+|['"]+$/g, '');
+}
+
 function resolveApiKeysByPrefix(prefix: string, fallbackKeyName?: string) {
   const envEntries = Object.entries(process.env || {});
   const explicitKeys = envEntries
-    .filter(([key, value]) => key.startsWith(prefix) && Boolean(value))
+    .filter(([key]) => key.startsWith(prefix))
     .sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }))
-    .map(([, value]) => String(value || '').trim())
+    .map(([, value]) => normalizeApiKeyValue(value))
     .filter(Boolean);
 
   if (fallbackKeyName && process.env[fallbackKeyName]) {
-    explicitKeys.push(String(process.env[fallbackKeyName] || '').trim());
+    explicitKeys.push(normalizeApiKeyValue(process.env[fallbackKeyName]));
   }
 
   return [...new Set(explicitKeys.filter(Boolean))];
@@ -191,7 +197,14 @@ function resolveNvidiaApiKeys() {
 }
 
 function resolveOpenRouterApiKeys() {
-  return resolveApiKeysByPrefix('OPENROUTER_KEY_', 'OPENROUTER_API_KEY');
+  const keys = [
+    ...resolveApiKeysByPrefix('OPENROUTER_KEY_', 'OPENROUTER_API_KEY'),
+    ...resolveApiKeysByPrefix('OPEN_ROUTER_KEY_', 'OPEN_ROUTER_API_KEY'),
+    normalizeApiKeyValue(process.env.OPENROUTER_KEY),
+    normalizeApiKeyValue(process.env.VITE_OPENROUTER_KEY_1),
+  ].filter(Boolean);
+
+  return [...new Set(keys)];
 }
 
 function resolveDeepSeekR1Config(modelId: string): HfDeepSeekConfig | null {

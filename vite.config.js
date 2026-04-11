@@ -8,6 +8,7 @@ function apiDevBridge() {
     '/api/save': '/api/save.ts',
     '/api/share-save': '/api/share-save.ts',
     '/api/share': '/api/share.ts',
+    '/api/title': '/api/title.ts',
     '/api/usage': '/api/usage.ts',
   };
 
@@ -119,6 +120,28 @@ export default defineConfig(({ mode }) => {
 
   if (env.NVIDIA_API_KEY && !process.env.NVIDIA_API_KEY) {
     process.env.NVIDIA_API_KEY = env.NVIDIA_API_KEY;
+  }
+
+  for (const [key, value] of Object.entries(env)) {
+    if (!key.startsWith('OPENROUTER_KEY_') && !key.startsWith('OPEN_ROUTER_KEY_')) {
+      continue;
+    }
+
+    if (value && !process.env[key]) {
+      process.env[key] = value;
+    }
+  }
+
+  if (env.OPENROUTER_API_KEY && !process.env.OPENROUTER_API_KEY) {
+    process.env.OPENROUTER_API_KEY = env.OPENROUTER_API_KEY;
+  }
+
+  if (env.OPEN_ROUTER_API_KEY && !process.env.OPEN_ROUTER_API_KEY) {
+    process.env.OPEN_ROUTER_API_KEY = env.OPEN_ROUTER_API_KEY;
+  }
+
+  if (env.OPENROUTER_KEY && !process.env.OPENROUTER_KEY) {
+    process.env.OPENROUTER_KEY = env.OPENROUTER_KEY;
   }
 
   if (env.VITE_FIREBASE_CONFIG) {

@@ -16,15 +16,24 @@ export default function ModelPicker({
   const activeModel = MODEL_BY_ID[model] || MODEL_OPTIONS[0];
   const seedValue = typeof openingSeed === 'string' ? openingSeed : (persona || '');
   const handleSeedChange = onOpeningSeedChange || onPersonaChange;
+  const activeProviderLabel =
+    activeModel.provider === 'huggingface'
+      ? 'Hugging Face'
+      : activeModel.provider === 'nvidia'
+        ? 'NVIDIA'
+        : activeModel.provider === 'openrouter'
+          ? 'OpenRouter'
+          : 'Groq';
 
   const grouped = MODEL_OPTIONS.reduce(
     (acc, item) => {
       if (item.provider === 'huggingface') acc.huggingface.push(item);
       else if (item.provider === 'nvidia') acc.nvidia.push(item);
+      else if (item.provider === 'openrouter') acc.openrouter.push(item);
       else acc.groq.push(item);
       return acc;
     },
-    { groq: [], huggingface: [], nvidia: [] },
+    { groq: [], huggingface: [], nvidia: [], openrouter: [] },
   );
 
   return (
@@ -33,7 +42,7 @@ export default function ModelPicker({
         <ModelAvatar icon={activeModel.icon} label={activeModel.label} size={32} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>{title}</p>
-          <p style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: '1px' }}>{activeModel.label} · {activeModel.provider === 'huggingface' ? 'Hugging Face' : activeModel.provider === 'nvidia' ? 'NVIDIA' : 'Groq'}</p>
+          <p style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: '1px' }}>{activeModel.label} · {activeProviderLabel}</p>
         </div>
       </div>
 
@@ -47,15 +56,26 @@ export default function ModelPicker({
         value={model}
         onChange={(e) => onModelChange(e.target.value)}
       >
-        <optgroup label="Groq">
-          {grouped.groq.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
-        </optgroup>
-        <optgroup label="Hugging Face">
-          {grouped.huggingface.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
-        </optgroup>
-        <optgroup label="NVIDIA">
-          {grouped.nvidia.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
-        </optgroup>
+        {grouped.groq.length > 0 && (
+          <optgroup label="Groq">
+            {grouped.groq.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+          </optgroup>
+        )}
+        {grouped.openrouter.length > 0 && (
+          <optgroup label="OpenRouter">
+            {grouped.openrouter.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+          </optgroup>
+        )}
+        {grouped.huggingface.length > 0 && (
+          <optgroup label="Hugging Face">
+            {grouped.huggingface.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+          </optgroup>
+        )}
+        {grouped.nvidia.length > 0 && (
+          <optgroup label="NVIDIA">
+            {grouped.nvidia.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+          </optgroup>
+        )}
       </select>
 
       <label style={{ display: 'block', fontSize: '0.6875rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }} htmlFor={`${title}-seed`}>

@@ -1,4 +1,5 @@
 export default function ModelAvatar({ icon, label, size = 32 }) {
+  const isKimiIcon = typeof icon === 'string' && icon.includes('/icons/kimi-color.svg');
 
   return (
     <div
@@ -6,7 +7,8 @@ export default function ModelAvatar({ icon, label, size = 32 }) {
         width: size,
         height: size,
         borderRadius: size > 28 ? 10 : 8,
-        background: 'transparent',
+        background: isKimiIcon ? '#0f172a' : 'transparent',
+        border: isKimiIcon ? '1px solid rgba(15, 23, 42, 0.12)' : 'none',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

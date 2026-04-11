@@ -49,6 +49,7 @@ export default function MessageCard({ message, onRetry, readOnly = false }) {
   const modelMeta = MODEL_BY_ID[message.model];
   const displayName = modelMeta?.label || message.model;
   const modelIcon = modelMeta?.icon || inferIconPath(`${message.model} ${displayName}`);
+  const isKimiIcon = typeof modelIcon === 'string' && modelIcon.includes('/icons/kimi-color.svg');
   const hasError = message.status === 'error';
   const isInterrupted = message.status === 'interrupted';
   const showAvatar = !isClaude || message.side === 'ai1' || message.side === 'ai2';
@@ -65,7 +66,11 @@ export default function MessageCard({ message, onRetry, readOnly = false }) {
         <div className="msg-header-main">
           {showAvatar && (!isClaude || message.side === 'ai1') && (
             isClaude ? (
-              <div className="claude-ai-avatar" aria-label={`${displayName} avatar`}>
+              <div
+                className="claude-ai-avatar"
+                aria-label={`${displayName} avatar`}
+                style={isKimiIcon ? { background: '#0f172a', border: '1px solid rgba(15, 23, 42, 0.12)' } : undefined}
+              >
                 <img
                   src={modelIcon}
                   alt=""
@@ -106,7 +111,11 @@ export default function MessageCard({ message, onRetry, readOnly = false }) {
             </span>
           </div>
           {showAvatar && isClaude && message.side === 'ai2' && (
-            <div className="claude-ai-avatar" aria-label={`${displayName} avatar`}>
+            <div
+              className="claude-ai-avatar"
+              aria-label={`${displayName} avatar`}
+              style={isKimiIcon ? { background: '#0f172a', border: '1px solid rgba(15, 23, 42, 0.12)' } : undefined}
+            >
               <img
                 src={modelIcon}
                 alt=""
