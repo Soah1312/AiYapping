@@ -86,6 +86,7 @@ function sanitizeSetup(setup) {
 export const useConversationStore = create(persist((set, get) => ({
   sessionId: '',
   conversationId: null,
+  conversationKey: null,
   setup: { ...DEFAULT_SETUP },
   transcript: [],
   status: 'idle',
@@ -106,6 +107,7 @@ export const useConversationStore = create(persist((set, get) => ({
 
   setSessionId: (sessionId) => set({ sessionId }),
   setConversationId: (conversationId) => set({ conversationId }),
+  setConversationKey: (conversationKey) => set({ conversationKey }),
 
   patchSetup: (patch) =>
     set((state) => ({
@@ -126,6 +128,7 @@ export const useConversationStore = create(persist((set, get) => ({
     set({
       setup: resolvedSetup,
       conversationId: null,
+      conversationKey: null,
       transcript: [],
       status: 'idle',
       isStreaming: false,
@@ -140,15 +143,16 @@ export const useConversationStore = create(persist((set, get) => ({
   },
 
   startConversation: () =>
-    set({
+    set((state) => ({
       status: 'running',
+      conversationKey: state.conversationKey || createId('conv'),
       streamError: null,
       summary: {
         verdict: null,
         consensus: null,
       },
       shareId: null,
-    }),
+    })),
 
   pauseConversation: () => set({ status: 'paused' }),
   resumeConversation: () => set({ status: 'running' }),
@@ -226,6 +230,7 @@ export const useConversationStore = create(persist((set, get) => ({
   partialize: (state) => ({
     sessionId: state.sessionId,
     conversationId: state.conversationId,
+    conversationKey: state.conversationKey,
     setup: state.setup,
     transcript: state.transcript,
     status: state.status,
@@ -245,6 +250,7 @@ export const useConversationStore = create(persist((set, get) => ({
         ...persisted,
         setup: safeSetup,
         conversationId: null,
+        conversationKey: null,
         transcript: [],
         status: 'idle',
         isStreaming: false,
@@ -274,6 +280,7 @@ export const useConversationStore = create(persist((set, get) => ({
       ...currentState,
       ...persisted,
       setup: safeSetup,
+      conversationKey: typeof persisted.conversationKey === 'string' ? persisted.conversationKey : null,
       transcript,
       status,
       isStreaming: false,

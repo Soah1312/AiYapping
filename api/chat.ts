@@ -1,4 +1,12 @@
-import { getUsageStatus, incrementUsage } from './_lib/firebase';
+import {
+  acquireConversationAdmission,
+  getUsageStatus,
+  incrementUsage,
+  markConversationTurnComplete,
+  refreshConversationLease,
+  releaseConversationAdmissionOnFailure,
+  type TurnType,
+} from './_lib/firebase';
 
 export const config = {
   runtime: 'edge',
@@ -10,7 +18,119 @@ type ChatRequestBody = {
   modelId?: string;
   messages: Array<{ role: string; content: string }>;
   sessionId: string;
+  conversationKey?: string;
+  turnType?: TurnType;
+  turnNumber?: number;
+  maxTurns?: number;
 };
+
+type AdmissionContext = {
+  conversationKey: string;
+  turnType: TurnType;
+  turnNumber: number;
+  maxTurns: number;
+  sessionId: string;
+  requestId: string;
+};
+
+const ACTIVE_PRIORITY_RETRY_TIMEOUT_MS = 5 * 60 * 1000;
+const ACTIVE_PRIORITY_RETRY_DELAY_MS = 8000;
+const ADMISSION_MAX_TURNS_FALLBACK = 20;
+
+function wait(ms: number) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+function normalizeTurnType(body: ChatRequestBody) {
+  if (body.turnType === 'start' || body.turnType === 'continue') {
+    return body.turnType;
+  }
+
+  const turnNumber = Number(body.turnNumber || 1);
+  return turnNumber <= 1 ? 'start' : 'continue';
+}
+
+function normalizeTurnNumber(body: ChatRequestBody) {
+  const value = Number(body.turnNumber || 1);
+  if (!Number.isFinite(value)) {
+    return 1;
+  }
+
+  return Math.max(1, Math.floor(value));
+}
+
+function normalizeMaxTurns(body: ChatRequestBody) {
+  const value = Number(body.maxTurns || ADMISSION_MAX_TURNS_FALLBACK);
+  if (!Number.isFinite(value)) {
+    return ADMISSION_MAX_TURNS_FALLBACK;
+  }
+
+  return Math.min(200, Math.max(2, Math.floor(value)));
+}
+
+async function parseResponseJsonSafe(response: Response) {
+  try {
+    return (await response.clone().json()) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+function buildPriorityBlockedResponse({
+  requestId,
+  stage,
+  retryAfter,
+}: {
+  requestId: string;
+  stage: string;
+  retryAfter: number;
+}) {
+  const retryAfterSafe = Math.max(1, Math.floor(retryAfter || 30));
+
+  return Response.json(
+    {
+      error: 'Another duel is currently in progress. New duels can start once it finishes.',
+      reason: 'admission_blocked_active_priority',
+      requestId,
+      stage,
+      retryAfter: retryAfterSafe,
+    },
+    {
+      status: 429,
+      headers: {
+        'Retry-After': String(retryAfterSafe),
+      },
+    },
+  );
+}
+
+function buildRetryTimeoutResponse({
+  requestId,
+  stage,
+}: {
+  requestId: string;
+  stage: string;
+}) {
+  const retryAfter = 30;
+
+  return Response.json(
+    {
+      error: 'Active duel timed out after waiting 5 minutes for provider capacity. Resume to retry.',
+      reason: 'active_conversation_retry_timeout',
+      requestId,
+      stage,
+      retryAfter,
+    },
+    {
+      status: 429,
+      headers: {
+        'Retry-After': String(retryAfter),
+      },
+    },
+  );
+}
 
 function createRequestId() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -229,10 +349,12 @@ async function createNvidiaStreamResponse({
   modelId,
   messages,
   sessionId,
+  admission,
 }: {
   modelId: string;
   messages: Array<{ role: string; content: string }>;
   sessionId: string;
+  admission?: AdmissionContext;
 }) {
   const nvidiaKeys = shuffleInPlace(resolveNvidiaApiKeys());
   if (nvidiaKeys.length === 0) {
@@ -352,8 +474,17 @@ async function createNvidiaStreamResponse({
   if (!upstream.ok) {
     if (upstream.status === 429 && rateLimitedCount === nvidiaKeys.length) {
       return Response.json(
-        { error: 'All AI engines are currently yapping too hard. Please try again in 60s.' },
-        { status: 429 },
+        {
+          error: 'All AI engines are currently yapping too hard. Please try again in 60s.',
+          reason: 'all_keys_rate_limited',
+          retryAfter: 60,
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': '60',
+          },
+        },
       );
     }
 
@@ -422,6 +553,13 @@ async function createNvidiaStreamResponse({
         }
 
         await incrementUsage(sessionId);
+        if (admission) {
+          await markConversationTurnComplete({
+            conversationKey: admission.conversationKey,
+            sessionId: admission.sessionId,
+            maxTurns: admission.maxTurns,
+          });
+        }
         controller.enqueue(encoder.encode('data: [DONE]\n\n'));
       } catch (error) {
         write({ error: String((error as Error)?.message || 'NVIDIA stream failed') });
@@ -445,10 +583,12 @@ async function createHuggingFaceStreamResponse({
   modelId,
   messages,
   sessionId,
+  admission,
 }: {
   modelId: string;
   messages: Array<{ role: string; content: string }>;
   sessionId: string;
+  admission?: AdmissionContext;
 }) {
   const hfKeys = shuffleInPlace(resolveHuggingFaceApiKeys());
   if (hfKeys.length === 0) {
@@ -538,8 +678,17 @@ async function createHuggingFaceStreamResponse({
 
   if (upstream.status === 429 && rateLimitedCount === hfKeys.length) {
     return Response.json(
-      { error: 'All AI engines are currently yapping too hard. Please try again in 60s.' },
-      { status: 429 },
+      {
+        error: 'All AI engines are currently yapping too hard. Please try again in 60s.',
+        reason: 'all_keys_rate_limited',
+        retryAfter: 60,
+      },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': '60',
+        },
+      },
     );
   }
 
@@ -650,6 +799,13 @@ async function createHuggingFaceStreamResponse({
         }
 
         await incrementUsage(sessionId);
+        if (admission) {
+          await markConversationTurnComplete({
+            conversationKey: admission.conversationKey,
+            sessionId: admission.sessionId,
+            maxTurns: admission.maxTurns,
+          });
+        }
         controller.enqueue(encoder.encode('data: [DONE]\n\n'));
       } catch (error) {
         write({ error: String((error as Error)?.message || 'Hugging Face stream failed') });
@@ -673,10 +829,12 @@ async function createGroqStreamResponse({
   modelId,
   messages,
   sessionId,
+  admission,
 }: {
   modelId: string;
   messages: Array<{ role: string; content: string }>;
   sessionId: string;
+  admission?: AdmissionContext;
 }) {
   const normalizedMessages = normalizeMessages(messages);
   const groqKeys = shuffleInPlace(resolveGroqApiKeys());
@@ -741,8 +899,17 @@ async function createGroqStreamResponse({
   if (!upstream.ok) {
     if (upstream.status === 429 && rateLimitedCount === groqKeys.length) {
       return Response.json(
-        { error: 'All AI engines are currently yapping too hard. Please try again in 60s.' },
-        { status: 429 },
+        {
+          error: 'All AI engines are currently yapping too hard. Please try again in 60s.',
+          reason: 'all_keys_rate_limited',
+          retryAfter: 60,
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': '60',
+          },
+        },
       );
     }
 
@@ -811,6 +978,13 @@ async function createGroqStreamResponse({
         }
 
         await incrementUsage(sessionId);
+        if (admission) {
+          await markConversationTurnComplete({
+            conversationKey: admission.conversationKey,
+            sessionId: admission.sessionId,
+            maxTurns: admission.maxTurns,
+          });
+        }
         controller.enqueue(encoder.encode('data: [DONE]\n\n'));
       } catch (error) {
         write({
@@ -847,6 +1021,58 @@ function normalizeMessages(messages: Array<{ role: string; content: string }>) {
   });
 }
 
+async function performProviderRequestWithAdmission({
+  invoke,
+  admission,
+  requestId,
+  stage,
+}: {
+  invoke: () => Promise<Response>;
+  admission: AdmissionContext;
+  requestId: string;
+  stage: string;
+}) {
+  const startedAt = Date.now();
+
+  while (true) {
+    const response = await invoke();
+
+    if (response.status !== 429) {
+      return response;
+    }
+
+    const payload = await parseResponseJsonSafe(response);
+    const reason = String(payload?.reason || '');
+    const errorText = String(payload?.error || '');
+    const isProviderSaturated =
+      reason === 'all_keys_rate_limited'
+      || errorText.includes('All AI engines are currently yapping too hard');
+
+    if (!isProviderSaturated) {
+      return response;
+    }
+
+    const elapsedMs = Date.now() - startedAt;
+    if (elapsedMs >= ACTIVE_PRIORITY_RETRY_TIMEOUT_MS) {
+      await releaseConversationAdmissionOnFailure({
+        conversationKey: admission.conversationKey,
+        sessionId: admission.sessionId,
+        reason: 'provider_rate_limit_timeout',
+      });
+
+      return buildRetryTimeoutResponse({ requestId, stage });
+    }
+
+    await refreshConversationLease({
+      conversationKey: admission.conversationKey,
+      sessionId: admission.sessionId,
+    });
+
+    const jitterMs = Math.floor(Math.random() * 1500);
+    await wait(ACTIVE_PRIORITY_RETRY_DELAY_MS + jitterMs);
+  }
+}
+
 export default async function handler(request: Request): Promise<Response> {
   const requestId = createRequestId();
   let stage = 'method-check';
@@ -874,33 +1100,89 @@ export default async function handler(request: Request): Promise<Response> {
 
     stage = 'resolve-provider';
     const provider = resolveProvider(body?.provider, modelId);
+    const turnType = normalizeTurnType(body);
+    const turnNumber = normalizeTurnNumber(body);
+    const maxTurns = normalizeMaxTurns(body);
+    const conversationKey = String(body?.conversationKey || `${body.sessionId}-conversation`).trim();
+
+    if (!conversationKey) {
+      return Response.json(
+        {
+          error: 'conversationKey is required for admission control.',
+          requestId,
+          stage: 'resolve-provider',
+        },
+        { status: 400 },
+      );
+    }
+
+    const admissionContext: AdmissionContext = {
+      conversationKey,
+      turnType,
+      turnNumber,
+      maxTurns,
+      sessionId: body.sessionId,
+      requestId,
+    };
 
     stage = 'usage-check';
     await getUsageStatus(body.sessionId);
 
-    if (provider === 'huggingface') {
-      stage = 'huggingface-stream';
-      return createHuggingFaceStreamResponse({
-        modelId,
-        messages: body.messages,
-        sessionId: body.sessionId,
-      });
-    }
-
-    if (provider === 'nvidia') {
-      stage = 'nvidia-stream';
-      return createNvidiaStreamResponse({
-        modelId,
-        messages: body.messages,
-        sessionId: body.sessionId,
-      });
-    }
-
-    stage = 'groq-stream';
-    return createGroqStreamResponse({
-      modelId,
-      messages: body.messages,
+    stage = 'admission-check';
+    const admission = await acquireConversationAdmission({
+      conversationKey,
       sessionId: body.sessionId,
+      turnType,
+      turnNumber,
+      maxTurns,
+    });
+
+    if (!admission.ok) {
+      return buildPriorityBlockedResponse({
+        requestId,
+        stage,
+        retryAfter: admission.retryAfter,
+      });
+    }
+
+    const providerStage =
+      provider === 'huggingface' ? 'huggingface-stream' : provider === 'nvidia' ? 'nvidia-stream' : 'groq-stream';
+
+    const invokeProvider = () => {
+      if (provider === 'huggingface') {
+        stage = providerStage;
+        return createHuggingFaceStreamResponse({
+          modelId,
+          messages: body.messages,
+          sessionId: body.sessionId,
+          admission: admissionContext,
+        });
+      }
+
+      if (provider === 'nvidia') {
+        stage = providerStage;
+        return createNvidiaStreamResponse({
+          modelId,
+          messages: body.messages,
+          sessionId: body.sessionId,
+          admission: admissionContext,
+        });
+      }
+
+      stage = providerStage;
+      return createGroqStreamResponse({
+        modelId,
+        messages: body.messages,
+        sessionId: body.sessionId,
+        admission: admissionContext,
+      });
+    };
+
+    return performProviderRequestWithAdmission({
+      invoke: invokeProvider,
+      admission: admissionContext,
+      requestId,
+      stage: providerStage,
     });
   } catch (error) {
     const message = safeErrorMessage(error);

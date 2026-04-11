@@ -81,7 +81,11 @@ function readErrorPayload(text) {
       const error = parsed?.error || parsed?.message || text;
       const requestId = parsed?.requestId ? ` requestId=${parsed.requestId}` : '';
       const stage = parsed?.stage ? ` stage=${parsed.stage}` : '';
-      return `${error}${requestId}${stage}`;
+      const reason = parsed?.reason ? ` reason=${parsed.reason}` : '';
+      const retryAfter = Number.isFinite(Number(parsed?.retryAfter))
+        ? ` retryAfter=${Math.max(0, Number(parsed.retryAfter))}`
+        : '';
+      return `${error}${requestId}${stage}${reason}${retryAfter}`;
     }
 
     return parsed || text;
@@ -137,12 +141,27 @@ export function useStream() {
   }, []);
 
   const streamModelResponse = useCallback(
-    async ({ provider = 'groq', model, messages, sessionId, onDelta, signal }) => {
+    async ({
+      provider = 'groq',
+      model,
+      messages,
+      sessionId,
+      conversationKey,
+      turnType,
+      turnNumber,
+      maxTurns,
+      onDelta,
+      signal,
+    }) => {
       setRequestingSafe(true);
       const diagnostics = {
         provider,
         model,
         sessionId,
+        conversationKey,
+        turnType,
+        turnNumber,
+        maxTurns,
         messageCount: Array.isArray(messages) ? messages.length : 0,
       };
 
@@ -156,7 +175,16 @@ export function useStream() {
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ provider, model, messages, sessionId }),
+            body: JSON.stringify({
+              provider,
+              model,
+              messages,
+              sessionId,
+              conversationKey,
+              turnType,
+              turnNumber,
+              maxTurns,
+            }),
             signal,
           });
 

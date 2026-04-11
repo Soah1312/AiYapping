@@ -76,6 +76,79 @@ function enqueueWordUnits(text, queue, flushTrailingPartial = false) {
   return remainder;
 }
 
+function stripThinkBlocks(text) {
+  return String(text || '')
+    .replace(/<think\b[^>]*>[\s\S]*?<\/think>/gi, ' ')
+    .replace(/<\/?think\b[^>]*>/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function createThinkStreamSanitizer() {
+  const OPEN_PREFIX = '<think';
+  const CLOSE_TAG = '</think>';
+  const tailSafetyWindow = OPEN_PREFIX.length - 1;
+
+  let buffer = '';
+  let insideThinkBlock = false;
+
+  return function sanitizeThinkDelta(delta, flush = false) {
+    if (delta) {
+      buffer += String(delta);
+    }
+
+    let output = '';
+
+    while (buffer.length > 0) {
+      const lower = buffer.toLowerCase();
+
+      if (insideThinkBlock) {
+        const closeIndex = lower.indexOf(CLOSE_TAG);
+        if (closeIndex === -1) {
+          if (flush) {
+            buffer = '';
+          } else {
+            buffer = buffer.slice(Math.max(0, buffer.length - CLOSE_TAG.length));
+          }
+          break;
+        }
+
+        buffer = buffer.slice(closeIndex + CLOSE_TAG.length);
+        insideThinkBlock = false;
+        continue;
+      }
+
+      const openIndex = lower.indexOf(OPEN_PREFIX);
+      if (openIndex === -1) {
+        if (flush || buffer.length <= tailSafetyWindow) {
+          output += buffer;
+          buffer = '';
+        } else {
+          output += buffer.slice(0, -tailSafetyWindow);
+          buffer = buffer.slice(-tailSafetyWindow);
+        }
+        break;
+      }
+
+      output += buffer.slice(0, openIndex);
+      buffer = buffer.slice(openIndex);
+
+      const openTagEnd = buffer.indexOf('>');
+      if (openTagEnd === -1) {
+        if (flush) {
+          buffer = '';
+        }
+        break;
+      }
+
+      buffer = buffer.slice(openTagEnd + 1);
+      insideThinkBlock = true;
+    }
+
+    return output;
+  };
+}
+
 function createMessageId() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID();
@@ -93,9 +166,14 @@ function buildContextMessages({ transcript, systemPrompt, speakerSide }) {
 
   transcript.forEach((message) => {
     if (message.role === 'system') {
+      const clean = stripThinkBlocks(message.content);
+      if (!clean) {
+        return;
+      }
+
       context.push({
         role: 'user',
-        content: `[Director Note] ${message.content}`,
+        content: `[Director Note] ${clean}`,
       });
       return;
     }
@@ -104,9 +182,14 @@ function buildContextMessages({ transcript, systemPrompt, speakerSide }) {
       return;
     }
 
+    const clean = stripThinkBlocks(message.content);
+    if (!clean) {
+      return;
+    }
+
     context.push({
       role: message.side === speakerSide ? 'assistant' : 'user',
-      content: message.content,
+      content: clean,
     });
   });
 
@@ -123,20 +206,27 @@ function buildChatHistoryText(transcript) {
   const recent = relevant.slice(-10);
   const lines = recent.map((message) => {
     if (message.role === 'system') {
-      return `[Director] ${String(message.content || '').trim()}`;
+      const clean = stripThinkBlocks(message.content);
+      return clean ? `[Director] ${clean}` : '';
     }
 
     const speaker = message.side === 'ai1' ? 'AI-1' : 'AI-2';
-    const content = String(message.content || '').replace(/\s+/g, ' ').trim();
+    const content = stripThinkBlocks(message.content);
+    if (!content) {
+      return '';
+    }
+
     return `[${speaker}] ${content}`;
   });
 
-  return lines.join('\n');
+  const compact = lines.filter(Boolean).join('\n');
+  return compact || 'No prior turns.';
 }
 
 export function useConversation() {
   const {
     sessionId,
+    conversationKey,
     setup,
     transcript,
     status,
@@ -203,6 +293,8 @@ export function useConversation() {
       }
 
       const turnNumber = forcedTurn || aiTurnCount + 1;
+      const totalMaxTurns = PER_SIDE_LIMIT * 2;
+      const turnType = turnNumber <= 1 ? 'start' : 'continue';
       const speakerModelId = side === 'ai1' ? setup.ai1Model : setup.ai2Model;
       const opponentModelId = side === 'ai1' ? setup.ai2Model : setup.ai1Model;
       const speakerModelMeta = MODEL_BY_ID[speakerModelId];
@@ -261,6 +353,7 @@ export function useConversation() {
       let pendingWordRemainder = '';
       const revealQueue = [];
       let streamFinished = false;
+      const sanitizeThinkDelta = createThinkStreamSanitizer();
       const bubbleVisibleUntil = Date.now() + MIN_TYPING_BUBBLE_MS;
       const controller = new AbortController();
       abortControllerRef.current = controller;
@@ -330,13 +423,28 @@ export function useConversation() {
           model: speakerModel,
           messages,
           sessionId,
+          conversationKey,
+          turnType,
+          turnNumber,
+          maxTurns: totalMaxTurns,
           signal: controller.signal,
           onDelta: (delta) => {
-            fullContent += delta;
-            pendingWordRemainder = enqueueWordUnits(`${pendingWordRemainder}${delta}`, revealQueue);
+            const cleanDelta = sanitizeThinkDelta(delta);
+            if (!cleanDelta) {
+              return;
+            }
+
+            fullContent += cleanDelta;
+            pendingWordRemainder = enqueueWordUnits(`${pendingWordRemainder}${cleanDelta}`, revealQueue);
             void runRevealLoop();
           },
         });
+
+        const flushedDelta = sanitizeThinkDelta('', true);
+        if (flushedDelta) {
+          fullContent += flushedDelta;
+          pendingWordRemainder = enqueueWordUnits(`${pendingWordRemainder}${flushedDelta}`, revealQueue);
+        }
 
         pendingWordRemainder = enqueueWordUnits(pendingWordRemainder, revealQueue, true);
         streamFinished = true;
@@ -352,12 +460,16 @@ export function useConversation() {
       } catch (error) {
         const errorText = String(error?.message || 'Unknown stream error');
         const interrupted = controller.signal.aborted;
+        const isAdmissionBlocked = errorText.includes('admission_blocked_active_priority');
+        const isAdmissionTimeout = errorText.includes('active_conversation_retry_timeout');
         const turnDiagnostics = {
           side,
           turn: turnNumber,
           provider,
           model: speakerModel,
           sessionId,
+          conversationKey,
+          turnType,
         };
 
         console.error('[useConversation] executeTurn failed', {
@@ -367,6 +479,17 @@ export function useConversation() {
         });
 
         streamFinished = true;
+
+        if (isAdmissionBlocked) {
+          removeMessage(messageId);
+          setStreamError('Another duel is currently in progress. New duels can start once it finishes.');
+          pauseConversation();
+          return;
+        }
+
+        if (isAdmissionTimeout) {
+          setStreamError('Active duel timed out after waiting 5 minutes for provider capacity. Resume to retry.');
+        }
 
         const suffix = interrupted ? '\n\n[interrupted]' : '';
         const safeContent = (fullContent || '').trim() + suffix;
@@ -398,6 +521,7 @@ export function useConversation() {
       completeConversation,
       shouldStopBySideCap,
       sessionId,
+      conversationKey,
       setStreamError,
       setStreaming,
       setup.ai1Model,
@@ -411,6 +535,7 @@ export function useConversation() {
       pauseConversation,
       streamModelResponse,
       transcript,
+      removeMessage,
       updateMessage,
     ],
   );

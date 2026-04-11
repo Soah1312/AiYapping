@@ -1,4 +1,5 @@
 import { MODEL_BY_ID, MODEL_OPTIONS } from '../lib/modelConfig';
+import ModelAvatar from './ModelAvatar';
 
 export default function ModelPicker({
   title,
@@ -15,96 +16,57 @@ export default function ModelPicker({
   const activeModel = MODEL_BY_ID[model] || MODEL_OPTIONS[0];
   const seedValue = typeof openingSeed === 'string' ? openingSeed : (persona || '');
   const handleSeedChange = onOpeningSeedChange || onPersonaChange;
+
   const grouped = MODEL_OPTIONS.reduce(
     (acc, item) => {
-      if (item.provider === 'huggingface') {
-        acc.huggingface.push(item);
-      } else if (item.provider === 'nvidia') {
-        acc.nvidia.push(item);
-      } else {
-        acc.groq.push(item);
-      }
+      if (item.provider === 'huggingface') acc.huggingface.push(item);
+      else if (item.provider === 'nvidia') acc.nvidia.push(item);
+      else acc.groq.push(item);
       return acc;
     },
     { groq: [], huggingface: [], nvidia: [] },
   );
 
-  const providerLabel =
-    activeModel.provider === 'huggingface'
-      ? 'Hugging Face'
-      : activeModel.provider === 'nvidia'
-        ? 'NVIDIA'
-        : 'Groq';
-
-  const providerEnvKey =
-    activeModel.provider === 'huggingface'
-      ? 'HUGGINGFACE_KEY_*'
-      : activeModel.provider === 'nvidia'
-        ? 'NVIDIA_KEY_*'
-        : 'GROQ_KEY_*';
-
   return (
-    <section className="surface-card p-4" style={{ borderColor: `${accent}66` }}>
-      <p className="small-caps text-xs text-[var(--text-muted)]">{title}</p>
-      <div className="mt-3 flex items-center gap-3 rounded-lg bg-black/20 p-3">
-        <img
-          src={activeModel.icon}
-          alt={`${activeModel.label} logo`}
-          aria-label={`${activeModel.label} logo`}
-          className="h-9 w-9 rounded-md object-cover"
-        />
-        <div>
-          <p className="text-sm font-medium">{activeModel.label}</p>
-          <p className="text-xs text-[var(--text-muted)]">{activeModel.flavor}</p>
-          <p className="mt-0.5 text-[11px] uppercase tracking-wide text-[var(--text-muted)]">
-            Provider: {providerLabel}
-          </p>
-          <p className="mt-1 text-[11px] text-[var(--text-muted)]">
-            Env key: <span className="font-semibold text-[var(--text-primary)]">{providerEnvKey}</span>
-          </p>
+    <section className="surface-card" style={{ padding: '1rem', borderColor: accent ? `color-mix(in oklab, ${accent} 40%, var(--border))` : undefined }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '0.75rem' }}>
+        <ModelAvatar provider={activeModel.provider} label={activeModel.label} size={32} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>{title}</p>
+          <p style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: '1px' }}>{activeModel.label} · {activeModel.provider === 'huggingface' ? 'Hugging Face' : activeModel.provider === 'nvidia' ? 'NVIDIA' : 'Groq'}</p>
         </div>
       </div>
 
-      <label className="mt-4 block text-xs text-[var(--text-muted)]" htmlFor={`${title}-model`}>
+      <label style={{ display: 'block', fontSize: '0.6875rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }} htmlFor={`${title}-model`}>
         Model
       </label>
       <select
         id={`${title}-model`}
-        className="theme-input theme-select mt-1"
+        className="theme-input"
+        style={{ fontSize: '0.8125rem', padding: '0.5rem 0.625rem', marginBottom: '0.75rem' }}
         value={model}
-        onChange={(event) => onModelChange(event.target.value)}
+        onChange={(e) => onModelChange(e.target.value)}
       >
         <optgroup label="Groq">
-          {grouped.groq.map((option) => (
-            <option key={option.id} value={option.id}>
-              {option.label}
-            </option>
-          ))}
+          {grouped.groq.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
         </optgroup>
         <optgroup label="Hugging Face">
-          {grouped.huggingface.map((option) => (
-            <option key={option.id} value={option.id}>
-              {option.label}
-            </option>
-          ))}
+          {grouped.huggingface.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
         </optgroup>
         <optgroup label="NVIDIA">
-          {grouped.nvidia.map((option) => (
-            <option key={option.id} value={option.id}>
-              {option.label}
-            </option>
-          ))}
+          {grouped.nvidia.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
         </optgroup>
       </select>
 
-      <label className="mt-4 block text-xs text-[var(--text-muted)]" htmlFor={`${title}-seed`}>
+      <label style={{ display: 'block', fontSize: '0.6875rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }} htmlFor={`${title}-seed`}>
         {seedLabel || 'Prompt (required)'}
       </label>
       <textarea
         id={`${title}-seed`}
-        className="theme-input mt-1 min-h-20 resize-none"
+        className="theme-input"
+        style={{ minHeight: '5rem', resize: 'none', fontSize: '0.8125rem', padding: '0.5rem 0.625rem' }}
         value={seedValue}
-        onChange={(event) => handleSeedChange?.(event.target.value.slice(0, 200))}
+        onChange={(e) => handleSeedChange?.(e.target.value.slice(0, 200))}
         placeholder={seedPlaceholder || 'Describe how this AI should start speaking'}
       />
     </section>

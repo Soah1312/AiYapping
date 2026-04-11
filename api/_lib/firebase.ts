@@ -14,8 +14,411 @@ import {
 } from 'firebase/firestore/lite';
 
 const DAILY_TURN_LIMIT = 999999;
+const ACTIVE_CONVERSATION_DOC_PATH = ['runtime_control', 'active_conversation'] as const;
+const ACTIVE_CONVERSATION_LEASE_MS = 2 * 60 * 1000;
 const devUsageStore = new Map<string, { turnsUsed: number; lastReset: string; updatedAt: string }>();
 const devConversationStore = new Map<string, Record<string, unknown>>();
+const devActiveConversationStore = new Map<string, ActiveConversationRecord>();
+
+export type TurnType = 'start' | 'continue';
+
+export type ActiveConversationStatus = 'active' | 'completed' | 'failed';
+
+export type ActiveConversationRecord = {
+  conversationKey: string;
+  ownerSessionId: string;
+  turnsCompleted: number;
+  maxTurns: number;
+  status: ActiveConversationStatus;
+  startedAt: string;
+  lastTurnAt: string;
+  lockExpiresAt: string;
+  updatedAt: string;
+  failedReason?: string | null;
+};
+
+export type AdmissionResult = {
+  ok: boolean;
+  reason: 'admitted' | 'admission_blocked_active_priority';
+  retryAfter: number;
+  snapshot: ActiveConversationRecord | null;
+};
+
+function activeConversationDocId() {
+  return ACTIVE_CONVERSATION_DOC_PATH.join('/');
+}
+
+function parseIsoMs(value: unknown) {
+  if (!value || typeof value !== 'string') {
+    return 0;
+  }
+
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function createLeaseExpiryIso(baseMs = Date.now()) {
+  return new Date(baseMs + ACTIVE_CONVERSATION_LEASE_MS).toISOString();
+}
+
+function isActiveRecord(record: ActiveConversationRecord | null, nowMs = Date.now()) {
+  if (!record || record.status !== 'active') {
+    return false;
+  }
+
+  return parseIsoMs(record.lockExpiresAt) > nowMs;
+}
+
+function sanitizeActiveConversationRecord(value: unknown): ActiveConversationRecord | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const data = value as Partial<ActiveConversationRecord>;
+  const conversationKey = typeof data.conversationKey === 'string' ? data.conversationKey.trim() : '';
+  const ownerSessionId = typeof data.ownerSessionId === 'string' ? data.ownerSessionId.trim() : '';
+
+  if (!conversationKey || !ownerSessionId) {
+    return null;
+  }
+
+  const status: ActiveConversationStatus =
+    data.status === 'active' || data.status === 'completed' || data.status === 'failed'
+      ? data.status
+      : 'active';
+
+  const turnsCompleted = Number.isFinite(Number(data.turnsCompleted))
+    ? Math.max(0, Number(data.turnsCompleted))
+    : 0;
+
+  const maxTurns = Number.isFinite(Number(data.maxTurns))
+    ? Math.max(1, Number(data.maxTurns))
+    : 20;
+
+  const startedAt = typeof data.startedAt === 'string' && data.startedAt ? data.startedAt : nowIso();
+  const lastTurnAt = typeof data.lastTurnAt === 'string' && data.lastTurnAt ? data.lastTurnAt : startedAt;
+  const lockExpiresAt =
+    typeof data.lockExpiresAt === 'string' && data.lockExpiresAt
+      ? data.lockExpiresAt
+      : createLeaseExpiryIso();
+  const updatedAt = typeof data.updatedAt === 'string' && data.updatedAt ? data.updatedAt : nowIso();
+
+  return {
+    conversationKey,
+    ownerSessionId,
+    turnsCompleted,
+    maxTurns,
+    status,
+    startedAt,
+    lastTurnAt,
+    lockExpiresAt,
+    updatedAt,
+    failedReason: typeof data.failedReason === 'string' ? data.failedReason : null,
+  };
+}
+
+function normalizeMaxTurns(value: number) {
+  if (!Number.isFinite(value)) {
+    return 20;
+  }
+
+  return Math.min(200, Math.max(2, Math.floor(value)));
+}
+
+function computeAdmission({
+  current,
+  conversationKey,
+  sessionId,
+  turnNumber,
+  maxTurns,
+}: {
+  current: ActiveConversationRecord | null;
+  conversationKey: string;
+  sessionId: string;
+  turnType: TurnType;
+  turnNumber: number;
+  maxTurns: number;
+}): AdmissionResult & { nextRecord: ActiveConversationRecord | null } {
+  const nowMs = Date.now();
+  const normalizedMaxTurns = normalizeMaxTurns(maxTurns);
+  const safeTurnNumber = Math.max(1, Math.floor(turnNumber || 1));
+
+  const isCurrentActive = isActiveRecord(current, nowMs);
+  if (isCurrentActive && current && current.conversationKey !== conversationKey) {
+    const lockExpiryMs = parseIsoMs(current.lockExpiresAt);
+    const retryAfter = Math.max(1, Math.ceil((lockExpiryMs - nowMs) / 1000));
+
+    return {
+      ok: false,
+      reason: 'admission_blocked_active_priority',
+      retryAfter,
+      snapshot: current,
+      nextRecord: null,
+    };
+  }
+
+  const existingForConversation = current?.conversationKey === conversationKey ? current : null;
+  const startedAt = existingForConversation?.startedAt || nowIso();
+  const turnsCompleted = Math.max(
+    existingForConversation?.turnsCompleted || 0,
+    Math.max(0, safeTurnNumber - 1),
+  );
+
+  const nextRecord: ActiveConversationRecord = {
+    conversationKey,
+    ownerSessionId: sessionId,
+    turnsCompleted: Math.min(turnsCompleted, normalizedMaxTurns),
+    maxTurns: normalizedMaxTurns,
+    status: 'active',
+    startedAt,
+    lastTurnAt: nowIso(),
+    lockExpiresAt: createLeaseExpiryIso(nowMs),
+    updatedAt: nowIso(),
+    failedReason: null,
+  };
+
+  return {
+    ok: true,
+    reason: 'admitted',
+    retryAfter: 0,
+    snapshot: nextRecord,
+    nextRecord,
+  };
+}
+
+async function readActiveConversationRecord() {
+  const db = getDb();
+  const activeRef = doc(db, ACTIVE_CONVERSATION_DOC_PATH[0], ACTIVE_CONVERSATION_DOC_PATH[1]);
+  const snapshot = await getDoc(activeRef);
+  if (!snapshot.exists()) {
+    return null;
+  }
+
+  return sanitizeActiveConversationRecord(snapshot.data());
+}
+
+async function writeActiveConversationRecord(record: ActiveConversationRecord) {
+  const db = getDb();
+  const activeRef = doc(db, ACTIVE_CONVERSATION_DOC_PATH[0], ACTIVE_CONVERSATION_DOC_PATH[1]);
+  await setDoc(activeRef, record, { merge: true });
+}
+
+function readLocalActiveConversationRecord() {
+  const value = devActiveConversationStore.get(activeConversationDocId()) || null;
+  return sanitizeActiveConversationRecord(value);
+}
+
+function writeLocalActiveConversationRecord(record: ActiveConversationRecord) {
+  devActiveConversationStore.set(activeConversationDocId(), record);
+}
+
+export async function acquireConversationAdmission({
+  conversationKey,
+  sessionId,
+  turnType,
+  turnNumber,
+  maxTurns,
+}: {
+  conversationKey: string;
+  sessionId: string;
+  turnType: TurnType;
+  turnNumber: number;
+  maxTurns: number;
+}) {
+  try {
+    const current = await readActiveConversationRecord();
+    const result = computeAdmission({
+      current,
+      conversationKey,
+      sessionId,
+      turnType,
+      turnNumber,
+      maxTurns,
+    });
+
+    if (result.ok && result.nextRecord) {
+      await writeActiveConversationRecord(result.nextRecord);
+    }
+
+    return {
+      ok: result.ok,
+      reason: result.reason,
+      retryAfter: result.retryAfter,
+      snapshot: result.snapshot,
+    };
+  } catch (error) {
+    if (shouldUseLocalFallback(error)) {
+      const current = readLocalActiveConversationRecord();
+      const result = computeAdmission({
+        current,
+        conversationKey,
+        sessionId,
+        turnType,
+        turnNumber,
+        maxTurns,
+      });
+
+      if (result.ok && result.nextRecord) {
+        writeLocalActiveConversationRecord(result.nextRecord);
+      }
+
+      return {
+        ok: result.ok,
+        reason: result.reason,
+        retryAfter: result.retryAfter,
+        snapshot: result.snapshot,
+      };
+    }
+
+    throw error;
+  }
+}
+
+export async function refreshConversationLease({
+  conversationKey,
+  sessionId,
+}: {
+  conversationKey: string;
+  sessionId: string;
+}) {
+  const refreshRecord = (record: ActiveConversationRecord | null) => {
+    if (!record || record.conversationKey !== conversationKey) {
+      return null;
+    }
+
+    const now = nowIso();
+    return {
+      ...record,
+      ownerSessionId: sessionId,
+      status: 'active' as const,
+      lockExpiresAt: createLeaseExpiryIso(),
+      updatedAt: now,
+    };
+  };
+
+  try {
+    const current = await readActiveConversationRecord();
+    const next = refreshRecord(current);
+    if (next) {
+      await writeActiveConversationRecord(next);
+    }
+
+    return next;
+  } catch (error) {
+    if (shouldUseLocalFallback(error)) {
+      const current = readLocalActiveConversationRecord();
+      const next = refreshRecord(current);
+      if (next) {
+        writeLocalActiveConversationRecord(next);
+      }
+      return next;
+    }
+
+    throw error;
+  }
+}
+
+export async function markConversationTurnComplete({
+  conversationKey,
+  sessionId,
+  maxTurns,
+}: {
+  conversationKey: string;
+  sessionId: string;
+  maxTurns: number;
+}) {
+  const applyComplete = (record: ActiveConversationRecord | null) => {
+    if (!record || record.conversationKey !== conversationKey) {
+      return null;
+    }
+
+    const targetMaxTurns = normalizeMaxTurns(maxTurns || record.maxTurns);
+    const nextTurns = Math.min(targetMaxTurns, Math.max(0, record.turnsCompleted) + 1);
+    const completed = nextTurns >= targetMaxTurns;
+    const now = nowIso();
+
+    return {
+      ...record,
+      ownerSessionId: sessionId,
+      turnsCompleted: nextTurns,
+      maxTurns: targetMaxTurns,
+      status: completed ? ('completed' as const) : ('active' as const),
+      lastTurnAt: now,
+      lockExpiresAt: completed ? now : createLeaseExpiryIso(),
+      updatedAt: now,
+      failedReason: null,
+    };
+  };
+
+  try {
+    const current = await readActiveConversationRecord();
+    const next = applyComplete(current);
+    if (next) {
+      await writeActiveConversationRecord(next);
+    }
+
+    return next;
+  } catch (error) {
+    if (shouldUseLocalFallback(error)) {
+      const current = readLocalActiveConversationRecord();
+      const next = applyComplete(current);
+      if (next) {
+        writeLocalActiveConversationRecord(next);
+      }
+      return next;
+    }
+
+    throw error;
+  }
+}
+
+export async function releaseConversationAdmissionOnFailure({
+  conversationKey,
+  sessionId,
+  reason,
+}: {
+  conversationKey: string;
+  sessionId: string;
+  reason: string;
+}) {
+  const applyFailure = (record: ActiveConversationRecord | null) => {
+    if (!record || record.conversationKey !== conversationKey) {
+      return null;
+    }
+
+    const now = nowIso();
+
+    return {
+      ...record,
+      ownerSessionId: sessionId,
+      status: 'failed' as const,
+      lockExpiresAt: now,
+      updatedAt: now,
+      failedReason: reason.slice(0, 500),
+    };
+  };
+
+  try {
+    const current = await readActiveConversationRecord();
+    const next = applyFailure(current);
+    if (next) {
+      await writeActiveConversationRecord(next);
+    }
+
+    return next;
+  } catch (error) {
+    if (shouldUseLocalFallback(error)) {
+      const current = readLocalActiveConversationRecord();
+      const next = applyFailure(current);
+      if (next) {
+        writeLocalActiveConversationRecord(next);
+      }
+      return next;
+    }
+
+    throw error;
+  }
+}
 
 function todayStamp() {
   return new Date().toISOString().slice(0, 10);
