@@ -1,4 +1,18 @@
-export default function DuelControls({ status, onPause, onResume, onStop, onRetry, ai1TurnCount, ai2TurnCount, sideTurnLimit }) {
+import ShareButton from './ShareButton';
+
+export default function DuelControls({ 
+  status, 
+  onPause, 
+  onResume, 
+  onStop, 
+  onRetry, 
+  ai1TurnCount, 
+  ai2TurnCount, 
+  sideTurnLimit,
+  setup,
+  transcript,
+  summary
+}) {
   return (
     <div className="bottom-bar">
       <div className="bottom-bar-inner">
@@ -23,7 +37,10 @@ export default function DuelControls({ status, onPause, onResume, onStop, onRetr
             <button type="button" className="btn-secondary" style={{ fontSize: '0.8125rem', padding: '0.375rem 0.75rem', minHeight: '36px' }} onClick={onStop}>Stop</button>
           )}
           {status === 'completed' && (
-            <button type="button" className="btn-primary" style={{ fontSize: '0.8125rem', padding: '0.375rem 0.75rem', minHeight: '36px' }} onClick={onRetry}>Try Again</button>
+            <>
+              <ShareButton setup={setup} transcript={transcript} summary={summary} />
+              <button type="button" className="btn-primary" style={{ fontSize: '0.8125rem', padding: '0.375rem 0.75rem', minHeight: '36px' }} onClick={onRetry}>Try Again</button>
+            </>
           )}
         </div>
       </div>

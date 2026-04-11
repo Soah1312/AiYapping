@@ -6,6 +6,7 @@ function apiDevBridge() {
     '/api/chat': '/api/chat.ts',
     '/api/judge': '/api/judge.ts',
     '/api/save': '/api/save.ts',
+    '/api/share-save': '/api/share-save.ts',
     '/api/share': '/api/share.ts',
     '/api/usage': '/api/usage.ts',
   };

@@ -20,6 +20,28 @@ const devUsageStore = new Map<string, { turnsUsed: number; lastReset: string; up
 const devConversationStore = new Map<string, Record<string, unknown>>();
 const devActiveConversationStore = new Map<string, ActiveConversationRecord>();
 
+export async function getSharedConversation(shareId: string) {
+  try {
+    const db = getDb();
+    const docRef = doc(db, 'shared_yaps', shareId);
+    const docSnapshot = await getDoc(docRef);
+
+    if (!docSnapshot.exists()) {
+      return null;
+    }
+
+    return {
+      id: docSnapshot.id,
+      ...docSnapshot.data(),
+    };
+  } catch (error) {
+    if (isPermissionDenied(error)) {
+      throw new Error('Firestore read denied for shared_yaps. Update rules to allow read.');
+    }
+    throw error;
+  }
+}
+
 export type TurnType = 'start' | 'continue';
 
 export type ActiveConversationStatus = 'active' | 'completed' | 'failed';
@@ -270,6 +292,27 @@ export async function acquireConversationAdmission({
       };
     }
 
+    throw error;
+  }
+}
+
+export async function setSharedConversation(conversationData: Record<string, unknown>) {
+  try {
+    const db = getDb();
+    const { id } = conversationData;
+
+    if (!id || typeof id !== 'string') {
+      throw new Error('Invalid share ID');
+    }
+
+    await setDoc(doc(db, 'shared_yaps', id), {
+      ...conversationData,
+      createdAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    if (isPermissionDenied(error)) {
+      throw new Error('Firestore write denied for shared_yaps. Update rules to allow create.');
+    }
     throw error;
   }
 }
