@@ -41,6 +41,16 @@ function resolveHuggingFaceApiKeys() {
   ].filter(Boolean);
 }
 
+function shuffleInPlace<T>(values: T[]) {
+  const next = [...values];
+  for (let i = next.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [next[i], next[j]] = [next[j], next[i]];
+  }
+
+  return next;
+}
+
 function tokenizeWords(text: string) {
   return String(text || '').match(/[A-Za-z0-9]+(?:['-][A-Za-z0-9]+)*/g) || [];
 }
@@ -128,7 +138,7 @@ export default async function handler(request: Request): Promise<Response> {
       return Response.json({ error: 'Missing prompt text for title generation.' }, { status: 400 });
     }
 
-    const hfKeys = resolveHuggingFaceApiKeys();
+    const hfKeys = shuffleInPlace(resolveHuggingFaceApiKeys());
     if (hfKeys.length === 0) {
       return Response.json({ error: 'Missing Hugging Face API keys for title generation.' }, { status: 500 });
     }

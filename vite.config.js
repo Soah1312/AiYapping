@@ -5,6 +5,7 @@ function apiDevBridge() {
   const routeToModule = {
     '/api/chat': '/api/chat.ts',
     '/api/judge': '/api/judge.ts',
+    '/api/admin': '/api/admin.ts',
     '/api/save': '/api/save.ts',
     '/api/share-save': '/api/share-save.ts',
     '/api/share': '/api/share.ts',
@@ -142,6 +143,14 @@ export default defineConfig(({ mode }) => {
 
   if (env.OPENROUTER_KEY && !process.env.OPENROUTER_KEY) {
     process.env.OPENROUTER_KEY = env.OPENROUTER_KEY;
+  }
+
+  if (env.MEOW_PASSWORD && !process.env.MEOW_PASSWORD) {
+    process.env.MEOW_PASSWORD = env.MEOW_PASSWORD;
+  }
+
+  if (env.ADMIN_MEOW_PASSWORD && !process.env.ADMIN_MEOW_PASSWORD) {
+    process.env.ADMIN_MEOW_PASSWORD = env.ADMIN_MEOW_PASSWORD;
   }
 
   if (env.VITE_FIREBASE_CONFIG) {

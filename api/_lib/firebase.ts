@@ -895,6 +895,95 @@ export async function saveConversation({
   }
 }
 
+export async function getAdminDashboardStats() {
+  const mapConversation = (id: string, data: Record<string, unknown>) => {
+    const ownerId = String(data.ownerId || 'unknown');
+    const topic = String(data.topic || '').trim() || 'Untitled chat';
+    const turnCount = Number.isFinite(Number(data.turnCount)) ? Number(data.turnCount) : 0;
+    const updatedAt = typeof data.updatedAt === 'string' ? data.updatedAt : '';
+    const createdAt = typeof data.createdAt === 'string' ? data.createdAt : '';
+
+    return {
+      id,
+      ownerId,
+      topic,
+      turnCount,
+      updatedAt,
+      createdAt,
+    };
+  };
+
+  const mapUsage = (id: string, data: Record<string, unknown>) => ({
+    userId: id,
+    totalApiCalls: Number.isFinite(Number(data.turnsUsed)) ? Number(data.turnsUsed) : 0,
+    lastReset: typeof data.lastReset === 'string' ? data.lastReset : '',
+    updatedAt: typeof data.updatedAt === 'string' ? data.updatedAt : '',
+  });
+
+  const summarize = ({
+    conversations,
+    usageRows,
+  }: {
+    conversations: Array<{ id: string; ownerId: string; topic: string; turnCount: number; updatedAt: string; createdAt: string }>;
+    usageRows: Array<{ userId: string; totalApiCalls: number; lastReset: string; updatedAt: string }>;
+  }) => {
+    const visitByUser = new Map<string, number>();
+    for (const chat of conversations) {
+      visitByUser.set(chat.ownerId, (visitByUser.get(chat.ownerId) || 0) + 1);
+    }
+
+    const perUserVisits = [...visitByUser.entries()]
+      .map(([userId, visits]) => ({ userId, visits }))
+      .sort((a, b) => b.visits - a.visits || a.userId.localeCompare(b.userId));
+
+    const perUserApiCalls = [...usageRows].sort(
+      (a, b) => b.totalApiCalls - a.totalApiCalls || a.userId.localeCompare(b.userId),
+    );
+
+    const recentChats = [...conversations]
+      .sort((a, b) => parseIsoMs(b.updatedAt || b.createdAt) - parseIsoMs(a.updatedAt || a.createdAt))
+      .slice(0, 25);
+
+    const uniqueUsers = new Set<string>();
+    for (const row of usageRows) {
+      uniqueUsers.add(row.userId);
+    }
+    for (const chat of conversations) {
+      uniqueUsers.add(chat.ownerId);
+    }
+
+    return {
+      users: uniqueUsers.size,
+      totalVisits: conversations.length,
+      recentChats,
+      perUserApiCalls,
+      perUserVisits,
+      generatedAt: nowIso(),
+    };
+  };
+
+  try {
+    const db = getDb();
+    const [usageSnapshot, conversationSnapshot] = await Promise.all([
+      getDocs(collection(db, 'usage')),
+      getDocs(collection(db, 'conversations')),
+    ]);
+
+    const usageRows = usageSnapshot.docs.map((entry) => mapUsage(entry.id, entry.data() as Record<string, unknown>));
+    const conversations = conversationSnapshot.docs.map((entry) => mapConversation(entry.id, entry.data() as Record<string, unknown>));
+
+    return summarize({ usageRows, conversations });
+  } catch (error) {
+    if (shouldUseLocalFallback(error)) {
+      const usageRows = [...devUsageStore.entries()].map(([id, value]) => mapUsage(id, value as Record<string, unknown>));
+      const conversations = [...devConversationStore.entries()].map(([id, value]) => mapConversation(id, value as Record<string, unknown>));
+      return summarize({ usageRows, conversations });
+    }
+
+    throw error;
+  }
+}
+
 export async function getConversationByShareId(shareId: string) {
   try {
     const db = getDb();
