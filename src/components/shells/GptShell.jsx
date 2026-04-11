@@ -55,7 +55,6 @@ export default function GptShell({ children, sidebarChats, onSelectChat, activeC
             >
               <div className="flex-1 min-w-0">
                 <span className="sidebar-item-title block truncate">{chat.title}</span>
-                <span className="sidebar-item-snippet block truncate">{chat.snippet}</span>
               </div>
             </button>
           ))}

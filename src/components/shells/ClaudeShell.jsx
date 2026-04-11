@@ -60,7 +60,6 @@ export default function ClaudeShell({ children, sidebarChats, onSelectChat, acti
               }}
             >
               <span className="sidebar-item-title">{chat.title}</span>
-              <span className="sidebar-item-snippet">{chat.snippet}</span>
             </button>
           ))}
         </div>
@@ -79,7 +78,7 @@ export default function ClaudeShell({ children, sidebarChats, onSelectChat, acti
                 <line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" />
               </svg>
             </button>
-            <Link to="/" className="brand-name">
+            <Link to="/" className="brand-name brand-name-mobile-only">
               AiYapping
             </Link>
           </div>

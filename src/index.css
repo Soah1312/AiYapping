@@ -223,6 +223,16 @@ h1, h2, h3, h4, .display-font {
   letter-spacing: 0.01em;
 }
 
+.brand-name-mobile-only {
+  display: inline-flex;
+}
+
+@media (min-width: 768px) {
+  .brand-name-mobile-only {
+    display: none;
+  }
+}
+
 [data-theme='gpt'] .brand-name {
   font-weight: 600;
   font-size: 1.15rem;
@@ -972,6 +982,17 @@ h1, h2, h3, h4, .display-font {
   gap: 0.5rem;
   margin-top: 1rem;
   justify-content: center;
+}
+
+/* Setup floating chips are intentionally mobile-only. */
+.suggestion-chips-mobile-only {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .suggestion-chips-mobile-only {
+    display: flex;
+  }
 }
 
 .suggestion-chip {

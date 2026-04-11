@@ -51,7 +51,7 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
         </p>
 
         {/* Suggestion chips */}
-        <div className="suggestion-chips">
+        <div className="suggestion-chips suggestion-chips-mobile-only">
           {SUGGESTION_TOPICS.map((topic) => (
             <button
               key={topic.id}
@@ -60,7 +60,6 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
               onClick={() => handleChipClick(topic)}
             >
               <strong style={{ display: 'block', fontSize: '0.8125rem', color: 'var(--text-primary)' }}>{topic.title}</strong>
-              <span style={{ fontSize: '0.6875rem' }}>{topic.snippet}</span>
             </button>
           ))}
         </div>

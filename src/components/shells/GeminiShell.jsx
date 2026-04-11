@@ -55,7 +55,6 @@ export default function GeminiShell({ children, sidebarChats, onSelectChat, acti
               }}
             >
               <span className="sidebar-item-title">{chat.title}</span>
-              <span className="sidebar-item-snippet">{chat.snippet}</span>
             </button>
           ))}
         </div>
