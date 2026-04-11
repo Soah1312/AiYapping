@@ -17,12 +17,12 @@ export default function DuelControls({
 
         <div className="flex items-center gap-2 ml-auto">
           {status === 'paused' ? (
-            <button type="button" className="btn-primary" style={{ fontSize: '0.8125rem', padding: '0.375rem 0.75rem', minHeight: '36px' }} onClick={onResume}>Resume</button>
+            <button type="button" className="btn-primary" style={{ fontSize: '0.8125rem', padding: '0.375rem 0.75rem', minHeight: '36px' }} onClick={onResume}>Keep going</button>
           ) : status === 'running' ? (
-            <button type="button" className="btn-secondary" style={{ fontSize: '0.8125rem', padding: '0.375rem 0.75rem', minHeight: '36px' }} onClick={onPause}>Pause</button>
+            <button type="button" className="btn-secondary" style={{ fontSize: '0.8125rem', padding: '0.375rem 0.75rem', minHeight: '36px' }} onClick={onPause}>Hold up</button>
           ) : null}
           {(status === 'running' || status === 'paused') && (
-            <button type="button" className="btn-secondary" style={{ fontSize: '0.8125rem', padding: '0.375rem 0.75rem', minHeight: '36px' }} onClick={onStop}>Stop</button>
+            <button type="button" className="btn-secondary" style={{ fontSize: '0.8125rem', padding: '0.375rem 0.75rem', minHeight: '36px' }} onClick={onStop}>Abort</button>
           )}
           {status === 'completed' && (
             <button
@@ -31,7 +31,7 @@ export default function DuelControls({
               style={{ fontSize: '0.8125rem', padding: '0.375rem 0.75rem', minHeight: '36px' }}
               onClick={onNewChat}
             >
-              New Chat
+              Round 2
             </button>
           )}
         </div>

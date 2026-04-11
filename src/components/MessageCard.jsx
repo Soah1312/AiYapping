@@ -152,7 +152,7 @@ export default function MessageCard({ message, onRetry, readOnly = false }) {
           }}
         >
           <AlertTriangle size={13} />
-          {message.error || 'Stream failed.'}
+          {message.error || 'That didn\'t go as planned.'}
         </div>
       )}
 
@@ -170,7 +170,7 @@ export default function MessageCard({ message, onRetry, readOnly = false }) {
             borderRadius: '6px',
           }}
         >
-          interrupted
+          paused mid-sentence
         </p>
       )}
 

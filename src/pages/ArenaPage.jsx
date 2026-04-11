@@ -101,7 +101,7 @@ export default function ArenaPage() {
     const result = saveCurrentChat({ title: generatedChatTitle });
     if (!result?.ok && result?.reason === 'limit') {
       setToast({
-        message: 'Storage full (10 chats). Delete an older chat to save this one.',
+        message: 'Storage is full (10 duels max). Make room if you want to save this banger.',
         type: 'error',
       });
       return;
@@ -109,7 +109,7 @@ export default function ArenaPage() {
 
     if (result?.ok && result.count === 9) {
       setToast({
-        message: 'You have saved 9 chats. Delete older chats soon to keep space available.',
+        message: '9 duels saved. Delete one soon or start losing the good ones.',
         type: 'info',
       });
     }
@@ -303,14 +303,14 @@ export default function ArenaPage() {
             <div className="chat-feed-inner">
               {transcript.length === 0 && (
                 <div className="surface-card" style={{ padding: '1rem', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-                  Warming up both models…
+                  The neurons are firing…
                 </div>
               )}
               {transcript.map((msg) => (
                 <MessageCard key={msg.id} message={msg} />
               ))}
               {status === 'completed' && transcript.length > 0 && (
-                <p className="session-end-note">This is all you get for free</p>
+                <p className="session-end-note">That's all the horsepower we can give you for free</p>
               )}
             </div>
           </div>

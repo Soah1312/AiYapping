@@ -40,7 +40,7 @@ export default function ConversationControls({
               className="btn-primary"
               style={{ fontSize: '0.75rem', padding: '0.375rem 0.875rem' }}
             >
-              <Play size={13} /> Resume
+              <Play size={13} /> Keep going
             </button>
           ) : (
             <button
@@ -49,7 +49,7 @@ export default function ConversationControls({
               className="btn-secondary"
               style={{ fontSize: '0.75rem', padding: '0.375rem 0.75rem' }}
             >
-              <Pause size={13} /> Pause
+              <Pause size={13} /> Hold up
             </button>
           )}
 

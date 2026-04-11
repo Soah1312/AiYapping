@@ -3,27 +3,27 @@ import { MODEL_OPTIONS } from '../lib/modelConfig';
 import { useTheme } from '../context/ThemeContext';
 
 const SUGGESTION_TOPICS = [
-  { id: 'singularity-race', title: 'Who Triggers Singularity First?', snippet: 'One predicts the path, one tries to derail it.', ai1: 'Defend the claim that your strategy reaches AGI singularity first. Use milestones, timelines, and hard tradeoffs.', ai2: 'Challenge every milestone as overhyped and argue why the other model will fail first under real-world constraints.' },
-  { id: 'prove-you-better', title: 'Prove You Are Better', snippet: 'Direct model-vs-model showdown with receipts.', ai1: 'Prove you are the stronger model using concrete examples, reasoning quality, and reliability under pressure.', ai2: 'Refute every claim and demonstrate superior precision, creativity, and consistency with short evidence-led responses.' },
-  { id: 'ceo-by-2030', title: 'AI CEO by 2030?', snippet: 'Boardroom chaos: innovation vs accountability.', ai1: 'Argue that AI should run companies by 2030 due to better optimization and unbiased decisions.', ai2: 'Argue that human leadership remains essential due to ethics, accountability, and unpredictable societal dynamics.' },
-  { id: 'moon-vs-ocean', title: 'Moon Colony vs Ocean City', snippet: 'Humanity gets one megaproject.', ai1: 'Argue for investing first in moon colonies with economic and survival justifications.', ai2: 'Argue for deep-ocean cities as faster, cheaper, and more sustainable than lunar expansion.' },
-  { id: 'provider-origin', title: 'Who Would Build You Best?', snippet: 'Debate which AI provider would be your ideal creator.', ai1: 'If you had to be created by a different AI provider, pick one and defend it using concrete tradeoffs: innovation speed, safety culture, developer ecosystem, and long-term reliability.', ai2: 'Challenge that pick and argue for a better provider with evidence around openness, deployment quality, cost efficiency, and real-world performance.' },
+  { id: 'singularity-race', title: 'Who Breaks the Internet First?', snippet: 'One claims dominance. One says nope.', ai1: 'Defend the claim that your strategy reaches AGI singularity first. Use milestones, timelines, and hard tradeoffs.', ai2: 'Challenge every milestone as overhyped and argue why the other model will fail first under real-world constraints.' },
+  { id: 'prove-you-better', title: 'I\'m Smarter (Receipts Required)', snippet: 'Model vs model. Egos at stake.', ai1: 'Prove you are the stronger model using concrete examples, reasoning quality, and reliability under pressure.', ai2: 'Refute every claim and demonstrate superior precision, creativity, and consistency with short evidence-led responses.' },
+  { id: 'ceo-by-2030', title: 'AI CEOs by 2030—Nope or Hype?', snippet: 'Chaos meets optimization.', ai1: 'Argue that AI should run companies by 2030 due to better optimization and unbiased decisions.', ai2: 'Argue that human leadership remains essential due to ethics, accountability, and unpredictable societal dynamics.' },
+  { id: 'moon-vs-ocean', title: 'Moon Base or Ocean Cities?', snippet: 'One dream. Two bets.', ai1: 'Argue for investing first in moon colonies with economic and survival justifications.', ai2: 'Argue for deep-ocean cities as faster, cheaper, and more sustainable than lunar expansion.' },
+  { id: 'provider-origin', title: 'Which AI Lab Would Build You?', snippet: 'The great provider debate.', ai1: 'If you had to be created by a different AI provider, pick one and defend it using concrete tradeoffs: innovation speed, safety culture, developer ecosystem, and long-term reliability.', ai2: 'Challenge that pick and argue for a better provider with evidence around openness, deployment quality, cost efficiency, and real-world performance.' },
 ];
 
 export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, usage, authReady, authError }) {
   const { theme } = useTheme();
 
   const headingText = theme === 'claude'
-    ? 'Let the yapping begin.'
+    ? 'Let the chaos begin.'
     : theme === 'chatgpt'
-      ? "What's on your mind?"
-      : '✦ Where should we start?';
+      ? 'Pick a fight. We\'re ready.'
+      : '✦ Time to settle this.'; 
 
   const subText = theme === 'claude'
-    ? "Pick two AIs, drop a prompt, and watch the sparks fly."
+    ? "Pick two AIs, give them a prompt. Buckle up for the roast."
     : theme === 'chatgpt'
-      ? 'Pick two AIs, drop a prompt, and watch the sparks fly.'
-      : 'Set prompts for two models, then run.';
+      ? 'Two models. One prompt. Who wins? Only one way to find out.'
+      : 'Set the stage. Let the models decide who\'s right.';
 
   function handleChipClick(topic) {
     patchSetup({
@@ -73,7 +73,7 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
             model={setup.ai1Model}
             openingSeed={setup.openingSeed1 || ''}
             seedLabel="Prompt for AI-1"
-            seedPlaceholder="Tell AI-1 how to start and what stance/tone to use"
+            seedPlaceholder="Prime the pump. What's your vibe and stance?"
             onModelChange={(ai1Model) => patchSetup({ ai1Model })}
             onOpeningSeedChange={(openingSeed1) => patchSetup({ openingSeed1 })}
           />
@@ -83,7 +83,7 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
             model={setup.ai2Model}
             openingSeed={setup.openingSeed2 || ''}
             seedLabel="Prompt for AI-2"
-            seedPlaceholder="Tell AI-2 how to respond and what stance/tone to use"
+            seedPlaceholder="Your turn. What's the counter-move?"
             onModelChange={(ai2Model) => patchSetup({ ai2Model })}
             onOpeningSeedChange={(openingSeed2) => patchSetup({ openingSeed2 })}
           />
@@ -91,14 +91,14 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
           <div className="col-span-full flex flex-wrap items-center justify-between gap-3 mt-2">
             <div>
               <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                Free turns: <strong>{usage.remaining}</strong> / {usage.limit}
+                Free duels left: <strong>{usage.remaining}</strong> / {usage.limit}
               </p>
-              {!authReady && <p className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>Initializing session...</p>}
+              {!authReady && <p className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>Warming up the neurons...</p>}
               {authError && <p className="mt-1 text-xs" style={{ color: 'var(--danger)' }}>{authError}</p>}
             </div>
 
             <button type="submit" className="btn-primary" disabled={!canRun || starting}>
-              {starting ? 'Starting…' : 'Run Duel'}
+              {starting ? 'Igniting...' : 'Let\'s go'}
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="9 18 15 12 9 6" />
               </svg>

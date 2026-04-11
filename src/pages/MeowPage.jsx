@@ -5,8 +5,8 @@ import { Lock, Users, BarChart3, MessageCircle, Zap, Eye } from 'lucide-react';
 function AcademiaStatCard({ label, value, icon }) {
   return (
     <div style={{
-      borderRadius: '0.375rem',
-      padding: '1.75rem 1.5rem',
+      borderRadius: '0.25rem',
+      padding: '1.25rem 1.25rem',
       background: 'linear-gradient(135deg, #1a1410 0%, #141110 100%)',
       border: '2px solid #8b7355',
       position: 'relative',
@@ -60,7 +60,7 @@ function AcademiaStatCard({ label, value, icon }) {
         <div style={{ flex: 1 }}>
           <p style={{ 
             margin: 0, 
-            fontSize: '0.65rem', 
+            fontSize: '0.6rem', 
             color: '#a0826d',
             fontWeight: 500, 
             letterSpacing: '0.15em', 
@@ -68,8 +68,8 @@ function AcademiaStatCard({ label, value, icon }) {
             fontFamily: 'Cinzel, "Copperplate", serif'
           }}>{label}</p>
           <p style={{ 
-            margin: '1.25rem 0 0', 
-            fontSize: '2.5rem', 
+            margin: '0.75rem 0 0', 
+            fontSize: '2rem', 
             fontWeight: 700, 
             color: '#e8dcc8',
             fontFamily: 'Playfair Display, Lora, "Libre Baskerville", serif',
@@ -204,87 +204,24 @@ export default function MeowPage() {
 
   return (
     <main style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #0f0c0a 0%, #1a1410 50%, #141110 100%)', color: 'var(--text-primary)' }}>
-      {/* Header */}
-      <div style={{
-        borderBottom: '2px solid #8b7355',
-        backgroundImage: 'linear-gradient(135deg, rgba(139, 115, 85, 0.08) 0%, rgba(205, 133, 63, 0.04) 100%)',
-        boxShadow: 'inset 0 -1px 4px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2)'
-      }}>
-        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '2.5rem 1.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
-            <div style={{ 
-              padding: '0.5rem',
-              backgroundColor: 'rgba(139, 115, 85, 0.1)',
-              borderRadius: '0.5rem',
-              border: '1px solid #8b7355',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <Lock size={28} strokeWidth={1.5} color="#cd853f" style={{ opacity: 0.8 }} />
-            </div>
-            <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 700, letterSpacing: '-0.02em', fontFamily: 'Playfair Display, Lora, "Libre Baskerville", serif', color: '#e8dcc8' }}>/meow admin</h1>
-          </div>
-        </div>
-      </div>
-
-      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '2.5rem 1.5rem' }}>
+      <div style={{ width: '100%', margin: '0 auto', padding: '1.5rem 1rem' }}>
         {!unlocked ? (
-          <div style={{ maxWidth: '500px', margin: '4rem auto' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', padding: '1rem' }}>
             <div style={{
-              borderRadius: '0.5rem',
-              padding: '3rem 2.5rem',
+              borderRadius: '0.375rem',
+              padding: '2rem 1.5rem',
               background: 'linear-gradient(135deg, #1a1410 0%, #232320 100%)',
               border: '2px solid #8b7355',
               boxShadow: '0 12px 40px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.02)',
-              position: 'relative',
-              overflow: 'hidden'
+              width: '100%',
+              maxWidth: '360px'
             }}>
-              {/* Decorative corner accents */}
-              <div style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '2px',
-                height: '30px',
-                background: '#cd853f',
-                opacity: 0.5
-              }} />
-              <div style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '30px',
-                height: '2px',
-                background: '#cd853f',
-                opacity: 0.5
-              }} />
-              <div style={{
-                position: 'absolute',
-                bottom: 0,
-                right: 0,
-                width: '2px',
-                height: '30px',
-                background: '#cd853f',
-                opacity: 0.5
-              }} />
-              <div style={{
-                position: 'absolute',
-                bottom: 0,
-                right: 0,
-                width: '30px',
-                height: '2px',
-                background: '#cd853f',
-                opacity: 0.5
-              }} />
-              
               <h2 style={{ 
                 margin: 0, 
-                fontSize: '1.75rem', 
+                fontSize: '1.25rem', 
                 fontWeight: 600, 
                 textAlign: 'center', 
-                marginBottom: '0.5rem', 
-                letterSpacing: '-0.01em', 
+                marginBottom: '0.25rem', 
                 fontFamily: 'Playfair Display, Lora, "Libre Baskerville", serif',
                 color: '#e8dcc8'
               }}>
@@ -292,40 +229,28 @@ export default function MeowPage() {
               </h2>
               <p style={{
                 textAlign: 'center',
-                fontSize: '0.85rem',
+                fontSize: '0.8rem',
                 color: '#8b7355',
-                margin: '0 0 2rem 0',
+                margin: '0 0 1.5rem 0',
                 fontFamily: 'Merriweather, "Source Serif Pro", Garamond, serif'
               }}>
-                Enter your password
+                Enter password
               </p>
 
-              <form onSubmit={fetchStats} style={{ display: 'grid', gap: '1.75rem' }}>
+              <form onSubmit={fetchStats} style={{ display: 'grid', gap: '1.25rem' }}>
                 <div>
-                  <div style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'space-between',
-                    marginBottom: '0.75rem'
+                  <label htmlFor="meow-password" style={{ 
+                    display: 'block', 
+                    fontSize: '0.7rem', 
+                    fontWeight: 600, 
+                    color: '#a0826d', 
+                    textTransform: 'uppercase', 
+                    letterSpacing: '0.1em', 
+                    fontFamily: 'Cinzel, "Copperplate", serif',
+                    marginBottom: '0.5rem'
                   }}>
-                    <label htmlFor="meow-password" style={{ 
-                      display: 'block', 
-                      fontSize: '0.75rem', 
-                      fontWeight: 600, 
-                      color: '#a0826d', 
-                      textTransform: 'uppercase', 
-                      letterSpacing: '0.12em', 
-                      fontFamily: 'Cinzel, "Copperplate", serif'
-                    }}>
-                      Security Passphrase
-                    </label>
-                    <div style={{
-                      width: '60px',
-                      height: '1px',
-                      background: 'linear-gradient(90deg, transparent, #8b7355, transparent)',
-                      opacity: 0.3
-                    }} />
-                  </div>
+                    Password
+                  </label>
                   <input
                     id="meow-password"
                     type="password"
@@ -335,41 +260,39 @@ export default function MeowPage() {
                     autoComplete="current-password"
                     style={{
                       width: '100%',
-                      padding: '1.1rem 1.25rem',
-                      borderRadius: '0.375rem',
+                      padding: '0.875rem 1rem',
+                      borderRadius: '0.25rem',
                       border: '1px solid #8b7355',
                       background: 'linear-gradient(135deg, #141110 0%, #1a1410 100%)',
-                      boxShadow: 'inset 2px 2px 4px rgba(0, 0, 0, 0.3), inset -1px -1px 2px rgba(255, 255, 255, 0.02), 0 1px 3px rgba(0, 0, 0, 0.1)',
-                      fontSize: '1rem',
+                      boxShadow: 'inset 1px 1px 2px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.1)',
+                      fontSize: '0.95rem',
                       fontFamily: 'Merriweather, "Source Serif Pro", Garamond, serif',
                       color: '#e8dcc8',
-                      transition: 'all 0.25s ease',
+                      transition: 'all 0.2s ease',
                       outline: 'none'
                     }}
                     onFocus={(e) => {
                       e.currentTarget.style.borderColor = '#cd853f';
-                      e.currentTarget.style.boxShadow = 'inset 2px 2px 4px rgba(0, 0, 0, 0.2), 0 0 8px rgba(205, 133, 63, 0.2), 0 1px 3px rgba(0, 0, 0, 0.1)';
+                      e.currentTarget.style.boxShadow = 'inset 1px 1px 2px rgba(0, 0, 0, 0.2), 0 0 6px rgba(205, 133, 63, 0.2)';
                     }}
                     onBlur={(e) => {
                       e.currentTarget.style.borderColor = '#8b7355';
-                      e.currentTarget.style.boxShadow = 'inset 2px 2px 4px rgba(0, 0, 0, 0.3), inset -1px -1px 2px rgba(255, 255, 255, 0.02), 0 1px 3px rgba(0, 0, 0, 0.1)';
+                      e.currentTarget.style.boxShadow = 'inset 1px 1px 2px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.1)';
                     }}
                   />
                 </div>
 
                 {error && (
                   <div style={{
-                    padding: '1rem 1.25rem',
-                    borderRadius: '0.375rem',
+                    padding: '0.75rem 1rem',
+                    borderRadius: '0.25rem',
                     background: 'rgba(139, 115, 85, 0.08)',
                     border: '1px solid #8b7355',
                     color: '#f87171',
-                    fontSize: '0.9rem',
-                    fontWeight: 500,
-                    fontFamily: 'Merriweather, "Source Serif Pro", Garamond, serif',
-                    boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.1)'
+                    fontSize: '0.8rem',
+                    fontFamily: 'Merriweather, "Source Serif Pro", Garamond, serif'
                   }}>
-                    ✗ {error}
+                    {error}
                   </div>
                 )}
 
@@ -377,175 +300,120 @@ export default function MeowPage() {
                   type="submit"
                   disabled={loading}
                   style={{
-                    padding: '1.1rem 1.5rem',
-                    borderRadius: '0.375rem',
+                    padding: '0.875rem 1.25rem',
+                    borderRadius: '0.25rem',
                     fontWeight: 600,
-                    fontSize: '0.95rem',
+                    fontSize: '0.9rem',
                     fontFamily: 'Merriweather, "Source Serif Pro", Garamond, serif',
                     background: 'linear-gradient(135deg, #8b7355 0%, #a0826d 100%)',
                     color: '#e8dcc8',
                     border: 'none',
                     cursor: loading ? 'not-allowed' : 'pointer',
                     opacity: loading ? 0.65 : 1,
-                    transition: 'all 0.25s ease',
+                    transition: 'all 0.2s ease',
                     width: '100%',
-                    boxShadow: loading ? 'inset 0 2px 4px rgba(0, 0, 0, 0.2)' : '0 8px 20px rgba(0, 0, 0, 0.25), 0 1px 2px rgba(255, 255, 255, 0.05)',
-                    transform: loading ? 'translateY(2px)' : 'translateY(0)',
-                    letterSpacing: '0.05em'
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+                    letterSpacing: '0.03em'
                   }}
                   onMouseEnter={(e) => {
                     if (!loading) {
                       e.currentTarget.style.background = 'linear-gradient(135deg, #9d8a75 0%, #b39687 100%)';
-                      e.currentTarget.style.boxShadow = '0 12px 28px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(255, 255, 255, 0.05)';
-                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.2)';
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (!loading) {
                       e.currentTarget.style.background = 'linear-gradient(135deg, #8b7355 0%, #a0826d 100%)';
-                      e.currentTarget.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.25), 0 1px 2px rgba(255, 255, 255, 0.05)';
-                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
                     }
                   }}
                 >
-                  {loading ? '⟳ Verifying...' : '→ Enter Portal'}
+                  {loading ? 'Signing in...' : 'Sign In'}
                 </button>
               </form>
             </div>
           </div>
         ) : (
           <>
-            <div style={{
-              height: '2px',
-              background: 'linear-gradient(90deg, transparent, #8b7355, transparent)',
-              opacity: 0.4,
-              marginBottom: '2.5rem'
-            }} />
-            
             {/* Control Bar */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem', flexWrap: 'wrap', gap: '1.5rem' }}>
-              <div>
-                <h2 style={{ margin: 0, fontSize: '2rem', fontWeight: 700, letterSpacing: '-0.02em', fontFamily: 'Playfair Display, Lora, "Libre Baskerville", serif', color: '#e8dcc8' }}>Dashboard</h2>
-                {generatedAt && (
-                  <p style={{ margin: '0.5rem 0 0', fontSize: '0.85rem', color: '#8b7355', fontFamily: 'Merriweather, "Source Serif Pro", Garamond, serif' }}>
-                    Data updated {generatedAt}
-                  </p>
-                )}
-              </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
+              <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, fontFamily: 'Playfair Display, Lora, "Libre Baskerville", serif', color: '#e8dcc8' }}>Admin Dashboard</h2>
               <button
                 type="button"
                 onClick={fetchStats}
                 disabled={loading}
                 style={{
-                  padding: '0.875rem 1.75rem',
-                  borderRadius: '0.375rem',
+                  padding: '0.7rem 1.25rem',
+                  borderRadius: '0.25rem',
                   fontWeight: 600,
-                  fontSize: '0.9rem',
+                  fontSize: '0.8rem',
                   fontFamily: 'Merriweather, "Source Serif Pro", Garamond, serif',
                   background: 'linear-gradient(135deg, #8b7355 0%, #a0826d 100%)',
                   color: '#e8dcc8',
                   border: 'none',
                   cursor: loading ? 'not-allowed' : 'pointer',
                   opacity: loading ? 0.65 : 1,
-                  transition: 'all 0.25s ease',
-                  boxShadow: '0 6px 16px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(255, 255, 255, 0.05)',
-                  letterSpacing: '0.05em'
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)'
                 }}
                 onMouseEnter={(e) => {
                   if (!loading) {
                     e.currentTarget.style.background = 'linear-gradient(135deg, #9d8a75 0%, #b39687 100%)';
-                    e.currentTarget.style.boxShadow = '0 10px 24px rgba(0, 0, 0, 0.15), 0 1px 2px rgba(255, 255, 255, 0.05)';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.2)';
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (!loading) {
                     e.currentTarget.style.background = 'linear-gradient(135deg, #8b7355 0%, #a0826d 100%)';
-                    e.currentTarget.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(255, 255, 255, 0.05)';
-                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
                   }
                 }}
               >
-                {loading ? '⟳ Syncing' : '↻ Refresh Data'}
+                {loading ? 'Syncing...' : 'Refresh'}
               </button>
             </div>
 
             {/* Stat Cards */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-              gap: '2rem',
-              marginBottom: '3rem'
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+              gap: '1.25rem',
+              marginBottom: '2rem'
             }}>
-              <AcademiaStatCard label="Total Users" value={stats.users ?? 0} icon={<Users size={40} strokeWidth={1.5} color="#cd853f" style={{ opacity: 0.6 }} />} />
-              <AcademiaStatCard label="Total Visits" value={stats.totalVisits ?? 0} icon={<BarChart3 size={40} strokeWidth={1.5} color="#cd853f" style={{ opacity: 0.6 }} />} />
-              <AcademiaStatCard label="Recent Chats" value={Array.isArray(stats.recentChats) ? stats.recentChats.length : 0} icon={<MessageCircle size={40} strokeWidth={1.5} color="#cd853f" style={{ opacity: 0.6 }} />} />
+              <AcademiaStatCard label="Total Users" value={stats.users ?? 0} icon={<Users size={28} strokeWidth={1.5} color="#cd853f" style={{ opacity: 0.6 }} />} />
+              <AcademiaStatCard label="Total Visits" value={stats.totalVisits ?? 0} icon={<BarChart3 size={28} strokeWidth={1.5} color="#cd853f" style={{ opacity: 0.6 }} />} />
+              <AcademiaStatCard label="Recent Chats" value={Array.isArray(stats.recentChats) ? stats.recentChats.length : 0} icon={<MessageCircle size={28} strokeWidth={1.5} color="#cd853f" style={{ opacity: 0.6 }} />} />
             </div>
-
-            <div style={{
-              height: '2px',
-              background: 'linear-gradient(90deg, transparent, #8b7355, transparent)',
-              opacity: 0.4,
-              marginBottom: '3rem'
-            }} />
 
             {/* Content Grid */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-              gap: '2.5rem'
+              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+              gap: '1.5rem'
             }}>
-              {/* Recent Chats */}
-              <div style={{
-                gridColumn: 'span 1',
-                display: 'flex',
-                flexDirection: 'column'
-              }}>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <div style={{
-                  borderRadius: '0.375rem',
-                  padding: '2rem',
+                  borderRadius: '0.25rem',
+                  padding: '1.5rem',
                   background: 'linear-gradient(135deg, #1a1410 0%, #141110 100%)',
                   border: '2px solid #8b7355',
                   display: 'flex',
                   flexDirection: 'column',
                   flex: 1,
-                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.02)',
-                  position: 'relative',
-                  overflow: 'hidden'
+                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.02)'
                 }}>
-                  <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: '2rem',
-                    right: '2rem',
-                    height: '1px',
-                    background: 'linear-gradient(90deg, transparent, #cd853f, transparent)',
-                    opacity: 0.3
-                  }} />
-                  
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.75rem', marginTop: '0.5rem' }}>
-                    <div style={{
-                      padding: '0.375rem',
-                      backgroundColor: 'rgba(139, 115, 85, 0.08)',
-                      borderRadius: '0.25rem',
-                      border: '1px solid rgba(139, 115, 85, 0.3)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}>
-                      <MessageCircle size={20} strokeWidth={1.5} color="#cd853f" style={{ opacity: 0.7 }} />
-                    </div>
-                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, letterSpacing: '-0.01em', fontFamily: 'Playfair Display, Lora, "Libre Baskerville", serif', color: '#e8dcc8' }}>Recent Chats</h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
+                    <MessageCircle size={18} strokeWidth={1.5} color="#cd853f" style={{ opacity: 0.7, flexShrink: 0 }} />
+                    <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, fontFamily: 'Playfair Display, Lora, "Libre Baskerville", serif', color: '#e8dcc8' }}>Recent Chats</h3>
                   </div>
 
-                  <div style={{ display: 'grid', gap: '1rem', flex: 1 }}>
-                    {(stats.recentChats || []).slice(0, 12).map((chat) => (
+                  <div style={{ display: 'grid', gap: '0.75rem', flex: 1 }}>
+                    {(stats.recentChats || []).slice(0, 8).map((chat) => (
                       <AcademiaChat key={chat.id} chat={chat} />
                     ))}
                     {(stats.recentChats || []).length === 0 && (
-                      <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#8b7355' }}>
-                        <p style={{ margin: '0.5rem 0 0', fontSize: '0.95rem', fontFamily: 'Merriweather, "Source Serif Pro", Garamond, serif' }}>No conversations recorded</p>
-                        <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', opacity: 0.6, fontFamily: 'Cinzel, "Copperplate", serif', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Awaiting activity</p>
+                      <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#8b7355' }}>
+                        <p style={{ margin: 0, fontSize: '0.85rem', fontFamily: 'Merriweather, "Source Serif Pro", Garamond, serif' }}>No chats</p>
                       </div>
                     )}
                   </div>
@@ -553,56 +421,29 @@ export default function MeowPage() {
               </div>
 
               {/* API Usage */}
-              <div style={{
-                gridColumn: 'span 1',
-                display: 'flex',
-                flexDirection: 'column'
-              }}>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <div style={{
-                  borderRadius: '0.375rem',
-                  padding: '2rem',
+                  borderRadius: '0.25rem',
+                  padding: '1.5rem',
                   background: 'linear-gradient(135deg, #1a1410 0%, #141110 100%)',
                   border: '2px solid #8b7355',
                   display: 'flex',
                   flexDirection: 'column',
                   flex: 1,
-                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.02)',
-                  position: 'relative',
-                  overflow: 'hidden'
+                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.02)'
                 }}>
-                  <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: '2rem',
-                    right: '2rem',
-                    height: '1px',
-                    background: 'linear-gradient(90deg, transparent, #cd853f, transparent)',
-                    opacity: 0.3
-                  }} />
-                  
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.75rem', marginTop: '0.5rem' }}>
-                    <div style={{
-                      padding: '0.375rem',
-                      backgroundColor: 'rgba(139, 115, 85, 0.08)',
-                      borderRadius: '0.25rem',
-                      border: '1px solid rgba(139, 115, 85, 0.3)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}>
-                      <Zap size={20} strokeWidth={1.5} color="#cd853f" style={{ opacity: 0.7 }} />
-                    </div>
-                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, letterSpacing: '-0.01em', fontFamily: 'Playfair Display, Lora, "Libre Baskerville", serif', color: '#e8dcc8' }}>API Consumption</h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
+                    <Zap size={18} strokeWidth={1.5} color="#cd853f" style={{ opacity: 0.7, flexShrink: 0 }} />
+                    <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, fontFamily: 'Playfair Display, Lora, "Libre Baskerville", serif', color: '#e8dcc8' }}>API Usage</h3>
                   </div>
 
                   <div style={{ display: 'grid', gap: '0.75rem', flex: 1 }}>
-                    {(stats.perUserApiCalls || []).slice(0, 10).map((row) => (
+                    {(stats.perUserApiCalls || []).slice(0, 8).map((row) => (
                       <AcademiaMetric key={row.userId} userId={row.userId} value={row.totalApiCalls} />
                     ))}
                     {(stats.perUserApiCalls || []).length === 0 && (
-                      <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#8b7355' }}>
-                        <p style={{ margin: '0.5rem 0 0', fontSize: '0.95rem', fontFamily: 'Merriweather, "Source Serif Pro", Garamond, serif' }}>No API calls recorded</p>
-                        <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', opacity: 0.6, fontFamily: 'Cinzel, "Copperplate", serif', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Standby mode</p>
+                      <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#8b7355' }}>
+                        <p style={{ margin: 0, fontSize: '0.85rem', fontFamily: 'Merriweather, "Source Serif Pro", Garamond, serif' }}>No API calls</p>
                       </div>
                     )}
                   </div>
@@ -610,56 +451,29 @@ export default function MeowPage() {
               </div>
 
               {/* User Visits */}
-              <div style={{
-                gridColumn: 'span 1',
-                display: 'flex',
-                flexDirection: 'column'
-              }}>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <div style={{
-                  borderRadius: '0.375rem',
-                  padding: '2rem',
+                  borderRadius: '0.25rem',
+                  padding: '1.5rem',
                   background: 'linear-gradient(135deg, #1a1410 0%, #141110 100%)',
                   border: '2px solid #8b7355',
                   display: 'flex',
                   flexDirection: 'column',
                   flex: 1,
-                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.02)',
-                  position: 'relative',
-                  overflow: 'hidden'
+                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.02)'
                 }}>
-                  <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: '2rem',
-                    right: '2rem',
-                    height: '1px',
-                    background: 'linear-gradient(90deg, transparent, #cd853f, transparent)',
-                    opacity: 0.3
-                  }} />
-                  
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.75rem', marginTop: '0.5rem' }}>
-                    <div style={{
-                      padding: '0.375rem',
-                      backgroundColor: 'rgba(139, 115, 85, 0.08)',
-                      borderRadius: '0.25rem',
-                      border: '1px solid rgba(139, 115, 85, 0.3)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}>
-                      <Eye size={20} strokeWidth={1.5} color="#cd853f" style={{ opacity: 0.7 }} />
-                    </div>
-                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, letterSpacing: '-0.01em', fontFamily: 'Playfair Display, Lora, "Libre Baskerville", serif', color: '#e8dcc8' }}>User Presence</h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
+                    <Eye size={18} strokeWidth={1.5} color="#cd853f" style={{ opacity: 0.7, flexShrink: 0 }} />
+                    <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, fontFamily: 'Playfair Display, Lora, "Libre Baskerville", serif', color: '#e8dcc8' }}>User Visits</h3>
                   </div>
 
                   <div style={{ display: 'grid', gap: '0.75rem', flex: 1 }}>
-                    {(stats.perUserVisits || []).slice(0, 10).map((row) => (
+                    {(stats.perUserVisits || []).slice(0, 8).map((row) => (
                       <AcademiaMetric key={row.userId} userId={row.userId} value={row.visits} />
                     ))}
                     {(stats.perUserVisits || []).length === 0 && (
-                      <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#8b7355' }}>
-                        <p style={{ margin: '0.5rem 0 0', fontSize: '0.95rem', fontFamily: 'Merriweather, "Source Serif Pro", Garamond, serif' }}>No visitor data available</p>
-                        <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', opacity: 0.6, fontFamily: 'Cinzel, "Copperplate", serif', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Awaiting session</p>
+                      <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#8b7355' }}>
+                        <p style={{ margin: 0, fontSize: '0.85rem', fontFamily: 'Merriweather, "Source Serif Pro", Garamond, serif' }}>No visits</p>
                       </div>
                     )}
                   </div>
