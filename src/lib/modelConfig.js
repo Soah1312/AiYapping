@@ -84,9 +84,9 @@ export const MODEL_OPTIONS = [
   {
     id: 'openrouter-gemma-4',
     provider: 'openrouter',
-    model: 'google/gemma-4-31b-it',
-    label: 'Gemma 4 31B',
-    flavor: 'OpenRouter • Gemma 4 31B • Powerful',
+    model: 'google/gemma-4-31b-it:free',
+    label: 'Gemma 4 31B (Free)',
+    flavor: 'OpenRouter • Free Tier • Gemma',
     icon: '/icons/gemma-color.svg',
   },
 ];
@@ -101,6 +101,7 @@ export const MODEL_BY_ID = MODEL_OPTIONS.reduce((acc, model) => {
 MODEL_BY_ID['hf-gemma-2-9b'] = MODEL_BY_ID['openrouter-gemma-4'];
 MODEL_BY_ID['google/gemma-2-9b-it'] = MODEL_BY_ID['openrouter-gemma-4'];
 MODEL_BY_ID['google/gemma-4-9b-it'] = MODEL_BY_ID['openrouter-gemma-4'];
+MODEL_BY_ID['google/gemma-4-31b-it'] = MODEL_BY_ID['openrouter-gemma-4'];
 MODEL_BY_ID['hf-space-deepseek-r1'] = MODEL_BY_ID['hf-deepseek-r1'];
 MODEL_BY_ID['hf-space:deepseek-r1'] = MODEL_BY_ID['hf-deepseek-r1'];
 
