@@ -11,6 +11,7 @@ import GeminiShell from '../components/shells/GeminiShell';
 import SetupForm from '../components/SetupForm';
 import DuelControls from '../components/DuelControls';
 import MessageCard from '../components/MessageCard';
+import Toast from '../components/Toast';
 
 const SIDEBAR_CHAT_TOPICS = [
   { id: 'singularity-race', title: 'Who Triggers Singularity First?', snippet: 'One predicts the path, one tries to derail it.', ai1: 'Defend the claim that your strategy reaches AGI singularity first. Use milestones, timelines, and hard tradeoffs.', ai2: 'Challenge every milestone as overhyped and argue why the other model will fail first under real-world constraints.' },
@@ -28,11 +29,13 @@ export default function ArenaPage() {
   const [authReady, setAuthReady] = useState(false);
   const [authError, setAuthError] = useState('');
   const [starting, setStarting] = useState(false);
+  const [toast, setToast] = useState({ message: '', type: 'info' });
+  const previousStatusRef = useRef('idle');
 
   const {
-    sessionId, setup, usage,
+    sessionId, setup, usage, summary, savedChats, activeSavedChatId,
     patchSetup, setSessionId, setUsage,
-    resetConversation, startConversation,
+    resetConversation, startConversation, saveCurrentChat, loadSavedChat, deleteSavedChat,
   } = useConversationStore();
 
   const {
@@ -83,6 +86,32 @@ export default function ArenaPage() {
     return () => { mounted = false; };
   }, [aiTurnCount, sessionId, setUsage]);
 
+  /* ── Save completed chats locally (max 10) ── */
+  useEffect(() => {
+    const previousStatus = previousStatusRef.current;
+    previousStatusRef.current = status;
+
+    if (status !== 'completed' || previousStatus === 'completed') {
+      return;
+    }
+
+    const result = saveCurrentChat();
+    if (!result?.ok && result?.reason === 'limit') {
+      setToast({
+        message: 'Storage full (10 chats). Delete an older chat to save this one.',
+        type: 'error',
+      });
+      return;
+    }
+
+    if (result?.ok && result.count === 9) {
+      setToast({
+        message: 'You have saved 9 chats. Delete older chats soon to keep space available.',
+        type: 'info',
+      });
+    }
+  }, [saveCurrentChat, status]);
+
   /* ── Auto-scroll ── */
   useEffect(() => {
     if (feedRef.current) feedRef.current.scrollTop = feedRef.current.scrollHeight;
@@ -104,6 +133,15 @@ export default function ArenaPage() {
       return;
     }
     patchSetup({ openingSeed1: chat.ai1, openingSeed2: chat.ai2 });
+  }
+
+  function handleSavedChatSelect(chatId) {
+    loadSavedChat(chatId);
+  }
+
+  function handleSavedChatDelete(chatId) {
+    deleteSavedChat(chatId);
+    setToast({ message: 'Saved chat deleted.', type: 'success' });
   }
 
   function normalizeSetup() {
@@ -134,8 +172,12 @@ export default function ArenaPage() {
   return (
     <Shell
       sidebarChats={SIDEBAR_CHAT_TOPICS}
+      savedChats={savedChats}
       onSelectChat={handleSidebarSelect}
+      onSelectSavedChat={handleSavedChatSelect}
+      onDeleteSavedChat={handleSavedChatDelete}
       activeChatId={activeSidebarChat?.id || ''}
+      activeSavedChatId={activeSavedChatId || ''}
     >
       {inSetup ? (
         <SetupForm
@@ -180,9 +222,18 @@ export default function ArenaPage() {
             ai1TurnCount={ai1TurnCount}
             ai2TurnCount={ai2TurnCount}
             sideTurnLimit={sideTurnLimit}
+            setup={setup}
+            transcript={transcript}
+            summary={summary}
           />
         </>
       )}
+
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast({ message: '', type: 'info' })}
+      />
     </Shell>
   );
 }

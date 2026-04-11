@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { ArrowLeft, Plus } from 'lucide-react';
 import MessageCard from '../components/MessageCard';
 
 export default function SharePage() {
@@ -45,26 +46,31 @@ export default function SharePage() {
 
   if (state.loading) {
     return (
-      <main className="mx-auto min-h-screen w-full max-w-4xl px-4 py-10 md:px-6">
-        <div className="surface-card p-4 text-sm text-[var(--text-muted)]">Loading shared transcript...</div>
+      <main className="h-screen overflow-y-auto scrollbar-thin">
+        <div className="mx-auto w-full max-w-5xl px-4 py-8 md:px-6">
+          <div className="surface-card p-4 text-sm text-[var(--text-muted)]">Loading shared transcript...</div>
+        </div>
       </main>
     );
   }
 
   if (state.notFound || !state.data) {
     return (
-      <main className="mx-auto min-h-screen w-full max-w-4xl px-4 py-10 md:px-6">
-        <div className="surface-card p-5">
-          <h1 className="display-font text-3xl">Transcript Not Found</h1>
-          <p className="mt-2 text-sm text-[var(--text-muted)]">
-            This share link is unavailable or has been removed.
-          </p>
-          <Link
-            to="/"
-            className="mt-4 inline-block rounded-lg bg-[var(--ai1)] px-4 py-2 text-sm font-medium text-black"
-          >
-            Start your own
-          </Link>
+      <main className="h-screen overflow-y-auto scrollbar-thin">
+        <div className="mx-auto w-full max-w-4xl px-4 py-10 md:px-6">
+          <div className="surface-card p-5">
+            <h1 className="display-font text-3xl">Transcript Not Found</h1>
+            <p className="mt-2 text-sm text-[var(--text-muted)]">
+              This share link is unavailable or has been removed.
+            </p>
+            <Link
+              to="/"
+              className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[var(--ai1)] px-4 py-2 text-sm font-medium text-black"
+            >
+              <Plus size={14} />
+              Start New Chat
+            </Link>
+          </div>
         </div>
       </main>
     );
@@ -73,28 +79,43 @@ export default function SharePage() {
   const { topic, config, turnCount, transcript } = state.data;
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-5xl px-4 py-8 md:px-6">
-      <header className="mb-5">
-        <p className="small-caps text-xs text-[var(--text-muted)]">Shared Arena</p>
-        <h1 className="display-font mt-1 text-3xl">{topic}</h1>
-        <p className="mt-2 text-sm text-[var(--text-muted)]">
-          Mode: {config?.mode} | {config?.model1} vs {config?.model2} | Turns: {turnCount}
-        </p>
-      </header>
+    <main className="h-screen overflow-y-auto scrollbar-thin">
+      <div className="mx-auto w-full max-w-5xl px-4 py-6 md:px-6">
+        <header className="sticky top-0 z-20 mb-5 border-b border-[var(--border)] bg-[var(--bg)]/95 py-3 backdrop-blur">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="small-caps text-xs text-[var(--text-muted)]">Shared Arena</p>
+              <h1 className="display-font mt-1 text-2xl md:text-3xl">{topic}</h1>
+              <p className="mt-2 text-sm text-[var(--text-muted)]">
+                Mode: {config?.mode} | {config?.model1} vs {config?.model2} | Turns: {turnCount}
+              </p>
+            </div>
 
-      <section className="grid gap-3">
-        {(transcript || []).map((message) => (
-          <MessageCard key={message.id || `${message.turn}-${message.timestamp}`} message={message} readOnly />
-        ))}
-      </section>
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--text-primary)]"
+            >
+              <Plus size={14} />
+              Start New Chat
+            </Link>
+          </div>
+        </header>
 
-      <div className="mt-8 pb-8 text-center">
-        <Link
-          to="/"
-          className="inline-block rounded-lg bg-[var(--ai2)] px-4 py-2 text-sm font-medium text-black"
-        >
-          Start your own
-        </Link>
+        <section className="grid gap-3">
+          {(transcript || []).map((message) => (
+            <MessageCard key={message.id || `${message.turn}-${message.timestamp}`} message={message} readOnly />
+          ))}
+        </section>
+
+        <div className="mt-8 pb-8 text-center">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 rounded-lg bg-[var(--ai2)] px-4 py-2 text-sm font-medium text-black"
+          >
+            <ArrowLeft size={14} />
+            Back to Main Website
+          </Link>
+        </div>
       </div>
     </main>
   );

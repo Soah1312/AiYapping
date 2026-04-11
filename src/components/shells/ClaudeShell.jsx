@@ -1,8 +1,18 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Trash2 } from 'lucide-react';
 import ThemeSwitcher from '../ThemeSwitcher';
 
-export default function ClaudeShell({ children, sidebarChats, onSelectChat, activeChatId }) {
+export default function ClaudeShell({
+  children,
+  sidebarChats,
+  savedChats,
+  onSelectChat,
+  onSelectSavedChat,
+  onDeleteSavedChat,
+  activeChatId,
+  activeSavedChatId,
+}) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
@@ -47,9 +57,43 @@ export default function ClaudeShell({ children, sidebarChats, onSelectChat, acti
           </span>
         </button>
 
-        <p className="sidebar-section-label">Prompt Starters</p>
-
         <div className="flex flex-col gap-0.5 flex-1 overflow-y-auto scrollbar-thin">
+          {(savedChats || []).length > 0 && (
+            <>
+              <p className="sidebar-section-label" style={{ marginTop: '0.25rem' }}>Saved Chats</p>
+              {(savedChats || []).map((chat) => (
+                <div
+                  key={chat.id}
+                  className={`sidebar-item ${activeSavedChatId === chat.id ? 'active' : ''}`}
+                >
+                  <button
+                    type="button"
+                    className="history-open-btn"
+                    onClick={() => {
+                      onSelectSavedChat?.(chat.id);
+                      setSidebarOpen(false);
+                    }}
+                  >
+                    <span className="sidebar-item-title block truncate">{chat.title}</span>
+                    <span className="sidebar-item-snippet block truncate">{chat.snippet}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="history-delete-btn"
+                    aria-label="Delete saved chat"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onDeleteSavedChat?.(chat.id);
+                    }}
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              ))}
+            </>
+          )}
+
+          <p className="sidebar-section-label" style={{ marginTop: '0.5rem' }}>Prompt Starters</p>
           {(sidebarChats || []).map((chat) => (
             <button
               key={chat.id}
