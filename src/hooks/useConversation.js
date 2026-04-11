@@ -5,7 +5,54 @@ import { buildTurnSystemPrompt, getPersonaLabel } from '../lib/prompts';
 import { useStream } from './useStream';
 
 const PER_SIDE_LIMIT = 10;
-const STREAM_FLUSH_INTERVAL_MS = 35;
+const MIN_TYPING_BUBBLE_MS = 420;
+const WORD_REVEAL_INTERVAL_MS = 55;
+const REVEAL_IDLE_POLL_MS = 20;
+
+function wait(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+function enqueueWordUnits(text, queue, flushTrailingPartial = false) {
+  if (!text) {
+    return '';
+  }
+
+  const segments = text.split(/(\s+)/).filter(Boolean);
+  let remainder = '';
+
+  for (let index = 0; index < segments.length; index += 1) {
+    const token = segments[index];
+
+    if (/^\s+$/.test(token)) {
+      if (queue.length > 0) {
+        queue[queue.length - 1] += token;
+      } else {
+        queue.push(token);
+      }
+      continue;
+    }
+
+    const next = segments[index + 1];
+    const hasWhitespaceAfter = typeof next === 'string' && /^\s+$/.test(next);
+
+    if (hasWhitespaceAfter) {
+      queue.push(token + next);
+      index += 1;
+      continue;
+    }
+
+    if (flushTrailingPartial) {
+      queue.push(token);
+    } else {
+      remainder = token;
+    }
+  }
+
+  return remainder;
+}
 
 function createMessageId() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -42,6 +89,27 @@ function buildContextMessages({ transcript, systemPrompt, speakerSide }) {
   });
 
   return context;
+}
+
+function buildChatHistoryText(transcript) {
+  const relevant = transcript.filter((message) => message.role === 'system' || isAiMessage(message));
+  if (relevant.length === 0) {
+    return 'No prior turns.';
+  }
+
+  // Keep history bounded to avoid ballooning prompt size.
+  const recent = relevant.slice(-10);
+  const lines = recent.map((message) => {
+    if (message.role === 'system') {
+      return `[Director] ${String(message.content || '').trim()}`;
+    }
+
+    const speaker = message.side === 'ai1' ? 'AI-1' : 'AI-2';
+    const content = String(message.content || '').replace(/\s+/g, ' ').trim();
+    return `[${speaker}] ${content}`;
+  });
+
+  return lines.join('\n');
 }
 
 export function useConversation() {
@@ -132,6 +200,7 @@ export function useConversation() {
 
       const sideTurnNumber = side === 'ai1' ? ai1TurnCount + 1 : ai2TurnCount + 1;
       const openingSeed = side === 'ai1' ? setup.openingSeed1 : setup.openingSeed2;
+      const chatHistoryText = buildChatHistoryText(transcript);
 
       const prompt = buildTurnSystemPrompt({
         mode: setup.mode,
@@ -143,6 +212,7 @@ export function useConversation() {
         opponentPersona,
         openingSeed,
         turnNumber: sideTurnNumber,
+        chatHistoryText,
       });
 
       const messageId = createMessageId();
@@ -165,9 +235,54 @@ export function useConversation() {
       runningTurnRef.current = true;
 
       let fullContent = '';
-      let lastFlushAt = 0;
+      let displayedContent = '';
+      let pendingWordRemainder = '';
+      const revealQueue = [];
+      let streamFinished = false;
+      const bubbleVisibleUntil = Date.now() + MIN_TYPING_BUBBLE_MS;
       const controller = new AbortController();
       abortControllerRef.current = controller;
+
+      let revealLoopPromise = null;
+
+      const runRevealLoop = async () => {
+        if (revealLoopPromise) {
+          return revealLoopPromise;
+        }
+
+        revealLoopPromise = (async () => {
+          while (!controller.signal.aborted) {
+            if (Date.now() < bubbleVisibleUntil) {
+              await wait(REVEAL_IDLE_POLL_MS);
+              continue;
+            }
+
+            if (revealQueue.length > 0) {
+              displayedContent += revealQueue.shift() || '';
+              updateMessage(messageId, {
+                content: displayedContent,
+                status: 'streaming',
+              });
+              await wait(WORD_REVEAL_INTERVAL_MS);
+              continue;
+            }
+
+            if (streamFinished) {
+              break;
+            }
+
+            await wait(REVEAL_IDLE_POLL_MS);
+          }
+        })();
+
+        try {
+          await revealLoopPromise;
+        } finally {
+          revealLoopPromise = null;
+        }
+      };
+
+      void runRevealLoop();
 
       try {
         const messages = buildContextMessages({
@@ -184,16 +299,14 @@ export function useConversation() {
           signal: controller.signal,
           onDelta: (delta) => {
             fullContent += delta;
-            const now = Date.now();
-            if (now - lastFlushAt >= STREAM_FLUSH_INTERVAL_MS) {
-              lastFlushAt = now;
-              updateMessage(messageId, {
-                content: fullContent,
-                status: 'streaming',
-              });
-            }
+            pendingWordRemainder = enqueueWordUnits(`${pendingWordRemainder}${delta}`, revealQueue);
+            void runRevealLoop();
           },
         });
+
+        pendingWordRemainder = enqueueWordUnits(pendingWordRemainder, revealQueue, true);
+        streamFinished = true;
+        await runRevealLoop();
 
         const trimmed = fullContent.trim();
 
@@ -218,6 +331,8 @@ export function useConversation() {
           interrupted,
           error: errorText,
         });
+
+        streamFinished = true;
 
         const suffix = interrupted ? '\n\n[interrupted]' : '';
         const safeContent = (fullContent || '').trim() + suffix;
