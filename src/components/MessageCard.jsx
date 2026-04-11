@@ -6,6 +6,23 @@ import TypingIndicator from './TypingIndicator';
 import { MODEL_BY_ID } from '../lib/modelConfig';
 import { useTheme } from '../context/ThemeContext';
 
+function inferIconPath(modelText) {
+  const text = String(modelText || '').toLowerCase();
+
+  if (text.includes('llama') || text.includes('meta')) return '/icons/meta-color.svg';
+  if (text.includes('qwen')) return '/icons/qwen-color.svg';
+  if (text.includes('kimi')) return '/icons/kimi-color.svg';
+  if (text.includes('gemma')) return '/icons/gemma-color.svg';
+  if (text.includes('mistral') || text.includes('mixtral')) return '/icons/mistral-color.svg';
+  if (text.includes('deepseek')) return '/icons/deepseek-color.svg';
+  if (text.includes('glm')) return '/icons/glmv-color.svg';
+  if (text.includes('gpt') || text.includes('openai') || text.includes('chatgpt')) return '/icons/openai-color.svg';
+  if (text.includes('claude') || text.includes('anthropic')) return '/icons/claude-ai-icon.svg';
+  if (text.includes('gemini')) return '/icons/gemini-color.svg';
+
+  return '';
+}
+
 export default function MessageCard({ message, onRetry, readOnly = false }) {
   const { theme } = useTheme();
   const isClaude = theme === 'claude';
@@ -31,7 +48,7 @@ export default function MessageCard({ message, onRetry, readOnly = false }) {
   const color = isLeft ? 'var(--ai1)' : 'var(--ai2)';
   const modelMeta = MODEL_BY_ID[message.model];
   const displayName = modelMeta?.label || message.model;
-  const modelIcon = modelMeta?.icon || '';
+  const modelIcon = modelMeta?.icon || inferIconPath(`${message.model} ${displayName}`);
   const hasError = message.status === 'error';
   const isInterrupted = message.status === 'interrupted';
   const showAvatar = !isClaude || message.side === 'ai1' || message.side === 'ai2';
