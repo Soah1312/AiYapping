@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Trash2 } from 'lucide-react';
+import { SquarePen, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import ThemeSwitcher from '../ThemeSwitcher';
 
 export default function GptShell({
@@ -13,7 +13,7 @@ export default function GptShell({
   activeChatId,
   activeSavedChatId,
 }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   return (
     <div className="app-shell">
@@ -25,69 +25,49 @@ export default function GptShell({
       />
 
       {/* Sidebar */}
-      <aside className={`app-sidebar scrollbar-thin ${sidebarOpen ? 'sidebar-open' : ''}`}>
-        <div className="flex items-center justify-between px-3 pb-3 pt-1">
-          <button
-            className="hamburger-btn"
-            style={{ display: 'flex' }}
-            onClick={() => setSidebarOpen(false)}
-            aria-label="Close sidebar"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ECECEC" strokeWidth="2" strokeLinecap="round">
-              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
+      <aside className={`app-sidebar gpt-sidebar scrollbar-thin ${sidebarOpen ? 'sidebar-open sidebar-expanded' : 'sidebar-collapsed'}`}>
+        <div className="gpt-sidebar-top">
+          <Link to="/" className="gpt-wordmark">
+            <span className="gpt-logo-mark" aria-hidden="true" />
+            <span className="gpt-wordmark-text gpt-collapse-hide">ChatGPT</span>
+          </Link>
+        </div>
+
+        <div className="gpt-sidebar-scroll scrollbar-thin">
           <button
             className="sidebar-item"
-            style={{ width: 'auto', padding: '0.375rem 0.625rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.10)' }}
             onClick={() => {
               onSelectChat?.(null);
               setSidebarOpen(false);
             }}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-            </svg>
+            <SquarePen size={16} />
+            <span className="gpt-collapse-hide">New chat</span>
           </button>
-        </div>
 
-        <div className="flex flex-col gap-0.5 flex-1 overflow-y-auto scrollbar-thin px-1">
-          {(savedChats || []).length > 0 && (
-            <>
-              <p className="sidebar-section-label" style={{ marginTop: '0.25rem' }}>Saved Chats</p>
-              {(savedChats || []).map((chat) => (
-                <div
-                  key={chat.id}
-                  className={`sidebar-item ${activeSavedChatId === chat.id ? 'active' : ''}`}
-                >
-                  <button
-                    type="button"
-                    className="history-open-btn"
-                    onClick={() => {
-                      onSelectSavedChat?.(chat.id);
-                      setSidebarOpen(false);
-                    }}
-                  >
-                    <span className="sidebar-item-title block truncate">{chat.title}</span>
-                    <span className="sidebar-item-snippet block truncate">{chat.snippet}</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="history-delete-btn"
-                    aria-label="Delete saved chat"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onDeleteSavedChat?.(chat.id);
-                    }}
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                </div>
-              ))}
-            </>
+          <div className="gpt-divider gpt-collapse-hide" />
+
+          <p className="sidebar-section-label gpt-collapse-hide">Recents</p>
+          {(savedChats || []).map((chat) => (
+            <button
+              key={chat.id}
+              className={`sidebar-item ${activeSavedChatId === chat.id ? 'active' : ''}`}
+              onClick={() => {
+                onSelectSavedChat?.(chat.id);
+                setSidebarOpen(false);
+              }}
+            >
+              <span className="sidebar-item-title block truncate">{chat.title}</span>
+            </button>
+          ))}
+
+          {sidebarOpen && (savedChats || []).length === 0 && (
+            <p className="gpt-empty-recents">You haven't seen them yap yet</p>
           )}
 
-          <p className="sidebar-section-label" style={{ marginTop: '0.5rem' }}>Prompt Chats</p>
+          <div className="gpt-divider gpt-collapse-hide" />
+
+          <p className="sidebar-section-label gpt-collapse-hide">Quick prompts</p>
           {(sidebarChats || []).map((chat) => (
             <button
               key={chat.id}
@@ -97,20 +77,15 @@ export default function GptShell({
                 setSidebarOpen(false);
               }}
             >
-              <div className="flex-1 min-w-0">
-                <span className="sidebar-item-title block truncate">{chat.title}</span>
-              </div>
+              <span className="sidebar-item-title block truncate">{chat.title}</span>
             </button>
           ))}
         </div>
 
-        <div className="mt-auto pt-3 border-t border-white/10 px-1">
-          <div className="flex items-center justify-between px-2 py-1">
-            <ThemeSwitcher />
-          </div>
-          <button className="sidebar-item mt-1">
-            <div className="h-7 w-7 rounded-full bg-[#2F2F2F] flex items-center justify-center text-xs font-medium flex-shrink-0">U</div>
-            <span className="sidebar-item-title">Profile</span>
+        <div className="gpt-sidebar-bottom">
+          <button className="sidebar-item gpt-user-row" type="button">
+            <span className="gpt-user-avatar">U</span>
+            <span className="sidebar-item-title gpt-collapse-hide">User</span>
           </button>
         </div>
       </aside>
@@ -120,16 +95,14 @@ export default function GptShell({
         <header className="app-header">
           <div className="flex items-center gap-2">
             <button
-              className="hamburger-btn"
-              onClick={() => setSidebarOpen(true)}
-              aria-label="Open sidebar"
+              className="gpt-header-toggle"
+              onClick={() => setSidebarOpen((value) => !value)}
+              aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" />
-              </svg>
+              {sidebarOpen ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
             </button>
             <Link to="/" className="brand-name">
-              AI·Yapping
+              ChatGPT
             </Link>
           </div>
           <div className="flex items-center gap-3">

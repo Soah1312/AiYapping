@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Trash2,
@@ -6,7 +6,6 @@ import {
   Search,
   SlidersHorizontal,
   MessageSquare,
-  Sparkles,
   PanelLeftClose,
   PanelLeftOpen,
   User,
@@ -26,32 +25,6 @@ export default function ClaudeShell({
 }) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [showSearch, setShowSearch] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const normalizedQuery = searchQuery.trim().toLowerCase();
-
-  const filteredSavedChats = useMemo(() => {
-    if (!normalizedQuery) {
-      return savedChats || [];
-    }
-
-    return (savedChats || []).filter((chat) =>
-      String(chat.title || '').toLowerCase().includes(normalizedQuery)
-      || String(chat.snippet || '').toLowerCase().includes(normalizedQuery),
-    );
-  }, [normalizedQuery, savedChats]);
-
-  const filteredSidebarChats = useMemo(() => {
-    if (!normalizedQuery) {
-      return sidebarChats || [];
-    }
-
-    return (sidebarChats || []).filter((chat) =>
-      String(chat.title || '').toLowerCase().includes(normalizedQuery)
-      || String(chat.snippet || '').toLowerCase().includes(normalizedQuery),
-    );
-  }, [normalizedQuery, sidebarChats]);
 
   return (
     <div className="app-shell">
@@ -103,13 +76,7 @@ export default function ClaudeShell({
 
         <button
           type="button"
-          className={`claude-nav-item ${showSearch ? 'active' : ''}`}
-          onClick={() => {
-            setShowSearch((value) => !value);
-            if (showSearch) {
-              setSearchQuery('');
-            }
-          }}
+          className="claude-nav-item"
         >
           <Search size={16} />
           <span className="claude-collapse-hide">Search</span>
@@ -120,24 +87,11 @@ export default function ClaudeShell({
           <span className="claude-collapse-hide">Customize</span>
         </button>
 
-        {sidebarOpen && showSearch && (
-          <div className="claude-search-wrap">
-            <Search size={14} />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              className="theme-input claude-search-input"
-              placeholder="Search chats and prompts"
-            />
-          </div>
-        )}
-
         <div className="claude-divider" />
 
         <p className="sidebar-section-label claude-collapse-hide">Prompt Starters</p>
         <div className="flex flex-col gap-0.5 flex-1 overflow-y-auto scrollbar-thin claude-recents-wrap">
-          {filteredSidebarChats.map((chat) => (
+          {(sidebarChats || []).map((chat) => (
             <button
               key={chat.id}
               className={`claude-nav-item ${activeChatId === chat.id ? 'active' : ''}`}
@@ -146,7 +100,6 @@ export default function ClaudeShell({
                 setMobileSidebarOpen(false);
               }}
             >
-              <Sparkles size={16} />
               <span className="claude-collapse-hide sidebar-item-title">{chat.title}</span>
             </button>
           ))}
@@ -155,7 +108,7 @@ export default function ClaudeShell({
 
           <p className="sidebar-section-label claude-collapse-hide" style={{ marginTop: 0 }}>Recents</p>
 
-          {filteredSavedChats.map((chat) => (
+          {(savedChats || []).map((chat) => (
             <div
               key={chat.id}
               className={`claude-history-item ${activeSavedChatId === chat.id ? 'active' : ''}`}
@@ -185,8 +138,8 @@ export default function ClaudeShell({
             </div>
           ))}
 
-          {sidebarOpen && filteredSavedChats.length === 0 && (
-            <p className="claude-empty-recents">You haven't seen them yap yet.</p>
+          {sidebarOpen && (savedChats || []).length === 0 && (
+            <p className="claude-empty-recents">You haven't seen them yap yet</p>
           )}
         </div>
 

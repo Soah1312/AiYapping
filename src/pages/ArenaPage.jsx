@@ -11,6 +11,7 @@ import GeminiShell from '../components/shells/GeminiShell';
 import SetupForm from '../components/SetupForm';
 import DuelControls from '../components/DuelControls';
 import MessageCard from '../components/MessageCard';
+import ShareButton from '../components/ShareButton';
 import Toast from '../components/Toast';
 
 const SIDEBAR_CHAT_TOPICS = [
@@ -193,13 +194,20 @@ export default function ArenaPage() {
       ) : (
         <>
           {/* Chat header badge */}
-          <div style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <span className="status-badge">{ai1Label} vs {ai2Label}</span>
-            <span className="status-badge">Turns: {aiTurnCount}</span>
+          <div className="claude-chat-header">
+            <div className="claude-chat-header-left">
+              <span className="status-badge claude-chat-pill">{ai1Label} vs {ai2Label}</span>
+              <span className="status-badge claude-chat-pill">Turns: {aiTurnCount}</span>
+            </div>
+            {theme === 'claude' && (
+              <div className="claude-chat-header-right">
+                <ShareButton setup={setup} transcript={transcript} summary={summary} />
+              </div>
+            )}
           </div>
 
           {/* Message feed */}
-          <div className="chat-feed scrollbar-thin" ref={feedRef}>
+          <div className="chat-feed chat-scroll scrollbar-thin" ref={feedRef}>
             <div className="chat-feed-inner">
               {transcript.length === 0 && (
                 <div className="surface-card" style={{ padding: '1rem', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
@@ -209,6 +217,9 @@ export default function ArenaPage() {
               {transcript.map((msg) => (
                 <MessageCard key={msg.id} message={msg} />
               ))}
+              {status === 'completed' && transcript.length > 0 && (
+                <p className="session-end-note">This is all you get for free</p>
+              )}
             </div>
           </div>
 

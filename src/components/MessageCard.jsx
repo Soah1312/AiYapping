@@ -3,17 +3,12 @@ import { AlertTriangle, RotateCcw } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import TypingIndicator from './TypingIndicator';
-import ModelAvatar from './ModelAvatar';
 import { MODEL_BY_ID } from '../lib/modelConfig';
 import { useTheme } from '../context/ThemeContext';
 
-function formatTimestamp(ts) {
-  if (!ts) return '';
-  return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
-
 export default function MessageCard({ message, onRetry, readOnly = false }) {
   const { theme } = useTheme();
+  const isClaude = theme === 'claude';
 
   /* ── System / director note ── */
   if (message.role === 'system') {
@@ -35,48 +30,58 @@ export default function MessageCard({ message, onRetry, readOnly = false }) {
   const isLeft = message.side === 'ai1';
   const color = isLeft ? 'var(--ai1)' : 'var(--ai2)';
   const modelMeta = MODEL_BY_ID[message.model];
+  const displayName = modelMeta?.label || message.model;
   const hasError = message.status === 'error';
   const isInterrupted = message.status === 'interrupted';
+  const showAvatar = !isClaude || message.side === 'ai1' || message.side === 'ai2';
+  const themeAvatarInitial = (displayName || message.persona || '?').charAt(0).toUpperCase();
+  const claudeAvatarInitial = (displayName || message.persona || '?').charAt(0).toUpperCase();
 
   return (
     <motion.article
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2, ease: 'easeOut' }}
-      className={`msg-card msg-card--${message.side}`}
+      className={`msg-card msg-card--${message.side} ${isClaude ? 'claude-msg-card' : ''}`}
     >
       {/* Header row */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '0.5rem' }}>
-        <ModelAvatar
-          provider={modelMeta?.provider || 'groq'}
-          label={modelMeta?.label || message.model}
-          size={28}
-        />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <span
-            style={{
-              fontSize: '0.8125rem',
-              fontWeight: 600,
-              color,
-              fontFamily: 'var(--font-display)',
-            }}
-          >
-            {message.persona}
-          </span>
-          <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>
-            {modelMeta?.label || message.model}
-          </span>
-        </div>
-        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-          {message.turn && (
-            <span className="status-badge" style={{ fontSize: '0.625rem', padding: '0.125rem 0.375rem' }}>
-              T{message.turn}
-            </span>
+      <div className="msg-header-row">
+        <div className="msg-header-main">
+          {showAvatar && (!isClaude || message.side === 'ai1') && (
+            isClaude ? (
+              <div className="claude-ai-avatar" aria-label={`${displayName} avatar`}>
+                {claudeAvatarInitial}
+              </div>
+            ) : (
+              <div className={`chat-msg-avatar chat-msg-avatar--${message.side}`} aria-label={`${displayName} avatar`}>
+                {themeAvatarInitial}
+              </div>
+            )
           )}
-          <span style={{ fontSize: '0.625rem', color: 'var(--text-muted)' }}>
-            {formatTimestamp(message.timestamp)}
-          </span>
+          <div className="msg-author-wrap">
+            <span
+              className="msg-author-name"
+              style={
+                isClaude
+                  ? undefined
+                  : {
+                    fontSize: '0.8125rem',
+                    fontWeight: 600,
+                    color,
+                    fontFamily: 'var(--font-display)',
+                  }
+              }
+            >
+              {isClaude ? displayName : message.persona}
+            </span>
+          </div>
+          {showAvatar && isClaude && message.side === 'ai2' && (
+            <div className="claude-ai-avatar" aria-label={`${displayName} avatar`}>
+              {claudeAvatarInitial}
+            </div>
+          )}
         </div>
+
       </div>
 
       {/* Streaming indicator */}
@@ -124,15 +129,19 @@ export default function MessageCard({ message, onRetry, readOnly = false }) {
       )}
 
       {/* Content */}
-      <div
-        className="msg-markdown text-sm leading-relaxed"
-        style={{
-          color: 'var(--text-primary)',
-          lineHeight: theme === 'claude' ? 1.7 : 1.6,
-          fontFamily: theme === 'claude' ? 'var(--font-body)' : undefined,
-        }}
-      >
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content || ' '}</ReactMarkdown>
+      <div className="msg-content-shell">
+        <div
+          className="msg-markdown text-sm leading-relaxed"
+          style={{
+            color: 'var(--text-primary)',
+            lineHeight: theme === 'claude' ? 1.7 : 1.6,
+            fontFamily: theme === 'claude' ? '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' : undefined,
+            fontSize: theme === 'claude' ? '0.95rem' : undefined,
+          }}
+        >
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content || ' '}</ReactMarkdown>
+        </div>
+
       </div>
 
       {/* Retry */}

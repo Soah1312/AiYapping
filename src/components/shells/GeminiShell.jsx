@@ -4,7 +4,6 @@ import {
   Plus,
   Search,
   MessageSquare,
-  Sparkles,
   Menu,
   X,
 } from 'lucide-react';
@@ -93,9 +92,7 @@ export default function GeminiShell({
           ))}
 
           {sidebarOpen && (savedChats || []).length === 0 && (
-            <p className="gemini-empty-recents">You haven't seen them yap yet.
-
-</p>
+            <p className="gemini-empty-recents">You haven't seen them yap yet</p>
           )}
 
           <p className="gemini-section-label gemini-collapse-hide">Quick prompts</p>
@@ -108,7 +105,6 @@ export default function GeminiShell({
                 setMobileSidebarOpen(false);
               }}
             >
-              <Sparkles size={16} style={{ color: '#a855f7' }} />
               <span className="gemini-collapse-hide sidebar-item-title truncate">{chat.title}</span>
             </button>
           ))}
@@ -125,8 +121,6 @@ export default function GeminiShell({
           </div>
           <div className="flex items-center gap-3">
             <ThemeSwitcher />
-            <span className="rounded-full border border-white/20 bg-[#1E1F20] px-2.5 py-1 text-xs font-medium">PRO</span>
-            <div className="h-8 w-8 rounded-full bg-[#2B2F36] hidden sm:block" />
           </div>
         </header>
 

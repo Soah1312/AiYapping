@@ -16,13 +16,13 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
   const headingText = theme === 'claude'
     ? 'Let the yapping begin.'
     : theme === 'chatgpt'
-      ? 'What can I help with?'
+      ? "What's on your mind?"
       : '✦ Where should we start?';
 
   const subText = theme === 'claude'
     ? "Pick two AIs, drop a prompt, and watch the sparks fly."
     : theme === 'chatgpt'
-      ? 'Pick a topic below or type your own prompt.'
+      ? 'Pick two AIs, drop a prompt, and watch the sparks fly.'
       : 'Set prompts for two models, then run.';
 
   function handleChipClick(topic) {
