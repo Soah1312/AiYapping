@@ -88,16 +88,124 @@ function parseFirebaseConfig() {
     throw new Error('Missing VITE_FIREBASE_CONFIG environment variable.');
   }
 
-  try {
-    return JSON.parse(raw);
-  } catch {
-    throw new Error('VITE_FIREBASE_CONFIG must be valid JSON.');
+  const source = String(raw).trim();
+  const candidates: string[] = [];
+
+  const pushCandidate = (value: string | undefined) => {
+    if (!value) {
+      return;
+    }
+
+    const normalized = String(value).trim();
+    if (!normalized || candidates.includes(normalized)) {
+      return;
+    }
+
+    candidates.push(normalized);
+  };
+
+  pushCandidate(source);
+
+  if (source.startsWith('VITE_FIREBASE_CONFIG=')) {
+    pushCandidate(source.slice('VITE_FIREBASE_CONFIG='.length));
   }
+
+  const firstBrace = source.indexOf('{');
+  const lastBrace = source.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    pushCandidate(source.slice(firstBrace, lastBrace + 1));
+  }
+
+  const hasWrappingQuotes =
+    (source.startsWith('"') && source.endsWith('"'))
+    || (source.startsWith("'") && source.endsWith("'"));
+
+  if (hasWrappingQuotes) {
+    const unwrapped = source.slice(1, -1);
+    pushCandidate(unwrapped);
+    pushCandidate(unwrapped.replace(/\\"/g, '"'));
+
+    const firstInnerBrace = unwrapped.indexOf('{');
+    const lastInnerBrace = unwrapped.lastIndexOf('}');
+    if (firstInnerBrace !== -1 && lastInnerBrace > firstInnerBrace) {
+      pushCandidate(unwrapped.slice(firstInnerBrace, lastInnerBrace + 1));
+    }
+  }
+
+  pushCandidate(source.replace(/\\"/g, '"'));
+
+  for (const candidate of candidates) {
+    try {
+      const parsed = JSON.parse(candidate) as Record<string, unknown> | string;
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return parsed;
+      }
+
+      if (typeof parsed === 'string') {
+        const nested = JSON.parse(parsed);
+        if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
+          return nested;
+        }
+      }
+    } catch {
+      // Try next candidate format.
+    }
+  }
+
+  const mergedSource = candidates.join('\n');
+  const requiredKeys = [
+    'apiKey',
+    'authDomain',
+    'projectId',
+    'storageBucket',
+    'messagingSenderId',
+    'appId',
+  ];
+  const optionalKeys = ['measurementId'];
+  const recovered: Record<string, string> = {};
+
+  const extractValue = (key: string) => {
+    const matcher = new RegExp(`["']?${key}["']?\\s*[:=]\\s*["']?([^"',}\\s]+)`, 'i');
+    const match = mergedSource.match(matcher);
+    return match ? match[1] : '';
+  };
+
+  for (const key of requiredKeys) {
+    const value = extractValue(key);
+    if (!value) {
+      break;
+    }
+    recovered[key] = value;
+  }
+
+  const hasAllRequiredKeys = requiredKeys.every((key) => Boolean(recovered[key]));
+  if (hasAllRequiredKeys) {
+    for (const key of optionalKeys) {
+      const value = extractValue(key);
+      if (value) {
+        recovered[key] = value;
+      }
+    }
+
+    return recovered;
+  }
+
+  throw new Error('[firebase-config-parse] VITE_FIREBASE_CONFIG must be valid JSON.');
 }
 
 function getDb() {
-  const app = getApps().length ? getApp() : initializeApp(parseFirebaseConfig());
-  return getFirestore(app);
+  try {
+    const app = getApps().length ? getApp() : initializeApp(parseFirebaseConfig());
+    return getFirestore(app);
+  } catch (error) {
+    const message = String((error as { message?: string })?.message || error || 'Firebase initialization failed');
+    // Backend-only diagnostic log. Do not include raw config to avoid leaking secrets.
+    console.error('[api/firebase] getDb failed', {
+      message,
+      hasConfig: Boolean(typeof process !== 'undefined' && process.env?.VITE_FIREBASE_CONFIG),
+    });
+    throw new Error(`[firebase-getdb] ${message}`);
+  }
 }
 
 export async function getUsageStatus(sessionId: string) {

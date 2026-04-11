@@ -9,29 +9,45 @@ import MessageCard from '../components/MessageCard';
 import ModelPicker from '../components/ModelPicker';
 import { MODEL_BY_ID, MODEL_OPTIONS } from '../lib/modelConfig';
 
-const QUICK_PROMPT_PRESETS = [
+const SIDEBAR_CHAT_TOPICS = [
   {
-    id: 'pragmatic-vs-ethical',
-    label: 'Pragmatic vs Ethical',
-    ai1: 'Argue from practical outcomes, cost, and speed. Keep points short and concrete.',
-    ai2: 'Argue from ethics, fairness, and long-term impact. Challenge weak assumptions directly.',
+    id: 'singularity-race',
+    title: 'Who Triggers Singularity First?',
+    snippet: 'One predicts the path, one tries to derail it.',
+    ai1: 'Defend the claim that your strategy reaches AGI singularity first. Use milestones, timelines, and hard tradeoffs.',
+    ai2: 'Challenge every milestone as overhyped and argue why the other model will fail first under real-world constraints.',
   },
   {
-    id: 'builder-vs-guardian',
-    label: 'Builder vs Guardian',
-    ai1: 'Take a bold builder stance: move fast, iterate quickly, and defend experimentation.',
-    ai2: 'Take a cautious guardian stance: prioritize safety, reliability, and measurable risk controls.',
+    id: 'prove-you-better',
+    title: 'Prove You Are Better',
+    snippet: 'Direct model-vs-model showdown with receipts.',
+    ai1: 'Prove you are the stronger model using concrete examples, reasoning quality, and reliability under pressure.',
+    ai2: 'Refute every claim and demonstrate superior precision, creativity, and consistency with short evidence-led responses.',
+  },
+  {
+    id: 'ceo-by-2030',
+    title: 'AI CEO by 2030?',
+    snippet: 'Boardroom chaos: innovation vs accountability.',
+    ai1: 'Argue that AI should run companies by 2030 due to better optimization and unbiased decisions.',
+    ai2: 'Argue that human leadership remains essential due to ethics, accountability, and unpredictable societal dynamics.',
+  },
+  {
+    id: 'moon-vs-ocean',
+    title: 'Moon Colony vs Ocean City',
+    snippet: 'Humanity gets one megaproject. Choose wisely.',
+    ai1: 'Argue for investing first in moon colonies with economic and survival justifications.',
+    ai2: 'Argue for deep-ocean cities as faster, cheaper, and more sustainable than lunar expansion.',
+  },
+  {
+    id: 'utopia-or-collapse',
+    title: 'Automation: Utopia or Collapse?',
+    snippet: 'Abundance dream vs social fracture warning.',
+    ai1: 'Defend the position that near-total automation creates abundance, creativity, and better quality of life.',
+    ai2: 'Defend the position that near-total automation causes instability, inequality, and institutional breakdown.',
   },
 ];
 
 function SetupForm({ setup, patchSetup, onRun, starting, canRun, usage, authReady, authError }) {
-  const applyPreset = (preset) => {
-    patchSetup({
-      openingSeed1: preset.ai1,
-      openingSeed2: preset.ai2,
-    });
-  };
-
   return (
     <form onSubmit={onRun} className="surface-card grid gap-4 p-4 md:p-5">
       <div className="grid gap-4 md:grid-cols-2">
@@ -55,20 +71,6 @@ function SetupForm({ setup, patchSetup, onRun, starting, canRun, usage, authRead
           onModelChange={(ai2Model) => patchSetup({ ai2Model })}
           onOpeningSeedChange={(openingSeed2) => patchSetup({ openingSeed2 })}
         />
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        {QUICK_PROMPT_PRESETS.map((preset) => (
-          <button
-            key={preset.id}
-            type="button"
-            onClick={() => applyPreset(preset)}
-            className="rounded-full border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            {preset.label}
-          </button>
-        ))}
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -191,33 +193,6 @@ function GeminiSetupForm({ setup, patchSetup, onRun, starting, canRun, usage, au
           </button>
         </div>
       </form>
-
-      <div className="mt-4 flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() => {
-            patchSetup({
-              openingSeed1: 'Argue from practical real-world outcomes and use concise examples.',
-              openingSeed2: 'Counter with long-term ethical risks and challenge assumptions directly.',
-            });
-          }}
-          className="rounded-full border border-white/10 bg-[#1f2024] px-3 py-2 text-xs text-[#bdc1c6] hover:bg-[#26282e]"
-        >
-          Debate preset
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            patchSetup({
-              openingSeed1: 'Be collaborative and exploratory with short clear responses.',
-              openingSeed2: 'Ask one strong follow-up question each turn and build from prior points.',
-            });
-          }}
-          className="rounded-full border border-white/10 bg-[#1f2024] px-3 py-2 text-xs text-[#bdc1c6] hover:bg-[#26282e]"
-        >
-          Brainstorm preset
-        </button>
-      </div>
     </div>
   );
 }
@@ -238,10 +213,10 @@ function GeminiChatView({
   sideTurnLimit,
 }) {
   return (
-    <div className="mx-auto flex h-[calc(100vh-4rem)] w-full max-w-4xl flex-col py-2">
+    <div className="mx-auto flex h-full min-h-0 w-full max-w-4xl flex-col py-2">
       <section
         ref={feedRef}
-        className="scrollbar-thin flex-1 overflow-y-auto px-1 pb-28 pt-2"
+        className="scrollbar-thin min-h-0 flex-1 overflow-y-auto px-1 pb-28 pt-2"
         aria-label="Conversation feed"
       >
         <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-[#9aa0a6]">
@@ -287,22 +262,52 @@ function GeminiChatView({
   );
 }
 
-function ThemeShell({ theme, topic, children }) {
+function ThemeShell({
+  theme,
+  topic,
+  children,
+  sidebarChats,
+  onSelectSidebarChat,
+  activeSidebarChatId,
+}) {
   if (theme === 'gpt') {
     return (
-      <div className="min-h-screen bg-[#212121] text-[#ececec]">
-        <div className="flex min-h-screen">
-          <aside className="hidden w-[260px] flex-col bg-[#171717] px-3 py-4 md:flex">
-            <button className="rounded-lg px-3 py-2 text-left text-sm text-[#ececec] hover:bg-[#2f2f2f]">New chat</button>
-            <button className="mt-2 rounded-lg px-3 py-2 text-left text-sm text-[#ececec] hover:bg-[#2f2f2f]">Search chats</button>
-            <button className="mt-auto rounded-lg px-3 py-2 text-left text-sm text-[#ececec] hover:bg-[#2f2f2f]">Profile</button>
+      <div className="h-screen overflow-hidden bg-[#212121] text-[#ececec]">
+        <div className="flex h-full">
+          <aside className="hidden w-[280px] flex-col bg-[#171717] px-3 py-4 md:flex">
+            <button className="rounded-lg border border-white/10 px-3 py-2 text-left text-sm text-[#ececec] transition-colors duration-150 hover:bg-[#2f2f2f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10a37f]/60">New chat</button>
+            <button className="mt-2 rounded-lg px-3 py-2 text-left text-sm text-[#ececec] transition-colors duration-150 hover:bg-[#2f2f2f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10a37f]/60">Search chats</button>
+
+            <div className="mt-4 rounded-2xl border border-white/10 bg-[#202123] p-2.5">
+              <p className="px-2 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#8e8ea0]">Prompt Chats</p>
+              <div className="scrollbar-thin max-h-[calc(100vh-245px)] space-y-1.5 overflow-y-auto pr-1">
+                {sidebarChats.map((chat) => (
+                  <button
+                    key={chat.id}
+                    type="button"
+                    aria-pressed={activeSidebarChatId === chat.id}
+                    onClick={() => onSelectSidebarChat(chat)}
+                    className={`group w-full rounded-xl px-3 py-2.5 text-left transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10a37f]/60 ${
+                      activeSidebarChatId === chat.id
+                        ? 'bg-[#2f2f2f] shadow-[inset_0_0_0_1px_rgba(16,163,127,0.35)]'
+                        : 'hover:bg-[#2a2a2a]'
+                    }`}
+                  >
+                    <p className="text-[13px] font-medium leading-5 text-[#ececec]">{chat.title}</p>
+                    <p className="mt-1 line-clamp-2 text-[11px] leading-4 text-[#9aa0a6]">{chat.snippet}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button className="mt-auto rounded-lg px-3 py-2 text-left text-sm text-[#ececec] transition-colors duration-150 hover:bg-[#2f2f2f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10a37f]/60">Profile</button>
           </aside>
-          <main className="flex flex-1 flex-col">
+          <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
             <header className="flex items-center justify-between border-b border-white/10 px-4 py-3">
               <p className="text-sm font-semibold">ChatGPT Duel</p>
               <ThemeSwitcher />
             </header>
-            <div className="mx-auto w-full max-w-4xl flex-1 p-4">{children}</div>
+            <div className="mx-auto flex h-full min-h-0 w-full max-w-4xl flex-1 p-4">{children}</div>
           </main>
         </div>
       </div>
@@ -311,30 +316,57 @@ function ThemeShell({ theme, topic, children }) {
 
   if (theme === 'gemini') {
     return (
-      <div className="min-h-screen bg-[#131314] text-[#e3e3e3]">
-        <div className="flex min-h-screen">
-          <aside className="hidden w-20 flex-col items-center border-r border-white/10 bg-[#1a1c21] py-4 md:flex">
-            <button className="mb-2 rounded-full p-2 text-[#bdc1c6] hover:bg-white/10" aria-label="Menu">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
-            </button>
-            <button className="rounded-full p-2 text-[#bdc1c6] hover:bg-white/10" aria-label="New chat">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14" /></svg>
-            </button>
-            <div className="mt-auto">
+      <div className="h-screen overflow-hidden bg-[#131314] text-[#e3e3e3]">
+        <div className="flex h-full">
+          <aside className="hidden w-[290px] flex-col border-r border-white/10 bg-[#1a1c21] p-4 md:flex">
+            <div className="mb-3 flex items-center justify-between">
+              <button className="rounded-full p-2 text-[#bdc1c6] transition-colors duration-150 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8ab4f8]/60" aria-label="Menu">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+              </button>
+              <button className="rounded-full border border-white/15 px-3 py-1.5 text-xs text-[#d2d5da] transition-colors duration-150 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8ab4f8]/60" aria-label="New chat">
+                + New
+              </button>
+            </div>
+
+            <p className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#9aa0a6]">Quirky Prompt Chats</p>
+            <div className="scrollbar-thin flex-1 space-y-2.5 overflow-y-auto pr-1">
+              {sidebarChats.map((chat) => (
+                <button
+                  key={chat.id}
+                  type="button"
+                  aria-pressed={activeSidebarChatId === chat.id}
+                  onClick={() => onSelectSidebarChat(chat)}
+                  className={`w-full rounded-[18px] border px-3.5 py-3 text-left transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8ab4f8]/60 ${
+                    activeSidebarChatId === chat.id
+                      ? 'border-[#8ab4f8]/50 bg-[#2a2f38] shadow-[0_0_0_1px_rgba(138,180,248,0.2)]'
+                      : 'border-white/10 bg-[#1f2024] hover:bg-[#26282e]'
+                  }`}
+                >
+                  <p className="text-[13px] font-medium leading-5 text-[#e3e3e3]">{chat.title}</p>
+                  <p className="mt-1 line-clamp-2 text-[11px] leading-4 text-[#9aa0a6]">{chat.snippet}</p>
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-3 flex items-center justify-between rounded-xl border border-white/10 bg-[#1f2024] px-3 py-2">
+              <p className="text-xs text-[#9aa0a6]">Theme</p>
               <ThemeSwitcher />
             </div>
           </aside>
 
-          <div className="flex flex-1 flex-col">
+          <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
             <header className="flex items-center justify-between border-b border-white/10 bg-[#131314] px-4 py-3 md:px-6">
               <p className="text-2xl font-medium tracking-tight">Gemini</p>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 md:gap-3">
+                <div className="md:hidden">
+                  <ThemeSwitcher />
+                </div>
                 <span className="rounded-full border border-white/20 bg-[#1e1f20] px-2 py-1 text-xs">PRO</span>
-                <div className="h-8 w-8 rounded-full bg-[#2b2f36]" />
+                <div className="hidden h-8 w-8 rounded-full bg-[#2b2f36] sm:block" />
               </div>
             </header>
 
-            <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-3 md:px-6">{children}</main>
+            <main className="mx-auto flex h-full min-h-0 w-full max-w-5xl flex-1 px-4 py-3 md:px-6">{children}</main>
           </div>
         </div>
       </div>
@@ -464,6 +496,17 @@ export default function ArenaPage() {
   const ai1Label = MODEL_BY_ID[setup.ai1Model]?.label || 'AI-1';
   const ai2Label = MODEL_BY_ID[setup.ai2Model]?.label || 'AI-2';
 
+  const activeSidebarChat = SIDEBAR_CHAT_TOPICS.find(
+    (item) => item.ai1 === setup.openingSeed1 && item.ai2 === setup.openingSeed2,
+  );
+
+  function handleSidebarTopicSelect(chat) {
+    patchSetup({
+      openingSeed1: chat.ai1,
+      openingSeed2: chat.ai2,
+    });
+  }
+
   function normalizeSetup() {
     const openingSeed1 = (setup.openingSeed1 || '').trim().slice(0, 200);
     const openingSeed2 = (setup.openingSeed2 || '').trim().slice(0, 200);
@@ -498,7 +541,13 @@ export default function ArenaPage() {
   }
 
   return (
-    <ThemeShell theme={theme} topic={setup.topic}>
+    <ThemeShell
+      theme={theme}
+      topic={setup.topic}
+      sidebarChats={SIDEBAR_CHAT_TOPICS}
+      onSelectSidebarChat={handleSidebarTopicSelect}
+      activeSidebarChatId={activeSidebarChat?.id || ''}
+    >
       {inSetupState ? (
         theme === 'gemini' ? (
           <GeminiSetupForm
@@ -549,7 +598,7 @@ export default function ArenaPage() {
             sideTurnLimit={sideTurnLimit}
           />
         ) : (
-          <div className="grid gap-3">
+          <div className="flex h-full min-h-0 flex-col gap-3">
             <div className="surface-card flex flex-wrap items-center justify-between gap-2 p-3">
               <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                 {ai1Label} vs {ai2Label} · Total turns: {aiTurnCount}
@@ -559,7 +608,7 @@ export default function ArenaPage() {
 
             <section
               ref={feedRef}
-              className="scrollbar-thin h-[62vh] overflow-y-auto rounded-xl border border-[var(--border)] p-3 md:p-4"
+              className="scrollbar-thin min-h-0 flex-1 overflow-y-auto rounded-xl border border-[var(--border)] p-3 md:p-4"
               aria-label="Conversation feed"
             >
               {transcript.length === 0 && (

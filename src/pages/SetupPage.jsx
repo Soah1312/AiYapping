@@ -606,33 +606,6 @@ export default function SetupPage() {
             
           </div>
           
-          {/* Quick Action Pills */}
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            <button 
-              onClick={() => patchForm({ topic: "Is AGI coming next year?" })}
-              className="flex items-center gap-2 rounded-full bg-[#1e1f20] px-4 py-3 text-sm font-medium hover:bg-[#282a2c] transition-colors border border-white/5"
-            >
-              🤖 Discuss AGI
-            </button>
-            <button 
-              onClick={() => patchForm({ topic: "Tabs vs Spaces" })}
-              className="flex items-center gap-2 rounded-full bg-[#1e1f20] px-4 py-3 text-sm font-medium hover:bg-[#282a2c] transition-colors border border-white/5"
-            >
-              💻 Dev holy war
-            </button>
-            <button 
-              onClick={() => patchForm({ topic: "Explain quantum computing to a child" })}
-              className="flex items-center gap-2 rounded-full bg-[#1e1f20] px-4 py-3 text-sm font-medium hover:bg-[#282a2c] transition-colors border border-white/5"
-            >
-              ⚛️ Explain Quantum
-            </button>
-            <button 
-              onClick={() => patchForm({ topic: "Should pineapple be on pizza?" })}
-              className="flex items-center gap-2 rounded-full bg-[#1e1f20] px-4 py-3 text-sm font-medium hover:bg-[#282a2c] transition-colors border border-white/5"
-            >
-              🍕 Food debate
-            </button>
-          </div>
         </div>
       </main>
     </div>

@@ -118,7 +118,7 @@ export default defineConfig(({ mode }) => {
     process.env.NVIDIA_API_KEY_KIMI = env.NVIDIA_API_KEY_KIMI;
   }
 
-  if (env.VITE_FIREBASE_CONFIG && !process.env.VITE_FIREBASE_CONFIG) {
+  if (env.VITE_FIREBASE_CONFIG) {
     process.env.VITE_FIREBASE_CONFIG = env.VITE_FIREBASE_CONFIG;
   }
 

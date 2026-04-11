@@ -119,6 +119,7 @@ export function useConversation() {
       const opponentModelMeta = MODEL_BY_ID[opponentModelId];
       const speakerModel = speakerModelMeta?.model || speakerModelId;
       const opponentModel = opponentModelMeta?.model || opponentModelId;
+      const provider = speakerModelMeta?.provider || 'groq';
 
       const speakerPersona = getPersonaLabel(
         speakerModelMeta?.label || speakerModel,
@@ -176,7 +177,7 @@ export function useConversation() {
         });
 
         await streamModelResponse({
-          provider: speakerModelMeta?.provider || 'groq',
+          provider,
           model: speakerModel,
           messages,
           sessionId,
@@ -204,6 +205,19 @@ export function useConversation() {
       } catch (error) {
         const errorText = String(error?.message || 'Unknown stream error');
         const interrupted = controller.signal.aborted;
+        const turnDiagnostics = {
+          side,
+          turn: turnNumber,
+          provider,
+          model: speakerModel,
+          sessionId,
+        };
+
+        console.error('[useConversation] executeTurn failed', {
+          ...turnDiagnostics,
+          interrupted,
+          error: errorText,
+        });
 
         const suffix = interrupted ? '\n\n[interrupted]' : '';
         const safeContent = (fullContent || '').trim() + suffix;
@@ -215,7 +229,11 @@ export function useConversation() {
           error: errorText,
         });
 
-        setStreamError(errorText);
+        const contextualError = interrupted
+          ? `${errorText} (interrupted side=${side} turn=${turnNumber})`
+          : `${errorText} (side=${side} turn=${turnNumber} provider=${provider} model=${speakerModel})`;
+
+        setStreamError(contextualError);
         pauseConversation();
       } finally {
         abortControllerRef.current = null;

@@ -14,6 +14,19 @@ type ChatRequestBody = {
   sessionId: string;
 };
 
+function createRequestId() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+
+  return `req-${Math.random().toString(36).slice(2, 10)}${Date.now()}`;
+}
+
+function safeErrorMessage(error: unknown) {
+  const message = String((error as { message?: string })?.message || error || 'Unknown error');
+  return message.slice(0, 1200);
+}
+
 const NVIDIA_MODEL_MATCHERS = [
   /^deepseek-ai\//i,
   /^z-ai\//i,
@@ -544,26 +557,38 @@ function normalizeMessages(messages: Array<{ role: string; content: string }>): 
 }
 
 export default async function handler(request: Request): Promise<Response> {
+  const requestId = createRequestId();
+  let stage = 'method-check';
+
   if (request.method !== 'POST') {
-    return Response.json({ error: 'Method not allowed' }, { status: 405 });
+    return Response.json({ error: 'Method not allowed', requestId, stage: 'method-check' }, { status: 405 });
   }
 
   try {
+    stage = 'parse-body';
     const body = (await request.json()) as ChatRequestBody;
 
+    stage = 'validate-body';
     const modelId = String(body?.modelId || body?.model || '');
     if (!modelId || !Array.isArray(body?.messages) || !body?.sessionId) {
       return Response.json(
-        { error: 'Missing required body fields: provider, modelId/model, messages, sessionId' },
+        {
+          error: 'Missing required body fields: provider, modelId/model, messages, sessionId',
+          requestId,
+          stage,
+        },
         { status: 400 },
       );
     }
 
+    stage = 'resolve-provider';
     const provider = resolveProvider(body?.provider, modelId);
 
+    stage = 'usage-check';
     await getUsageStatus(body.sessionId);
 
     if (provider === 'huggingface') {
+      stage = 'huggingface-stream';
       return createHuggingFaceStreamResponse({
         modelId,
         messages: body.messages,
@@ -572,6 +597,7 @@ export default async function handler(request: Request): Promise<Response> {
     }
 
     if (provider === 'nvidia') {
+      stage = 'nvidia-stream';
       return createNvidiaStreamResponse({
         modelId,
         messages: body.messages,
@@ -579,6 +605,7 @@ export default async function handler(request: Request): Promise<Response> {
       });
     }
 
+    stage = 'groq-stream';
     const result = streamText({
       model: groq(modelId),
       messages: normalizeMessages(body.messages),
@@ -595,8 +622,20 @@ export default async function handler(request: Request): Promise<Response> {
 
     return result.toTextStreamResponse();
   } catch (error) {
+    const message = safeErrorMessage(error);
+    // Server-side structured log for debugging API failures.
+    console.error('[api/chat] request failed', {
+      requestId,
+      message,
+      stack: (error as { stack?: string })?.stack,
+    });
+
     return Response.json(
-      { error: String((error as Error)?.message || 'Chat stream failed') },
+      {
+        error: message,
+        requestId,
+        stage,
+      },
       { status: 500 },
     );
   }

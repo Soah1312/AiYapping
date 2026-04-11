@@ -77,7 +77,14 @@ function parseLine(line, onDelta) {
 function readErrorPayload(text) {
   try {
     const parsed = JSON.parse(text);
-    return parsed?.error || parsed?.message || text;
+    if (parsed && typeof parsed === 'object') {
+      const error = parsed?.error || parsed?.message || text;
+      const requestId = parsed?.requestId ? ` requestId=${parsed.requestId}` : '';
+      const stage = parsed?.stage ? ` stage=${parsed.stage}` : '';
+      return `${error}${requestId}${stage}`;
+    }
+
+    return parsed || text;
   } catch {
     return text;
   }
@@ -109,6 +116,12 @@ export function useStream() {
   const streamModelResponse = useCallback(
     async ({ provider = 'groq', model, messages, sessionId, onDelta, signal }) => {
       setIsRequesting(true);
+      const diagnostics = {
+        provider,
+        model,
+        sessionId,
+        messageCount: Array.isArray(messages) ? messages.length : 0,
+      };
 
       try {
         let response;
@@ -140,6 +153,12 @@ export function useStream() {
         if (!response.ok) {
           const text = await response.text();
           const payload = readErrorPayload(text);
+
+          console.error('[useStream] /api/chat returned non-ok response', {
+            ...diagnostics,
+            status: response.status,
+            payload,
+          });
 
           if (response.status === 503 && provider === 'huggingface') {
             throw new Error('Hugging Face is waking up this model... please wait 20 seconds.');
@@ -181,6 +200,12 @@ export function useStream() {
             parseLine(line, (delta) => onDelta?.(delta));
           }
         }
+      } catch (error) {
+        console.error('[useStream] streamModelResponse failed', {
+          ...diagnostics,
+          error: String(error?.message || error),
+        });
+        throw error;
       } finally {
         setIsRequesting(false);
       }
