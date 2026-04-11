@@ -36,6 +36,13 @@ export default function ModelPicker({
         ? 'NVIDIA'
         : 'Groq';
 
+  const providerEnvKey =
+    activeModel.provider === 'huggingface'
+      ? 'HUGGINGFACE_KEY_*'
+      : activeModel.provider === 'nvidia'
+        ? 'NVIDIA_KEY_*'
+        : 'GROQ_KEY_*';
+
   return (
     <section className="surface-card p-4" style={{ borderColor: `${accent}66` }}>
       <p className="small-caps text-xs text-[var(--text-muted)]">{title}</p>
@@ -51,6 +58,9 @@ export default function ModelPicker({
           <p className="text-xs text-[var(--text-muted)]">{activeModel.flavor}</p>
           <p className="mt-0.5 text-[11px] uppercase tracking-wide text-[var(--text-muted)]">
             Provider: {providerLabel}
+          </p>
+          <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+            Env key: <span className="font-semibold text-[var(--text-primary)]">{providerEnvKey}</span>
           </p>
         </div>
       </div>

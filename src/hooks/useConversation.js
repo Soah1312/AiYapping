@@ -9,9 +9,31 @@ const MIN_TYPING_BUBBLE_MS = 420;
 const WORD_REVEAL_INTERVAL_MS = 55;
 const REVEAL_IDLE_POLL_MS = 20;
 
-function wait(ms) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
+function wait(ms, signal) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      if (signal) {
+        signal.removeEventListener('abort', onAbort);
+      }
+      resolve();
+    }, ms);
+
+    function onAbort() {
+      clearTimeout(timer);
+      if (signal) {
+        signal.removeEventListener('abort', onAbort);
+      }
+      reject(new Error('Aborted while waiting.'));
+    }
+
+    if (signal) {
+      if (signal.aborted) {
+        onAbort();
+        return;
+      }
+
+      signal.addEventListener('abort', onAbort, { once: true });
+    }
   });
 }
 
@@ -253,7 +275,11 @@ export function useConversation() {
         revealLoopPromise = (async () => {
           while (!controller.signal.aborted) {
             if (Date.now() < bubbleVisibleUntil) {
-              await wait(REVEAL_IDLE_POLL_MS);
+              try {
+                await wait(REVEAL_IDLE_POLL_MS, controller.signal);
+              } catch {
+                break;
+              }
               continue;
             }
 
@@ -263,7 +289,11 @@ export function useConversation() {
                 content: displayedContent,
                 status: 'streaming',
               });
-              await wait(WORD_REVEAL_INTERVAL_MS);
+              try {
+                await wait(WORD_REVEAL_INTERVAL_MS, controller.signal);
+              } catch {
+                break;
+              }
               continue;
             }
 
@@ -271,7 +301,11 @@ export function useConversation() {
               break;
             }
 
-            await wait(REVEAL_IDLE_POLL_MS);
+            try {
+              await wait(REVEAL_IDLE_POLL_MS, controller.signal);
+            } catch {
+              break;
+            }
           }
         })();
 
@@ -404,6 +438,18 @@ export function useConversation() {
     shouldStopBySideCap,
     status,
   ]);
+
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+
+      runningTurnRef.current = false;
+      setStreaming(false);
+    };
+  }, [setStreaming]);
 
   const pause = useCallback(() => {
     pauseConversation();

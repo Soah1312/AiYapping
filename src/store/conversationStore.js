@@ -1,5 +1,38 @@
 import { create } from 'zustand';
-import { DEFAULT_SETUP, FREE_TURN_LIMIT } from '../lib/modelConfig';
+import { createJSONStorage, persist } from 'zustand/middleware';
+import { DEFAULT_SETUP, FREE_TURN_LIMIT, MODEL_BY_ID } from '../lib/modelConfig';
+
+const STORE_NAME = 'ai-arena-conversation-store-v1';
+
+const noopStorage = {
+  getItem: () => null,
+  setItem: () => {},
+  removeItem: () => {},
+};
+
+function getStorage() {
+  if (typeof window === 'undefined') {
+    return noopStorage;
+  }
+
+  return window.sessionStorage;
+}
+
+function isPageReload() {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  const navigationEntries = window.performance?.getEntriesByType?.('navigation');
+  const navigationEntry = Array.isArray(navigationEntries) ? navigationEntries[0] : null;
+
+  if (navigationEntry && typeof navigationEntry === 'object' && 'type' in navigationEntry) {
+    return navigationEntry.type === 'reload';
+  }
+
+  // Legacy fallback for browsers without Navigation Timing L2 support.
+  return window.performance?.navigation?.type === 1;
+}
 
 function createId(prefix) {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -9,7 +42,48 @@ function createId(prefix) {
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}${Date.now()}`;
 }
 
-export const useConversationStore = create((set, get) => ({
+function isValidTranscriptMessage(message) {
+  if (!message || typeof message !== 'object') {
+    return false;
+  }
+
+  if (typeof message.id !== 'string' || !message.id.trim()) {
+    return false;
+  }
+
+  if (typeof message.content !== 'string') {
+    return false;
+  }
+
+  return true;
+}
+
+function sanitizeSetup(setup) {
+  if (!setup || typeof setup !== 'object') {
+    return { ...DEFAULT_SETUP };
+  }
+
+  const ai1Model = typeof setup.ai1Model === 'string' && MODEL_BY_ID[setup.ai1Model]
+    ? setup.ai1Model
+    : DEFAULT_SETUP.ai1Model;
+
+  const ai2Model = typeof setup.ai2Model === 'string' && MODEL_BY_ID[setup.ai2Model]
+    ? setup.ai2Model
+    : DEFAULT_SETUP.ai2Model;
+
+  return {
+    ...DEFAULT_SETUP,
+    ...setup,
+    ai1Model,
+    ai2Model,
+    endConditions: {
+      ...DEFAULT_SETUP.endConditions,
+      ...(setup.endConditions || {}),
+    },
+  };
+}
+
+export const useConversationStore = create(persist((set, get) => ({
   sessionId: '',
   conversationId: null,
   setup: { ...DEFAULT_SETUP },
@@ -146,4 +220,63 @@ export const useConversationStore = create((set, get) => ({
     })),
 
   setShareId: (shareId) => set({ shareId }),
+}), {
+  name: STORE_NAME,
+  storage: createJSONStorage(getStorage),
+  partialize: (state) => ({
+    sessionId: state.sessionId,
+    conversationId: state.conversationId,
+    setup: state.setup,
+    transcript: state.transcript,
+    status: state.status,
+    streamError: state.streamError,
+    redirectDraft: state.redirectDraft,
+    usage: state.usage,
+    summary: state.summary,
+    shareId: state.shareId,
+  }),
+  merge: (persistedState, currentState) => {
+    const persisted = persistedState || {};
+    const safeSetup = sanitizeSetup(persisted.setup);
+
+    if (isPageReload()) {
+      return {
+        ...currentState,
+        ...persisted,
+        setup: safeSetup,
+        conversationId: null,
+        transcript: [],
+        status: 'idle',
+        isStreaming: false,
+        streamError: null,
+        redirectDraft: '',
+        summary: {
+          verdict: null,
+          consensus: null,
+        },
+        shareId: null,
+      };
+    }
+
+    const persistedTranscript = Array.isArray(persisted.transcript)
+      ? persisted.transcript.filter(isValidTranscriptMessage)
+      : [];
+
+    // Drop in-flight messages so rehydration can safely continue turns.
+    const transcript = persistedTranscript.filter((message) => message?.status !== 'streaming');
+
+    const status =
+      persisted.status === 'running' || persisted.status === 'paused' || persisted.status === 'completed'
+        ? persisted.status
+        : currentState.status;
+
+    return {
+      ...currentState,
+      ...persisted,
+      setup: safeSetup,
+      transcript,
+      status,
+      isStreaming: false,
+    };
+  },
 }));

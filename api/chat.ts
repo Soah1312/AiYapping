@@ -1,5 +1,3 @@
-import { streamText, type ModelMessage } from 'ai';
-import { groq } from '@ai-sdk/groq';
 import { getUsageStatus, incrementUsage } from './_lib/firebase';
 
 export const config = {
@@ -25,6 +23,60 @@ function createRequestId() {
 function safeErrorMessage(error: unknown) {
   const message = String((error as { message?: string })?.message || error || 'Unknown error');
   return message.slice(0, 1200);
+}
+
+function extractGroqDelta(payload: Record<string, unknown>) {
+  const choice =
+    Array.isArray(payload.choices) && payload.choices[0] && typeof payload.choices[0] === 'object'
+      ? (payload.choices[0] as { delta?: { content?: string }; message?: { content?: string } })
+      : null;
+
+  const content = choice?.delta?.content ? String(choice.delta.content) : '';
+  const message = choice?.message?.content ? String(choice.message.content) : '';
+
+  return content || message || '';
+}
+
+function resolveApiKeysByPrefix(prefix: string, fallbackKeyName?: string) {
+  const envEntries = Object.entries(process.env || {});
+  const explicitKeys = envEntries
+    .filter(([key, value]) => key.startsWith(prefix) && Boolean(value))
+    .sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }))
+    .map(([, value]) => String(value || '').trim())
+    .filter(Boolean);
+
+  if (fallbackKeyName && process.env[fallbackKeyName]) {
+    explicitKeys.push(String(process.env[fallbackKeyName] || '').trim());
+  }
+
+  return [...new Set(explicitKeys.filter(Boolean))];
+}
+
+function resolveGroqApiKeys() {
+  return resolveApiKeysByPrefix('GROQ_KEY_', 'GROQ_API_KEY');
+}
+
+function resolveHuggingFaceApiKeys() {
+  return resolveApiKeysByPrefix('HUGGINGFACE_KEY_', 'HUGGINGFACE_API_KEY');
+}
+
+function resolveNvidiaApiKeys() {
+  return resolveApiKeysByPrefix('NVIDIA_KEY_', 'NVIDIA_API_KEY');
+}
+
+function shuffleInPlace<T>(values: T[]) {
+  const next = [...values];
+  for (let i = next.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [next[i], next[j]] = [next[j], next[i]];
+  }
+
+  return next;
+}
+
+function keyLabel(apiKey: string, index: number) {
+  const suffix = apiKey.slice(-4);
+  return `#${index + 1}(...${suffix || 'n/a'})`;
 }
 
 const NVIDIA_MODEL_MATCHERS = [
@@ -117,35 +169,60 @@ function extractNvidiaDelta(payload: Record<string, unknown>) {
   return content || message || '';
 }
 
-function resolveNvidiaApiKey(modelId: string) {
-  const resolvedModelId = normalizeNvidiaModelId(modelId);
-  const isDeepseekModel = resolvedModelId === 'deepseek-ai/deepseek-v3.2' || resolvedModelId.includes('deepseek');
-  const isGemmaModel = resolvedModelId.includes('gemma-7b') || resolvedModelId.includes('/gemma-7b');
-  const isGlmModel = resolvedModelId === 'z-ai/glm4.7' || resolvedModelId.startsWith('z-ai/glm');
-  const isMistralLargeModel = resolvedModelId === 'mistralai/mistral-large-3-675b-instruct-2512';
-  const isKimiModel = resolvedModelId === 'moonshotai/kimi-k2-instruct';
+function normalizeNvidiaMessages(messages: Array<{ role: string; content: string }>) {
+  const prepared = messages.map((message) => {
+    if (message.role === 'system') {
+      return {
+        role: 'user' as const,
+        content: `[Instruction]\n${String(message.content || '')}`,
+      };
+    }
 
-  if (isDeepseekModel) {
-    return process.env.NVIDIA_API_KEY_DEEPSEEK || '';
+    if (message.role === 'assistant') {
+      return {
+        role: 'assistant' as const,
+        content: String(message.content || ''),
+      };
+    }
+
+    return {
+      role: 'user' as const,
+      content: String(message.content || ''),
+    };
+  });
+
+  const merged: Array<{ role: 'user' | 'assistant'; content: string }> = [];
+
+  for (const message of prepared) {
+    if (!message.content.trim()) {
+      continue;
+    }
+
+    const last = merged[merged.length - 1];
+    if (last && last.role === message.role) {
+      // NVIDIA expects strict user/assistant alternation, so merge same-role neighbors.
+      last.content = `${last.content}\n\n${message.content}`;
+      continue;
+    }
+
+    merged.push(message);
   }
 
-  if (isGemmaModel) {
-    return process.env.NVIDIA_API_KEY_GEMMA || '';
+  if (merged.length === 0) {
+    merged.push({
+      role: 'user',
+      content: 'Continue the discussion in one concise turn.',
+    });
   }
 
-  if (isGlmModel) {
-    return process.env.NVIDIA_API_KEY_GLM_MODEL || '';
+  if (merged[0].role !== 'user') {
+    merged.unshift({
+      role: 'user',
+      content: 'Follow the prior context and continue the discussion.',
+    });
   }
 
-  if (isMistralLargeModel) {
-    return process.env.NVIDIA_API_KEY_MISTRAL_LARGE || '';
-  }
-
-  if (isKimiModel) {
-    return process.env.NVIDIA_API_KEY_KIMI || '';
-  }
-
-  return process.env.NVIDIA_API_KEY_GENERAL || '';
+  return merged;
 }
 
 async function createNvidiaStreamResponse({
@@ -157,12 +234,12 @@ async function createNvidiaStreamResponse({
   messages: Array<{ role: string; content: string }>;
   sessionId: string;
 }) {
-  const apiKey = resolveNvidiaApiKey(modelId);
-  if (!apiKey) {
+  const nvidiaKeys = shuffleInPlace(resolveNvidiaApiKeys());
+  if (nvidiaKeys.length === 0) {
     return Response.json(
       {
         error:
-          'Missing NVIDIA API key for this model. Set the exact model key: NVIDIA_API_KEY_DEEPSEEK, NVIDIA_API_KEY_GEMMA, NVIDIA_API_KEY_GLM_MODEL, NVIDIA_API_KEY_MISTRAL_LARGE, NVIDIA_API_KEY_KIMI, or NVIDIA_API_KEY_GENERAL.',
+          'Missing NVIDIA API keys. Set NVIDIA_KEY_1 (and optional NVIDIA_KEY_2, NVIDIA_KEY_3...) in environment variables.',
       },
       { status: 500 },
     );
@@ -173,16 +250,7 @@ async function createNvidiaStreamResponse({
     content: typeof message.content === 'string' ? message.content : String(message.content || ''),
   }));
 
-  const nvidiaMessages = normalizedMessages.map((message) => {
-    if (message.role === 'system') {
-      return {
-        role: 'user',
-        content: `[Instruction]\n${message.content}`,
-      };
-    }
-
-    return message;
-  });
+  const nvidiaMessages = normalizeNvidiaMessages(normalizedMessages);
 
   const resolvedModelId = normalizeNvidiaModelId(modelId);
   const isGlmModel = resolvedModelId === 'z-ai/glm4.7' || resolvedModelId.startsWith('z-ai/glm');
@@ -225,34 +293,56 @@ async function createNvidiaStreamResponse({
 
   let upstream: Response | null = null;
   let lastErrorText = '';
+  let rateLimitedCount = 0;
 
-  for (const nvidiaBody of nvidiaBodies) {
-    const candidate = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        Accept: 'text/event-stream, application/json',
-      },
-      body: JSON.stringify(nvidiaBody),
-    });
+  for (let keyIndex = 0; keyIndex < nvidiaKeys.length; keyIndex += 1) {
+    const apiKey = nvidiaKeys[keyIndex];
 
-    upstream = candidate;
-    if (candidate.ok) {
+    for (const nvidiaBody of nvidiaBodies) {
+      const candidate = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          Accept: 'text/event-stream, application/json',
+        },
+        body: JSON.stringify(nvidiaBody),
+      });
+
+      upstream = candidate;
+      if (candidate.ok) {
+        break;
+      }
+
+      lastErrorText = await candidate.text();
+
+      if (candidate.status === 429) {
+        break;
+      }
+
+      const lowerError = lastErrorText.toLowerCase();
+      const retryablePayloadError =
+        candidate.status === 400 &&
+        (lowerError.includes('unsupported parameter') ||
+          lowerError.includes('extra_body') ||
+          lowerError.includes('chat_template_kwargs'));
+
+      if (!retryablePayloadError) {
+        break;
+      }
+    }
+
+    if (upstream?.ok) {
       break;
     }
 
-    lastErrorText = await candidate.text();
-    const lowerError = lastErrorText.toLowerCase();
-    const retryablePayloadError =
-      candidate.status === 400 &&
-      (lowerError.includes('unsupported parameter') ||
-        lowerError.includes('extra_body') ||
-        lowerError.includes('chat_template_kwargs'));
-
-    if (!retryablePayloadError) {
-      break;
+    if (upstream?.status === 429) {
+      rateLimitedCount += 1;
+      console.warn(`[api/chat] NVIDIA key ${keyLabel(apiKey, keyIndex)} rate-limited, rotating...`);
+      continue;
     }
+
+    break;
   }
 
   if (!upstream) {
@@ -260,6 +350,13 @@ async function createNvidiaStreamResponse({
   }
 
   if (!upstream.ok) {
+    if (upstream.status === 429 && rateLimitedCount === nvidiaKeys.length) {
+      return Response.json(
+        { error: 'All AI engines are currently yapping too hard. Please try again in 60s.' },
+        { status: 429 },
+      );
+    }
+
     const errorText = lastErrorText || (await upstream.text());
     return Response.json({ error: `NVIDIA error ${upstream.status}: ${errorText}` }, { status: upstream.status });
   }
@@ -353,9 +450,14 @@ async function createHuggingFaceStreamResponse({
   messages: Array<{ role: string; content: string }>;
   sessionId: string;
 }) {
-  const apiKey = process.env.HUGGINGFACE_API_KEY;
-  if (!apiKey) {
-    return Response.json({ error: 'Missing HUGGINGFACE_API_KEY environment variable.' }, { status: 500 });
+  const hfKeys = shuffleInPlace(resolveHuggingFaceApiKeys());
+  if (hfKeys.length === 0) {
+    return Response.json(
+      {
+        error: 'Missing Hugging Face API keys. Set HUGGINGFACE_KEY_1 (and optional HUGGINGFACE_KEY_2, HUGGINGFACE_KEY_3...) in environment variables.',
+      },
+      { status: 500 },
+    );
   }
 
   const normalizedMessages = normalizeMessages(messages).map((message) => ({
@@ -375,45 +477,70 @@ async function createHuggingFaceStreamResponse({
   let upstreamModel = modelCandidates[0];
   let lastErrorText = '';
 
-  for (const candidateModel of modelCandidates) {
-    const candidateResponse = await fetch('https://router.huggingface.co/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        Accept: 'text/event-stream, application/json',
-      },
-      body: JSON.stringify({
-        model: candidateModel,
-        messages: normalizedMessages,
-        stream: true,
-        max_tokens: 500,
-      }),
-    });
+  let rateLimitedCount = 0;
 
-    upstream = candidateResponse;
-    upstreamModel = candidateModel;
+  for (let keyIndex = 0; keyIndex < hfKeys.length; keyIndex += 1) {
+    const apiKey = hfKeys[keyIndex];
 
-    if (candidateResponse.ok || candidateResponse.status === 503) {
+    for (const candidateModel of modelCandidates) {
+      const candidateResponse = await fetch('https://router.huggingface.co/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          Accept: 'text/event-stream, application/json',
+        },
+        body: JSON.stringify({
+          model: candidateModel,
+          messages: normalizedMessages,
+          stream: true,
+          max_tokens: 500,
+        }),
+      });
+
+      upstream = candidateResponse;
+      upstreamModel = candidateModel;
+
+      if (candidateResponse.ok || candidateResponse.status === 503 || candidateResponse.status === 429) {
+        break;
+      }
+
+      lastErrorText = await candidateResponse.text();
+      const lowerError = lastErrorText.toLowerCase();
+      const retryableModelError =
+        candidateResponse.status === 404 ||
+        lowerError.includes('model_not_supported') ||
+        lowerError.includes('not supported by provider') ||
+        lowerError.includes('invalid_request_error') ||
+        lowerError.includes('param":"model');
+
+      if (!retryableModelError) {
+        break;
+      }
+    }
+
+    if (upstream?.ok || upstream?.status === 503) {
       break;
     }
 
-    lastErrorText = await candidateResponse.text();
-    const lowerError = lastErrorText.toLowerCase();
-    const retryableModelError =
-      candidateResponse.status === 404 ||
-      lowerError.includes('model_not_supported') ||
-      lowerError.includes('not supported by provider') ||
-      lowerError.includes('invalid_request_error') ||
-      lowerError.includes('param":"model');
-
-    if (!retryableModelError) {
-      break;
+    if (upstream?.status === 429) {
+      rateLimitedCount += 1;
+      console.warn(`[api/chat] Hugging Face key ${keyLabel(apiKey, keyIndex)} rate-limited, rotating...`);
+      continue;
     }
+
+    break;
   }
 
   if (!upstream) {
     return Response.json({ error: 'Hugging Face request failed before reaching upstream.' }, { status: 500 });
+  }
+
+  if (upstream.status === 429 && rateLimitedCount === hfKeys.length) {
+    return Response.json(
+      { error: 'All AI engines are currently yapping too hard. Please try again in 60s.' },
+      { status: 429 },
+    );
   }
 
   if (upstream.status === 503) {
@@ -542,7 +669,171 @@ async function createHuggingFaceStreamResponse({
   });
 }
 
-function normalizeMessages(messages: Array<{ role: string; content: string }>): ModelMessage[] {
+async function createGroqStreamResponse({
+  modelId,
+  messages,
+  sessionId,
+}: {
+  modelId: string;
+  messages: Array<{ role: string; content: string }>;
+  sessionId: string;
+}) {
+  const normalizedMessages = normalizeMessages(messages);
+  const groqKeys = shuffleInPlace(resolveGroqApiKeys());
+
+  if (groqKeys.length === 0) {
+    return Response.json(
+      {
+        error: 'Missing Groq API keys. Set GROQ_KEY_1 (and optional GROQ_KEY_2, GROQ_KEY_3...) in environment variables.',
+      },
+      { status: 500 },
+    );
+  }
+
+  let upstream: Response | null = null;
+  let selectedKey = '';
+  let rateLimitedCount = 0;
+  let lastErrorText = '';
+
+  for (let index = 0; index < groqKeys.length; index += 1) {
+    const apiKey = groqKeys[index];
+    const candidate = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream, application/json',
+      },
+      body: JSON.stringify({
+        model: modelId,
+        messages: normalizedMessages,
+        stream: true,
+        max_tokens: 500,
+      }),
+    });
+
+    upstream = candidate;
+
+    if (candidate.ok) {
+      selectedKey = apiKey;
+      break;
+    }
+
+    lastErrorText = await candidate.text();
+
+    if (candidate.status === 429) {
+      rateLimitedCount += 1;
+      console.warn(`[api/chat] Groq key ${keyLabel(apiKey, index)} rate-limited, rotating...`);
+      continue;
+    }
+
+    if (candidate.status === 400 || candidate.status >= 500) {
+      break;
+    }
+
+    break;
+  }
+
+  if (!upstream) {
+    return Response.json({ error: 'Groq request failed before reaching upstream.' }, { status: 500 });
+  }
+
+  if (!upstream.ok) {
+    if (upstream.status === 429 && rateLimitedCount === groqKeys.length) {
+      return Response.json(
+        { error: 'All AI engines are currently yapping too hard. Please try again in 60s.' },
+        { status: 429 },
+      );
+    }
+
+    const errorText = lastErrorText || (await upstream.text());
+    return Response.json({ error: `Groq error ${upstream.status}: ${errorText}` }, { status: upstream.status });
+  }
+
+  if (!upstream.body) {
+    return Response.json({ error: 'Groq stream body is empty.' }, { status: 500 });
+  }
+
+  const upstreamBody = upstream.body;
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      const write = (payload: Record<string, unknown>) => {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+      };
+
+      try {
+        const reader = upstreamBody.getReader();
+        let buffer = '';
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) {
+            break;
+          }
+
+          buffer += decoder.decode(value, { stream: true });
+          const blocks = buffer.split('\n\n');
+          buffer = blocks.pop() || '';
+
+          for (const block of blocks) {
+            const lines = block.split('\n').map((line) => line.trim());
+            const dataLine = lines.find((line) => line.startsWith('data:'));
+
+            if (!dataLine) {
+              continue;
+            }
+
+            const raw = dataLine.slice(5).trim();
+            if (!raw || raw === '[DONE]') {
+              continue;
+            }
+
+            let payload: Record<string, unknown>;
+            try {
+              payload = JSON.parse(raw) as Record<string, unknown>;
+            } catch {
+              write({ delta: raw });
+              continue;
+            }
+
+            if (payload.error) {
+              throw new Error(String(payload.error));
+            }
+
+            const delta = extractGroqDelta(payload);
+            if (delta) {
+              write({ delta });
+            }
+          }
+        }
+
+        await incrementUsage(sessionId);
+        controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+      } catch (error) {
+        write({
+          error: String((error as Error)?.message || 'Groq stream failed'),
+          key: selectedKey ? keyLabel(selectedKey, groqKeys.indexOf(selectedKey)) : undefined,
+        });
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache, no-transform',
+      Connection: 'keep-alive',
+    },
+  });
+}
+
+function normalizeMessages(messages: Array<{ role: string; content: string }>) {
   return messages.map((message) => {
     const role =
       message.role === 'system' || message.role === 'assistant' || message.role === 'user'
@@ -553,7 +844,7 @@ function normalizeMessages(messages: Array<{ role: string; content: string }>): 
       role,
       content: String(message.content || ''),
     };
-  }) as ModelMessage[];
+  });
 }
 
 export default async function handler(request: Request): Promise<Response> {
@@ -606,21 +897,11 @@ export default async function handler(request: Request): Promise<Response> {
     }
 
     stage = 'groq-stream';
-    const result = streamText({
-      model: groq(modelId),
-      messages: normalizeMessages(body.messages),
-      maxOutputTokens: 500,
-      onFinish: async () => {
-        await incrementUsage(body.sessionId);
-      },
+    return createGroqStreamResponse({
+      modelId,
+      messages: body.messages,
+      sessionId: body.sessionId,
     });
-
-    const dataResponse = (result as unknown as { toDataStreamResponse?: () => Response }).toDataStreamResponse;
-    if (typeof dataResponse === 'function') {
-      return dataResponse.call(result);
-    }
-
-    return result.toTextStreamResponse();
   } catch (error) {
     const message = safeErrorMessage(error);
     // Server-side structured log for debugging API failures.

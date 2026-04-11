@@ -480,6 +480,41 @@ export default function ArenaPage() {
   }, [sessionId, setUsage]);
 
   useEffect(() => {
+    let mounted = true;
+
+    async function refreshUsageAfterTurn() {
+      if (!sessionId || aiTurnCount <= 0) {
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/usage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId }),
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const payload = await response.json();
+        if (mounted) {
+          setUsage(payload);
+        }
+      } catch {
+        // Non-blocking.
+      }
+    }
+
+    void refreshUsageAfterTurn();
+
+    return () => {
+      mounted = false;
+    };
+  }, [aiTurnCount, sessionId, setUsage]);
+
+  useEffect(() => {
     if (!feedRef.current) {
       return;
     }

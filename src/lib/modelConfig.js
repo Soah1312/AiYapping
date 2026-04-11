@@ -78,7 +78,7 @@ export const MODEL_OPTIONS = [
     provider: 'nvidia',
     model: 'google/gemma-7b',
     label: 'Gemma 7B',
-    flavor: 'NVIDIA • Model-Specific Key • Gemma',
+    flavor: 'NVIDIA • Single API Key • Gemma',
     icon: '/icons/gemma.svg',
   },
   {
@@ -86,7 +86,7 @@ export const MODEL_OPTIONS = [
     provider: 'nvidia',
     model: 'z-ai/glm4.7',
     label: 'GLM 4.7',
-    flavor: 'NVIDIA • Model-Specific Key • GLM',
+    flavor: 'NVIDIA • Single API Key • GLM',
     icon: '/icons/llama.svg',
   },
   {
@@ -94,7 +94,7 @@ export const MODEL_OPTIONS = [
     provider: 'nvidia',
     model: 'deepseek-ai/deepseek-v3.2',
     label: 'DeepSeek V3.2',
-    flavor: 'NVIDIA • Model-Specific Key • DeepSeek',
+    flavor: 'NVIDIA • Single API Key • DeepSeek',
     icon: '/icons/llama.svg',
   },
   {
@@ -102,7 +102,7 @@ export const MODEL_OPTIONS = [
     provider: 'nvidia',
     model: 'moonshotai/kimi-k2-instruct@nvidia',
     label: 'Kimi K2 Instruct (NVIDIA)',
-    flavor: 'NVIDIA • Model-Specific Key • Kimi K2',
+    flavor: 'NVIDIA • Single API Key • Kimi K2',
     icon: '/icons/mixtral.svg',
   },
   {
@@ -110,7 +110,7 @@ export const MODEL_OPTIONS = [
     provider: 'nvidia',
     model: 'mistralai/mistral-large-3-675b-instruct-2512',
     label: 'Mistral Large 3 675B',
-    flavor: 'NVIDIA • Model-Specific Key • Mistral Large',
+    flavor: 'NVIDIA • Single API Key • Mistral Large',
     icon: '/icons/mixtral.svg',
   },
 ];

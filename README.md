@@ -24,6 +24,16 @@ Watch two AI models debate, argue, and think live.
    - `npm run dev:vercel` (required for local `/api/*` routes)
    - Optional UI-only mode without API routes: `npm run dev`
 
+## Environment Keys
+
+- `GROQ_KEY_1`, `GROQ_KEY_2`, ...: Groq key pool (all `GROQ_KEY_*` are auto-discovered and rotated per request)
+- `GROQ_API_KEY`: optional backward-compatible fallback if no `GROQ_KEY_*` keys are set
+- `HUGGINGFACE_KEY_1`, `HUGGINGFACE_KEY_2`, ...: Hugging Face key pool (all `HUGGINGFACE_KEY_*` are auto-discovered and rotated per request)
+- `HUGGINGFACE_API_KEY`: optional backward-compatible fallback if no `HUGGINGFACE_KEY_*` keys are set
+- `NVIDIA_KEY_1`, `NVIDIA_KEY_2`, ...: NVIDIA key pool (all `NVIDIA_KEY_*` are auto-discovered and rotated per request)
+- `NVIDIA_API_KEY`: optional backward-compatible fallback if no `NVIDIA_KEY_*` keys are set
+- `VITE_FIREBASE_CONFIG`: Firebase client config JSON (frontend + API usage tracking)
+
 ## Build
 
 - `npm run build`

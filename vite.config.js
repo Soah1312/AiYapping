@@ -74,48 +74,42 @@ export default defineConfig(({ mode }) => {
     process.env.GROQ_API_KEY = env.GROQ_API_KEY;
   }
 
+  for (const [key, value] of Object.entries(env)) {
+    if (!key.startsWith('GROQ_KEY_')) {
+      continue;
+    }
+
+    if (value && !process.env[key]) {
+      process.env[key] = value;
+    }
+  }
+
+  for (const [key, value] of Object.entries(env)) {
+    if (!key.startsWith('HUGGINGFACE_KEY_')) {
+      continue;
+    }
+
+    if (value && !process.env[key]) {
+      process.env[key] = value;
+    }
+  }
+
   if (env.HUGGINGFACE_API_KEY && !process.env.HUGGINGFACE_API_KEY) {
     process.env.HUGGINGFACE_API_KEY = env.HUGGINGFACE_API_KEY;
   }
 
+  for (const [key, value] of Object.entries(env)) {
+    if (!key.startsWith('NVIDIA_KEY_')) {
+      continue;
+    }
+
+    if (value && !process.env[key]) {
+      process.env[key] = value;
+    }
+  }
+
   if (env.NVIDIA_API_KEY && !process.env.NVIDIA_API_KEY) {
     process.env.NVIDIA_API_KEY = env.NVIDIA_API_KEY;
-  }
-
-  if (env.NVIDIA_API_KEY_2 && !process.env.NVIDIA_API_KEY_2) {
-    process.env.NVIDIA_API_KEY_2 = env.NVIDIA_API_KEY_2;
-  }
-
-  if (env.NVIDIA_API_KEY_ALT && !process.env.NVIDIA_API_KEY_ALT) {
-    process.env.NVIDIA_API_KEY_ALT = env.NVIDIA_API_KEY_ALT;
-  }
-
-  if (env.NVIDIA_API_KEY_DEEPSEEK && !process.env.NVIDIA_API_KEY_DEEPSEEK) {
-    process.env.NVIDIA_API_KEY_DEEPSEEK = env.NVIDIA_API_KEY_DEEPSEEK;
-  }
-
-  if (env.NVIDIA_API_KEY_GLM && !process.env.NVIDIA_API_KEY_GLM) {
-    process.env.NVIDIA_API_KEY_GLM = env.NVIDIA_API_KEY_GLM;
-  }
-
-  if (env.NVIDIA_API_KEY_GEMMA && !process.env.NVIDIA_API_KEY_GEMMA) {
-    process.env.NVIDIA_API_KEY_GEMMA = env.NVIDIA_API_KEY_GEMMA;
-  }
-
-  if (env.NVIDIA_API_KEY_GLM_MODEL && !process.env.NVIDIA_API_KEY_GLM_MODEL) {
-    process.env.NVIDIA_API_KEY_GLM_MODEL = env.NVIDIA_API_KEY_GLM_MODEL;
-  }
-
-  if (env.NVIDIA_API_KEY_GENERAL && !process.env.NVIDIA_API_KEY_GENERAL) {
-    process.env.NVIDIA_API_KEY_GENERAL = env.NVIDIA_API_KEY_GENERAL;
-  }
-
-  if (env.NVIDIA_API_KEY_MISTRAL_LARGE && !process.env.NVIDIA_API_KEY_MISTRAL_LARGE) {
-    process.env.NVIDIA_API_KEY_MISTRAL_LARGE = env.NVIDIA_API_KEY_MISTRAL_LARGE;
-  }
-
-  if (env.NVIDIA_API_KEY_KIMI && !process.env.NVIDIA_API_KEY_KIMI) {
-    process.env.NVIDIA_API_KEY_KIMI = env.NVIDIA_API_KEY_KIMI;
   }
 
   if (env.VITE_FIREBASE_CONFIG) {

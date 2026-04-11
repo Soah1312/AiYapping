@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 const HF_WARMUP_WAIT_MS = 20000;
 const HF_WARMUP_RETRIES = 1;
@@ -92,6 +92,11 @@ function readErrorPayload(text) {
 
 function delay(ms, signal) {
   return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new Error('Request aborted while waiting for retry.'));
+      return;
+    }
+
     const timer = setTimeout(() => {
       if (signal) {
         signal.removeEventListener('abort', onAbort);
@@ -101,6 +106,9 @@ function delay(ms, signal) {
 
     function onAbort() {
       clearTimeout(timer);
+      if (signal) {
+        signal.removeEventListener('abort', onAbort);
+      }
       reject(new Error('Request aborted while waiting for retry.'));
     }
 
@@ -112,10 +120,25 @@ function delay(ms, signal) {
 
 export function useStream() {
   const [isRequesting, setIsRequesting] = useState(false);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const setRequestingSafe = useCallback((next) => {
+    if (!isMountedRef.current) {
+      return;
+    }
+
+    setIsRequesting(next);
+  }, []);
 
   const streamModelResponse = useCallback(
     async ({ provider = 'groq', model, messages, sessionId, onDelta, signal }) => {
-      setIsRequesting(true);
+      setRequestingSafe(true);
       const diagnostics = {
         provider,
         model,
@@ -207,10 +230,10 @@ export function useStream() {
         });
         throw error;
       } finally {
-        setIsRequesting(false);
+        setRequestingSafe(false);
       }
     },
-    [],
+    [setRequestingSafe],
   );
 
   return {

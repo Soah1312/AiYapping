@@ -1,10 +1,22 @@
 import { useMemo, useState } from 'react';
 import { ChevronDown, KeyRound } from 'lucide-react';
 
-const KEY_FIELDS = [
-  { id: 'anthropic', label: 'Anthropic API Key' },
-  { id: 'openai', label: 'OpenAI API Key' },
-  { id: 'google', label: 'Google API Key' },
+const PROVIDER_KEY_MAP = [
+  {
+    provider: 'Groq',
+    envKey: 'GROQ_KEY_*',
+    models: 'All models under provider = groq',
+  },
+  {
+    provider: 'Hugging Face',
+    envKey: 'HUGGINGFACE_KEY_*',
+    models: 'All models under provider = huggingface',
+  },
+  {
+    provider: 'NVIDIA',
+    envKey: 'NVIDIA_KEY_*',
+    models: 'All models under provider = nvidia',
+  },
 ];
 
 export default function ApiKeyPanel({ keys, onChange }) {
@@ -24,8 +36,8 @@ export default function ApiKeyPanel({ keys, onChange }) {
       >
         <div className="flex items-center gap-2">
           <KeyRound size={16} />
-          <span className="display-font text-lg">API Keys (Optional)</span>
-          {activeCount > 0 && <span className="text-xs text-[var(--text-muted)]">{activeCount} saved</span>}
+          <span className="display-font text-lg">Provider Key Mapping</span>
+          {activeCount > 0 && <span className="text-xs text-[var(--text-muted)]">{activeCount} local values</span>}
         </div>
         <ChevronDown
           size={18}
@@ -36,22 +48,28 @@ export default function ApiKeyPanel({ keys, onChange }) {
 
       {isOpen && (
         <div className="mt-4 grid gap-3">
-          {KEY_FIELDS.map((field) => (
-            <label key={field.id} className="grid gap-1 text-xs text-[var(--text-muted)]" htmlFor={field.id}>
-              {field.label}
-              <input
-                id={field.id}
-                type="password"
-                autoComplete="off"
-                value={keys[field.id] || ''}
-                onChange={(event) => onChange({ ...keys, [field.id]: event.target.value.trim() })}
-                className="rounded-lg border border-white/10 bg-[#0f0f16] p-2 text-sm text-[var(--text-primary)]"
-                placeholder="Enter key"
-              />
-            </label>
+          {PROVIDER_KEY_MAP.map((entry) => (
+            <div
+              key={entry.provider}
+              className="rounded-lg border p-3"
+              style={{ borderColor: 'var(--border)', background: 'color-mix(in oklab, var(--surface-soft) 62%, transparent)' }}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{entry.provider}</p>
+                <span
+                  className="rounded-md border px-2 py-0.5 text-[11px]"
+                  style={{ borderColor: 'var(--border)', color: 'var(--text-primary)', background: 'var(--surface)' }}
+                >
+                  {entry.envKey}
+                </span>
+              </div>
+              <p className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>
+                {entry.models}
+              </p>
+            </div>
           ))}
           <p className="text-xs text-[var(--text-muted)]">
-            Keys stay in localStorage and are used only for direct proxied model requests.
+            Configure these values in your server environment or local `.env` file.
           </p>
         </div>
       )}
