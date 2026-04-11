@@ -1,18 +1,4 @@
-const PROVIDER_COLORS = {
-  groq: '#F55036',
-  huggingface: '#FFD21E',
-  nvidia: '#76B900',
-};
-
-const PROVIDER_LABELS = {
-  groq: 'G',
-  huggingface: 'HF',
-  nvidia: 'NV',
-};
-
-export default function ModelAvatar({ provider, label, size = 32 }) {
-  const bg = PROVIDER_COLORS[provider] || '#666';
-  const letter = PROVIDER_LABELS[provider] || '?';
+export default function ModelAvatar({ icon, label, size = 32 }) {
 
   return (
     <div
@@ -20,20 +6,24 @@ export default function ModelAvatar({ provider, label, size = 32 }) {
         width: size,
         height: size,
         borderRadius: size > 28 ? 10 : 8,
-        background: `linear-gradient(135deg, ${bg}, ${bg}cc)`,
+        background: 'transparent',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontSize: size * 0.35,
-        fontWeight: 700,
-        color: provider === 'huggingface' ? '#1A1A1A' : '#FFFFFF',
         flexShrink: 0,
-        letterSpacing: '-0.02em',
+        overflow: 'hidden',
       }}
       title={label}
       aria-label={`${label} avatar`}
     >
-      {letter}
+      <img
+        src={icon}
+        alt=""
+        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+        onError={(event) => {
+          event.currentTarget.style.display = 'none';
+        }}
+      />
     </div>
   );
 }

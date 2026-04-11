@@ -30,7 +30,7 @@ export default function ModelPicker({
   return (
     <section className="surface-card" style={{ padding: '1rem', borderColor: accent ? `color-mix(in oklab, ${accent} 40%, var(--border))` : undefined }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '0.75rem' }}>
-        <ModelAvatar provider={activeModel.provider} label={activeModel.label} size={32} />
+        <ModelAvatar icon={activeModel.icon} label={activeModel.label} size={32} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>{title}</p>
           <p style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: '1px' }}>{activeModel.label} · {activeModel.provider === 'huggingface' ? 'Hugging Face' : activeModel.provider === 'nvidia' ? 'NVIDIA' : 'Groq'}</p>

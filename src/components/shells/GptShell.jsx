@@ -28,7 +28,7 @@ export default function GptShell({
       <aside className={`app-sidebar gpt-sidebar scrollbar-thin ${sidebarOpen ? 'sidebar-open sidebar-expanded' : 'sidebar-collapsed'}`}>
         <div className="gpt-sidebar-top">
           <Link to="/" className="gpt-wordmark">
-            <span className="gpt-logo-mark" aria-hidden="true" />
+            <img src="/icons/openai-color.svg" alt="" className="gpt-logo-image" aria-hidden="true" />
             <span className="gpt-wordmark-text gpt-collapse-hide">ChatGPT</span>
           </Link>
         </div>

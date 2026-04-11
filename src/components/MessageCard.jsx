@@ -31,11 +31,10 @@ export default function MessageCard({ message, onRetry, readOnly = false }) {
   const color = isLeft ? 'var(--ai1)' : 'var(--ai2)';
   const modelMeta = MODEL_BY_ID[message.model];
   const displayName = modelMeta?.label || message.model;
+  const modelIcon = modelMeta?.icon || '';
   const hasError = message.status === 'error';
   const isInterrupted = message.status === 'interrupted';
   const showAvatar = !isClaude || message.side === 'ai1' || message.side === 'ai2';
-  const themeAvatarInitial = (displayName || message.persona || '?').charAt(0).toUpperCase();
-  const claudeAvatarInitial = (displayName || message.persona || '?').charAt(0).toUpperCase();
 
   return (
     <motion.article
@@ -50,11 +49,25 @@ export default function MessageCard({ message, onRetry, readOnly = false }) {
           {showAvatar && (!isClaude || message.side === 'ai1') && (
             isClaude ? (
               <div className="claude-ai-avatar" aria-label={`${displayName} avatar`}>
-                {claudeAvatarInitial}
+                <img
+                  src={modelIcon}
+                  alt=""
+                  className="chat-msg-avatar-image"
+                  onError={(event) => {
+                    event.currentTarget.style.display = 'none';
+                  }}
+                />
               </div>
             ) : (
               <div className={`chat-msg-avatar chat-msg-avatar--${message.side}`} aria-label={`${displayName} avatar`}>
-                {themeAvatarInitial}
+                <img
+                  src={modelIcon}
+                  alt=""
+                  className="chat-msg-avatar-image"
+                  onError={(event) => {
+                    event.currentTarget.style.display = 'none';
+                  }}
+                />
               </div>
             )
           )}
@@ -77,7 +90,14 @@ export default function MessageCard({ message, onRetry, readOnly = false }) {
           </div>
           {showAvatar && isClaude && message.side === 'ai2' && (
             <div className="claude-ai-avatar" aria-label={`${displayName} avatar`}>
-              {claudeAvatarInitial}
+              <img
+                src={modelIcon}
+                alt=""
+                className="chat-msg-avatar-image"
+                onError={(event) => {
+                  event.currentTarget.style.display = 'none';
+                }}
+              />
             </div>
           )}
         </div>

@@ -7,7 +7,7 @@ export const MODEL_OPTIONS = [
     model: 'llama-3.3-70b-versatile',
     label: 'Llama 3.3 70B',
     flavor: 'Groq • Fast Reasoning • Flagship',
-    icon: '/icons/llama.svg',
+    icon: '/icons/meta-color.svg',
   },
   {
     id: 'groq-llama-4-scout-17b',
@@ -15,7 +15,7 @@ export const MODEL_OPTIONS = [
     model: 'meta-llama/llama-4-scout-17b-16e-instruct',
     label: 'Llama 4 Scout 17B',
     flavor: 'Groq • Latest Llama Family • Balanced',
-    icon: '/icons/llama.svg',
+    icon: '/icons/meta-color.svg',
   },
   {
     id: 'groq-qwen3-32b',
@@ -23,7 +23,7 @@ export const MODEL_OPTIONS = [
     model: 'qwen/qwen3-32b',
     label: 'Qwen3 32B',
     flavor: 'Groq • Strong Reasoning • Math/Code',
-    icon: '/icons/llama.svg',
+    icon: '/icons/qwen-color.svg',
   },
   {
     id: 'groq-kimi-k2',
@@ -31,7 +31,7 @@ export const MODEL_OPTIONS = [
     model: 'moonshotai/kimi-k2-instruct',
     label: 'Kimi K2 Instruct (Groq)',
     flavor: 'Groq • Long Context • Analytical',
-    icon: '/icons/mixtral.svg',
+    icon: '/icons/kimi-color.svg',
   },
   {
     id: 'groq-gpt-oss-20b',
@@ -39,7 +39,7 @@ export const MODEL_OPTIONS = [
     model: 'openai/gpt-oss-20b',
     label: 'GPT-OSS 20B',
     flavor: 'Groq • Open Weight • Balanced',
-    icon: '/icons/llama.svg',
+    icon: '/icons/openai-color.svg',
   },
   {
     id: 'hf-gemma-3-12b',
@@ -47,7 +47,7 @@ export const MODEL_OPTIONS = [
     model: 'google/gemma-3-12b-it',
     label: 'Gemma 3 12B',
     flavor: 'Hugging Face • Fallback Eligible • Modern Instruct',
-    icon: '/icons/gemma.svg',
+    icon: '/icons/gemma-color.svg',
   },
   {
     id: 'hf-mistral-7b',
@@ -55,7 +55,7 @@ export const MODEL_OPTIONS = [
     model: 'mistral-community/Mistral-7B-Instruct-v0.2',
     label: 'Mistral 7B',
     flavor: 'Hugging Face • Fallback Eligible • Instruct',
-    icon: '/icons/mixtral.svg',
+    icon: '/icons/mistral-color.svg',
   },
   {
     id: 'hf-deepseek-r1',
@@ -63,7 +63,7 @@ export const MODEL_OPTIONS = [
     model: 'deepseek-ai/DeepSeek-R1',
     label: 'DeepSeek R1',
     flavor: 'Hugging Face Router • Reasoning • Optional endpoint override',
-    icon: '/icons/llama.svg',
+    icon: '/icons/deepseek-color.svg',
   },
   {
     id: 'nvidia-gemma-7b',
@@ -71,7 +71,7 @@ export const MODEL_OPTIONS = [
     model: 'google/gemma-7b',
     label: 'Gemma 7B',
     flavor: 'NVIDIA • Single API Key • Gemma',
-    icon: '/icons/gemma.svg',
+    icon: '/icons/gemma-color.svg',
   },
   {
     id: 'nvidia-glm-4.7',
@@ -79,7 +79,7 @@ export const MODEL_OPTIONS = [
     model: 'z-ai/glm4.7',
     label: 'GLM 4.7',
     flavor: 'NVIDIA • Single API Key • GLM',
-    icon: '/icons/llama.svg',
+    icon: '/icons/glmv-color.svg',
   },
   {
     id: 'nvidia-kimi-k2',
@@ -87,7 +87,7 @@ export const MODEL_OPTIONS = [
     model: 'moonshotai/kimi-k2-instruct@nvidia',
     label: 'Kimi K2 Instruct (NVIDIA)',
     flavor: 'NVIDIA • Single API Key • Kimi K2',
-    icon: '/icons/mixtral.svg',
+    icon: '/icons/kimi-color.svg',
   },
   {
     id: 'nvidia-mistral-large-3-675b',
@@ -95,7 +95,7 @@ export const MODEL_OPTIONS = [
     model: 'mistralai/mistral-large-3-675b-instruct-2512',
     label: 'Mistral Large 3 675B',
     flavor: 'NVIDIA • Single API Key • Mistral Large',
-    icon: '/icons/mixtral.svg',
+    icon: '/icons/mistral-color.svg',
   },
 ];
 
