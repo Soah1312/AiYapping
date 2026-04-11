@@ -64,24 +64,6 @@ export default function GptShell({
           {sidebarOpen && (savedChats || []).length === 0 && (
             <p className="gpt-empty-recents">You haven't seen them yap yet</p>
           )}
-
-          <div className="gpt-divider gpt-collapse-hide" />
-
-          <p className="sidebar-section-label gpt-collapse-hide quick-prompts-label">Quick prompts</p>
-          <div className="quick-prompts-section">
-            {(sidebarChats || []).map((chat) => (
-            <button
-              key={chat.id}
-              className={`sidebar-item ${activeChatId === chat.id ? 'active' : ''}`}
-              onClick={() => {
-                onSelectChat?.(chat);
-                setSidebarOpen(false);
-              }}
-            >
-              <span className="sidebar-item-title block truncate">{chat.title}</span>
-            </button>
-          ))}
-          </div>
         </div>
 
         <div className="gpt-sidebar-bottom">

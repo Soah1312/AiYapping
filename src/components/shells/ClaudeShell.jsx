@@ -89,25 +89,9 @@ export default function ClaudeShell({
 
         <div className="claude-divider" />
 
-        <p className="sidebar-section-label claude-collapse-hide prompt-starters-label">Prompt Starters</p>
-        <div className="flex flex-col gap-0.5 flex-1 overflow-y-auto scrollbar-thin claude-recents-wrap prompt-starters-section">
-          {(sidebarChats || []).map((chat) => (
-            <button
-              key={chat.id}
-              className={`claude-nav-item ${activeChatId === chat.id ? 'active' : ''}`}
-              onClick={() => {
-                onSelectChat?.(chat);
-                setMobileSidebarOpen(false);
-              }}
-            >
-              <span className="claude-collapse-hide sidebar-item-title">{chat.title}</span>
-            </button>
-          ))}
+        <p className="sidebar-section-label claude-collapse-hide" style={{ marginTop: 0 }}>Recents</p>
 
-          <div className="claude-divider" />
-
-          <p className="sidebar-section-label claude-collapse-hide" style={{ marginTop: 0 }}>Recents</p>
-
+        <div className="flex flex-col gap-0.5 flex-1 overflow-y-auto scrollbar-thin claude-recents-wrap">
           {(savedChats || []).map((chat) => (
             <div
               key={chat.id}

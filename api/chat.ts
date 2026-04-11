@@ -13,7 +13,7 @@ export const config = {
 };
 
 type ChatRequestBody = {
-  provider?: 'groq' | 'huggingface' | 'nvidia' | string;
+  provider?: 'groq' | 'huggingface' | 'nvidia' | 'openrouter' | string;
   model?: string;
   modelId?: string;
   messages: Array<{ role: string; content: string }>;
@@ -190,6 +190,10 @@ function resolveNvidiaApiKeys() {
   return resolveApiKeysByPrefix('NVIDIA_KEY_', 'NVIDIA_API_KEY');
 }
 
+function resolveOpenRouterApiKeys() {
+  return resolveApiKeysByPrefix('OPENROUTER_KEY_', 'OPENROUTER_API_KEY');
+}
+
 function resolveDeepSeekR1Config(modelId: string): HfDeepSeekConfig | null {
   const normalized = String(modelId || '').trim().toLowerCase();
   const isDeepSeekR1 =
@@ -240,7 +244,7 @@ const GROQ_MODEL_MATCHERS = [
 ];
 
 function resolveProvider(provider: string | undefined, modelId: string) {
-  if (provider === 'groq' || provider === 'huggingface' || provider === 'nvidia') {
+  if (provider === 'groq' || provider === 'huggingface' || provider === 'nvidia' || provider === 'openrouter') {
     return provider;
   }
 
@@ -1051,6 +1055,188 @@ function normalizeMessages(messages: Array<{ role: string; content: string }>) {
   });
 }
 
+async function createOpenRouterStreamResponse({
+  modelId,
+  messages,
+  sessionId,
+  admission,
+}: {
+  modelId: string;
+  messages: Array<{ role: string; content: string }>;
+  sessionId: string;
+  admission?: AdmissionContext;
+}) {
+  const normalizedMessages = normalizeMessages(messages);
+  const openrouterKeys = shuffleInPlace(resolveOpenRouterApiKeys());
+
+  if (openrouterKeys.length === 0) {
+    return Response.json(
+      {
+        error: 'Missing OpenRouter API keys. Set OPENROUTER_KEY_1 (and optional OPENROUTER_KEY_2, OPENROUTER_KEY_3...) in environment variables.',
+      },
+      { status: 500 },
+    );
+  }
+
+  let upstream: Response | null = null;
+  let selectedKey = '';
+  let rateLimitedCount = 0;
+  let lastErrorText = '';
+
+  for (let index = 0; index < openrouterKeys.length; index += 1) {
+    const apiKey = openrouterKeys[index];
+    const candidate = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': typeof globalThis !== 'undefined' && 'location' in globalThis ? String(globalThis.location.origin) : 'https://aiyapping.com',
+      },
+      body: JSON.stringify({
+        model: modelId,
+        messages: normalizedMessages,
+        stream: true,
+        max_tokens: 500,
+      }),
+    });
+
+    upstream = candidate;
+
+    if (candidate.ok) {
+      selectedKey = apiKey;
+      break;
+    }
+
+    lastErrorText = await candidate.text();
+
+    if (candidate.status === 429) {
+      rateLimitedCount += 1;
+      console.warn(`[api/chat] OpenRouter key ${keyLabel(apiKey, index)} rate-limited, rotating...`);
+      continue;
+    }
+
+    if (candidate.status === 400 || candidate.status >= 500) {
+      break;
+    }
+
+    break;
+  }
+
+  if (!upstream) {
+    return Response.json({ error: 'OpenRouter request failed before reaching upstream.' }, { status: 500 });
+  }
+
+  if (!upstream.ok) {
+    if (upstream.status === 429 && rateLimitedCount === openrouterKeys.length) {
+      return Response.json(
+        {
+          error: 'All AI engines are currently yapping too hard. Please try again in 60s.',
+          reason: 'all_keys_rate_limited',
+          retryAfter: 60,
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': '60',
+          },
+        },
+      );
+    }
+
+    const errorText = lastErrorText || (await upstream.text());
+    return Response.json({ error: `OpenRouter error ${upstream.status}: ${errorText}` }, { status: upstream.status });
+  }
+
+  if (!upstream.body) {
+    return Response.json({ error: 'OpenRouter stream body is empty.' }, { status: 500 });
+  }
+
+  const upstreamBody = upstream.body;
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      const write = (payload: Record<string, unknown>) => {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+      };
+
+      try {
+        const reader = upstreamBody.getReader();
+        let buffer = '';
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) {
+            break;
+          }
+
+          buffer += decoder.decode(value, { stream: true });
+          const blocks = buffer.split('\n\n');
+          buffer = blocks.pop() || '';
+
+          for (const block of blocks) {
+            const lines = block.split('\n').map((line) => line.trim());
+            const dataLine = lines.find((line) => line.startsWith('data:'));
+
+            if (!dataLine) {
+              continue;
+            }
+
+            const raw = dataLine.slice(5).trim();
+            if (!raw || raw === '[DONE]') {
+              continue;
+            }
+
+            let payload: Record<string, unknown>;
+            try {
+              payload = JSON.parse(raw) as Record<string, unknown>;
+            } catch {
+              write({ delta: raw });
+              continue;
+            }
+
+            if (payload.error) {
+              throw new Error(String(payload.error));
+            }
+
+            const delta = extractGroqDelta(payload);
+            if (delta) {
+              write({ delta });
+            }
+          }
+        }
+
+        await incrementUsage(sessionId);
+        if (admission) {
+          await markConversationTurnComplete({
+            conversationKey: admission.conversationKey,
+            sessionId: admission.sessionId,
+            maxTurns: admission.maxTurns,
+          });
+        }
+        controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+      } catch (error) {
+        write({
+          error: String((error as Error)?.message || 'OpenRouter stream failed'),
+          key: selectedKey ? keyLabel(selectedKey, openrouterKeys.indexOf(selectedKey)) : undefined,
+        });
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache, no-transform',
+      Connection: 'keep-alive',
+    },
+  });
+}
+
 async function performProviderRequestWithAdmission({
   invoke,
   admission,
@@ -1176,7 +1362,7 @@ export default async function handler(request: Request): Promise<Response> {
     }
 
     const providerStage =
-      provider === 'huggingface' ? 'huggingface-stream' : provider === 'nvidia' ? 'nvidia-stream' : 'groq-stream';
+      provider === 'huggingface' ? 'huggingface-stream' : provider === 'nvidia' ? 'nvidia-stream' : provider === 'openrouter' ? 'openrouter-stream' : 'groq-stream';
 
     const invokeProvider = () => {
       if (provider === 'huggingface') {
@@ -1192,6 +1378,16 @@ export default async function handler(request: Request): Promise<Response> {
       if (provider === 'nvidia') {
         stage = providerStage;
         return createNvidiaStreamResponse({
+          modelId,
+          messages: body.messages,
+          sessionId: body.sessionId,
+          admission: admissionContext,
+        });
+      }
+
+      if (provider === 'openrouter') {
+        stage = providerStage;
+        return createOpenRouterStreamResponse({
           modelId,
           messages: body.messages,
           sessionId: body.sessionId,

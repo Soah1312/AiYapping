@@ -52,7 +52,7 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
         </p>
 
         {/* Suggestion chips */}
-        <div className="suggestion-chips suggestion-chips-mobile-only">
+        <div className="suggestion-chips">
           {SUGGESTION_TOPICS.map((topic) => (
             <button
               key={topic.id}

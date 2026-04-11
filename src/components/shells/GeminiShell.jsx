@@ -94,22 +94,6 @@ export default function GeminiShell({
           {sidebarOpen && (savedChats || []).length === 0 && (
             <p className="gemini-empty-recents">You haven't seen them yap yet</p>
           )}
-
-          <p className="gemini-section-label gemini-collapse-hide quick-prompts-label">Quick prompts</p>
-          <div className="quick-prompts-section">
-            {(sidebarChats || []).map((chat) => (
-            <button
-              key={chat.id}
-              className={`gemini-nav-item ${activeChatId === chat.id ? 'active' : ''}`}
-              onClick={() => {
-                onSelectChat?.(chat);
-                setMobileSidebarOpen(false);
-              }}
-            >
-              <span className="gemini-collapse-hide sidebar-item-title truncate">{chat.title}</span>
-            </button>
-          ))}
-          </div>
         </div>
       </aside>
 

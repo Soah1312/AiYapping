@@ -42,14 +42,6 @@ export const MODEL_OPTIONS = [
     icon: '/icons/openai-color.svg',
   },
   {
-    id: 'hf-gemma-3-12b',
-    provider: 'huggingface',
-    model: 'google/gemma-3-12b-it',
-    label: 'Gemma 3 12B',
-    flavor: 'Hugging Face • Fallback Eligible • Modern Instruct',
-    icon: '/icons/gemma-color.svg',
-  },
-  {
     id: 'hf-mistral-7b',
     provider: 'huggingface',
     model: 'mistral-community/Mistral-7B-Instruct-v0.2',
@@ -64,14 +56,6 @@ export const MODEL_OPTIONS = [
     label: 'DeepSeek R1',
     flavor: 'Hugging Face Router • Reasoning • Optional endpoint override',
     icon: '/icons/deepseek-color.svg',
-  },
-  {
-    id: 'nvidia-gemma-7b',
-    provider: 'nvidia',
-    model: 'google/gemma-7b',
-    label: 'Gemma 7B',
-    flavor: 'NVIDIA • Single API Key • Gemma',
-    icon: '/icons/gemma-color.svg',
   },
   {
     id: 'nvidia-glm-4.7',
@@ -97,6 +81,14 @@ export const MODEL_OPTIONS = [
     flavor: 'NVIDIA • Single API Key • Mistral Large',
     icon: '/icons/mistral-color.svg',
   },
+  {
+    id: 'openrouter-gemma-4',
+    provider: 'openrouter',
+    model: 'google/gemma-4-9b-it',
+    label: 'Gemma 4 9B',
+    flavor: 'OpenRouter • Fast & Efficient • Gemma',
+    icon: '/icons/gemma-color.svg',
+  },
 ];
 
 export const MODEL_BY_ID = MODEL_OPTIONS.reduce((acc, model) => {
@@ -106,8 +98,8 @@ export const MODEL_BY_ID = MODEL_OPTIONS.reduce((acc, model) => {
 }, {});
 
 // Backward compatibility for previously persisted model ids/tokens.
-MODEL_BY_ID['hf-gemma-2-9b'] = MODEL_BY_ID['hf-gemma-3-12b'];
-MODEL_BY_ID['google/gemma-2-9b-it'] = MODEL_BY_ID['hf-gemma-3-12b'];
+MODEL_BY_ID['hf-gemma-2-9b'] = MODEL_BY_ID['openrouter-gemma-4'];
+MODEL_BY_ID['google/gemma-2-9b-it'] = MODEL_BY_ID['openrouter-gemma-4'];
 MODEL_BY_ID['hf-space-deepseek-r1'] = MODEL_BY_ID['hf-deepseek-r1'];
 MODEL_BY_ID['hf-space:deepseek-r1'] = MODEL_BY_ID['hf-deepseek-r1'];
 
