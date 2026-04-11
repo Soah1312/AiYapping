@@ -10,14 +10,6 @@ export const MODEL_OPTIONS = [
     icon: '/icons/llama.svg',
   },
   {
-    id: 'groq-llama-3.1-8b',
-    provider: 'groq',
-    model: 'llama-3.1-8b-instant',
-    label: 'Llama 3.1 8B',
-    flavor: 'Groq • Ultra Fast • Low Latency',
-    icon: '/icons/llama.svg',
-  },
-  {
     id: 'groq-llama-4-scout-17b',
     provider: 'groq',
     model: 'meta-llama/llama-4-scout-17b-16e-instruct',
@@ -50,11 +42,11 @@ export const MODEL_OPTIONS = [
     icon: '/icons/llama.svg',
   },
   {
-    id: 'hf-gemma-2-9b',
+    id: 'hf-gemma-3-12b',
     provider: 'huggingface',
-    model: 'google/gemma-2-9b-it',
-    label: 'Gemma 2 9B',
-    flavor: 'Hugging Face • Fallback Eligible • Chat',
+    model: 'google/gemma-3-12b-it',
+    label: 'Gemma 3 12B',
+    flavor: 'Hugging Face • Fallback Eligible • Modern Instruct',
     icon: '/icons/gemma.svg',
   },
   {
@@ -66,12 +58,12 @@ export const MODEL_OPTIONS = [
     icon: '/icons/mixtral.svg',
   },
   {
-    id: 'hf-arch-router-1.5b',
+    id: 'hf-deepseek-r1',
     provider: 'huggingface',
-    model: 'katanemo/Arch-Router-1.5B',
-    label: 'Arch-Router 1.5B',
-    flavor: 'Hugging Face • Reliable HF Inference • Chat',
-    icon: '/icons/gemma.svg',
+    model: 'deepseek-ai/DeepSeek-R1',
+    label: 'DeepSeek R1',
+    flavor: 'Hugging Face Router • Reasoning • Optional endpoint override',
+    icon: '/icons/llama.svg',
   },
   {
     id: 'nvidia-gemma-7b',
@@ -87,14 +79,6 @@ export const MODEL_OPTIONS = [
     model: 'z-ai/glm4.7',
     label: 'GLM 4.7',
     flavor: 'NVIDIA • Single API Key • GLM',
-    icon: '/icons/llama.svg',
-  },
-  {
-    id: 'nvidia-deepseek-v3.2',
-    provider: 'nvidia',
-    model: 'deepseek-ai/deepseek-v3.2',
-    label: 'DeepSeek V3.2',
-    flavor: 'NVIDIA • Single API Key • DeepSeek',
     icon: '/icons/llama.svg',
   },
   {
@@ -121,9 +105,15 @@ export const MODEL_BY_ID = MODEL_OPTIONS.reduce((acc, model) => {
   return acc;
 }, {});
 
+// Backward compatibility for previously persisted model ids/tokens.
+MODEL_BY_ID['hf-gemma-2-9b'] = MODEL_BY_ID['hf-gemma-3-12b'];
+MODEL_BY_ID['google/gemma-2-9b-it'] = MODEL_BY_ID['hf-gemma-3-12b'];
+MODEL_BY_ID['hf-space-deepseek-r1'] = MODEL_BY_ID['hf-deepseek-r1'];
+MODEL_BY_ID['hf-space:deepseek-r1'] = MODEL_BY_ID['hf-deepseek-r1'];
+
 export const DEFAULT_SETUP = {
   ai1Model: 'groq-llama-3.3-70b',
-  ai2Model: 'groq-llama-3.1-8b',
+  ai2Model: 'groq-llama-4-scout-17b',
   persona1: '',
   persona2: '',
   openingSeed1: '',

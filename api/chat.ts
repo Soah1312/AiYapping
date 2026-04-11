@@ -36,6 +36,12 @@ type AdmissionContext = {
 const ACTIVE_PRIORITY_RETRY_TIMEOUT_MS = 5 * 60 * 1000;
 const ACTIVE_PRIORITY_RETRY_DELAY_MS = 8000;
 const ADMISSION_MAX_TURNS_FALLBACK = 20;
+const HF_CHAT_COMPLETIONS_URL = 'https://router.huggingface.co/v1/chat/completions';
+
+type HfDeepSeekConfig = {
+  endpointUrl: string;
+  model: string;
+};
 
 function wait(ms: number) {
   return new Promise((resolve) => {
@@ -184,6 +190,25 @@ function resolveNvidiaApiKeys() {
   return resolveApiKeysByPrefix('NVIDIA_KEY_', 'NVIDIA_API_KEY');
 }
 
+function resolveDeepSeekR1Config(modelId: string): HfDeepSeekConfig | null {
+  const normalized = String(modelId || '').trim().toLowerCase();
+  const isDeepSeekR1 =
+    normalized === 'deepseek-ai/deepseek-r1'
+    || normalized === 'hf-space:deepseek-r1';
+
+  if (!isDeepSeekR1) {
+    return null;
+  }
+
+  const endpointRaw = String(process.env.HUGGINGFACE_SPACE_DEEPSEEK_R1_URL || '').trim();
+  const modelRaw = String(process.env.HUGGINGFACE_SPACE_DEEPSEEK_R1_MODEL || 'deepseek-ai/DeepSeek-R1').trim();
+
+  return {
+    endpointUrl: endpointRaw || HF_CHAT_COMPLETIONS_URL,
+    model: modelRaw,
+  };
+}
+
 function shuffleInPlace<T>(values: T[]) {
   const next = [...values];
   for (let i = next.length - 1; i > 0; i -= 1) {
@@ -200,7 +225,6 @@ function keyLabel(apiKey: string, index: number) {
 }
 
 const NVIDIA_MODEL_MATCHERS = [
-  /^deepseek-ai\//i,
   /^z-ai\//i,
   /^google\/gemma-7b$/i,
   /^mistralai\/mistral-large-3-675b-instruct-2512$/i,
@@ -209,7 +233,6 @@ const NVIDIA_MODEL_MATCHERS = [
 
 const GROQ_MODEL_MATCHERS = [
   /^llama-3\.3-70b-versatile$/i,
-  /^llama-3\.1-8b-instant$/i,
   /^meta-llama\/llama-4-scout-17b-16e-instruct$/i,
   /^qwen\/qwen3-32b$/i,
   /^moonshotai\/kimi-k2-instruct$/i,
@@ -605,13 +628,20 @@ async function createHuggingFaceStreamResponse({
     content: typeof message.content === 'string' ? message.content : String(message.content || ''),
   }));
 
-  const HF_SAFE_FALLBACK_MODEL = 'katanemo/Arch-Router-1.5B:hf-inference';
-  const explicitModel = modelId;
-  const hfInferenceVariant = modelId.includes(':') ? modelId : `${modelId}:hf-inference`;
-  const plainVariant = modelId.replace(/:hf-inference$/, '');
-  const modelCandidates = [explicitModel, plainVariant, hfInferenceVariant, HF_SAFE_FALLBACK_MODEL].filter(
-    (candidate, index, arr) => candidate && arr.indexOf(candidate) === index,
-  );
+  const deepSeekConfig = resolveDeepSeekR1Config(modelId);
+  const hfEndpoint = deepSeekConfig?.endpointUrl || HF_CHAT_COMPLETIONS_URL;
+
+  const HF_SAFE_FALLBACK_MODEL = 'mistral-community/Mistral-7B-Instruct-v0.2:hf-inference';
+  const modelCandidates = deepSeekConfig
+    ? [deepSeekConfig.model]
+    : (() => {
+      const explicitModel = modelId;
+      const hfInferenceVariant = modelId.includes(':') ? modelId : `${modelId}:hf-inference`;
+      const plainVariant = modelId.replace(/:hf-inference$/, '');
+      return [explicitModel, plainVariant, hfInferenceVariant, HF_SAFE_FALLBACK_MODEL].filter(
+        (candidate, index, arr) => candidate && arr.indexOf(candidate) === index,
+      );
+    })();
 
   let upstream: Response | null = null;
   let upstreamModel = modelCandidates[0];
@@ -623,7 +653,7 @@ async function createHuggingFaceStreamResponse({
     const apiKey = hfKeys[keyIndex];
 
     for (const candidateModel of modelCandidates) {
-      const candidateResponse = await fetch('https://router.huggingface.co/v1/chat/completions', {
+      const candidateResponse = await fetch(hfEndpoint, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${apiKey}`,

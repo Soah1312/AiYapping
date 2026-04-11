@@ -99,6 +99,14 @@ export default defineConfig(({ mode }) => {
     process.env.HUGGINGFACE_API_KEY = env.HUGGINGFACE_API_KEY;
   }
 
+  if (env.HUGGINGFACE_SPACE_DEEPSEEK_R1_URL && !process.env.HUGGINGFACE_SPACE_DEEPSEEK_R1_URL) {
+    process.env.HUGGINGFACE_SPACE_DEEPSEEK_R1_URL = env.HUGGINGFACE_SPACE_DEEPSEEK_R1_URL;
+  }
+
+  if (env.HUGGINGFACE_SPACE_DEEPSEEK_R1_MODEL && !process.env.HUGGINGFACE_SPACE_DEEPSEEK_R1_MODEL) {
+    process.env.HUGGINGFACE_SPACE_DEEPSEEK_R1_MODEL = env.HUGGINGFACE_SPACE_DEEPSEEK_R1_MODEL;
+  }
+
   for (const [key, value] of Object.entries(env)) {
     if (!key.startsWith('NVIDIA_KEY_')) {
       continue;

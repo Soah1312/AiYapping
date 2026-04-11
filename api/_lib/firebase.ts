@@ -167,6 +167,29 @@ function computeAdmission({
 
   const isCurrentActive = isActiveRecord(current, nowMs);
   if (isCurrentActive && current && current.conversationKey !== conversationKey) {
+    if (current.ownerSessionId === sessionId) {
+      const takeover: ActiveConversationRecord = {
+        ...current,
+        conversationKey,
+        maxTurns: normalizedMaxTurns,
+        turnsCompleted: Math.max(0, Math.min(normalizedMaxTurns, safeTurnNumber - 1)),
+        status: 'active',
+        startedAt: nowIso(),
+        lastTurnAt: nowIso(),
+        lockExpiresAt: createLeaseExpiryIso(nowMs),
+        updatedAt: nowIso(),
+        failedReason: null,
+      };
+
+      return {
+        ok: true,
+        reason: 'admitted',
+        retryAfter: 0,
+        snapshot: takeover,
+        nextRecord: takeover,
+      };
+    }
+
     const lockExpiryMs = parseIsoMs(current.lockExpiresAt);
     const retryAfter = Math.max(1, Math.ceil((lockExpiryMs - nowMs) / 1000));
 

@@ -30,6 +30,8 @@ Watch two AI models debate, argue, and think live.
 - `GROQ_API_KEY`: optional backward-compatible fallback if no `GROQ_KEY_*` keys are set
 - `HUGGINGFACE_KEY_1`, `HUGGINGFACE_KEY_2`, ...: Hugging Face key pool (all `HUGGINGFACE_KEY_*` are auto-discovered and rotated per request)
 - `HUGGINGFACE_API_KEY`: optional backward-compatible fallback if no `HUGGINGFACE_KEY_*` keys are set
+- `HUGGINGFACE_SPACE_DEEPSEEK_R1_URL`: optional OpenAI-compatible endpoint override for `DeepSeek R1` (default path uses Hugging Face router)
+- `HUGGINGFACE_SPACE_DEEPSEEK_R1_MODEL`: optional model override when endpoint override is set (default `deepseek-ai/DeepSeek-R1`)
 - `NVIDIA_KEY_1`, `NVIDIA_KEY_2`, ...: NVIDIA key pool (all `NVIDIA_KEY_*` are auto-discovered and rotated per request)
 - `NVIDIA_API_KEY`: optional backward-compatible fallback if no `NVIDIA_KEY_*` keys are set
 - `VITE_FIREBASE_CONFIG`: Firebase client config JSON (frontend + API usage tracking)
