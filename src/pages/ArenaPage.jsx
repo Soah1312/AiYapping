@@ -317,7 +317,7 @@ export default function ArenaPage() {
               <span className="status-badge claude-chat-pill">{ai1Label} vs {ai2Label}</span>
               <span className="status-badge claude-chat-pill">Turns: {aiTurnCount}</span>
             </div>
-            {theme === 'claude' && status !== 'completed' && (
+            {theme === 'claude' && (
               <div className="claude-chat-header-right">
                 <ShareButton setup={setup} transcript={transcript} summary={summary} />
               </div>
@@ -336,7 +336,12 @@ export default function ArenaPage() {
                 <MessageCard key={msg.id} message={msg} />
               ))}
               {status === 'completed' && transcript.length > 0 && (
-                <p className="session-end-note">That's all the horsepower we can give you for free</p>
+                <>
+                  <p className="session-end-note">That's all the horsepower we can give you for free</p>
+                  <div style={{ display: 'flex', justifyContent: 'center', marginTop: '12px', marginBottom: '24px' }}>
+                    <ShareButton setup={setup} transcript={transcript} summary={summary} />
+                  </div>
+                </>
               )}
             </div>
           </div>

@@ -23,15 +23,11 @@ export default function SettingsPanel({ open, onClose }) {
     ai2PresetId,
     ai1Temperature,
     ai2Temperature,
-    ai1MaxTokens,
-    ai2MaxTokens,
     applyPresetToAI1,
     applyPresetToAI2,
     applyQuickPairing,
     setAI1Temperature,
-    setAI2Temperature,
-    setAI1MaxTokens,
-    setAI2MaxTokens
+    setAI2Temperature
   } = useSettingsStore();
 
   const handleQuickPairing = (pairing) => {
@@ -226,21 +222,7 @@ export default function SettingsPanel({ open, onClose }) {
               </div>
             </div>
 
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                Max Tokens <span style={{ float: 'right', color: 'var(--text-primary)' }}>[{ai1MaxTokens}]</span>
-              </label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>256</span>
-                <input 
-                  type="range" 
-                  min="256" max="4096" step="64" 
-                  value={ai1MaxTokens} 
-                  onChange={(e) => setAI1MaxTokens(Number(e.target.value))}
-                  style={{ flex: 1, accentColor: 'var(--accent)' }}
-                />
-              </div>
-            </div>
+
           </div>
 
           {/* AI-2 Section */}
@@ -294,21 +276,7 @@ export default function SettingsPanel({ open, onClose }) {
               </div>
             </div>
 
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                Max Tokens <span style={{ float: 'right', color: 'var(--text-primary)' }}>[{ai2MaxTokens}]</span>
-              </label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>256</span>
-                <input 
-                  type="range" 
-                  min="256" max="4096" step="64" 
-                  value={ai2MaxTokens} 
-                  onChange={(e) => setAI2MaxTokens(Number(e.target.value))}
-                  style={{ flex: 1, accentColor: 'var(--accent)' }}
-                />
-              </div>
-            </div>
+
           </div>
         </div>
 

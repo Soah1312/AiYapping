@@ -13,14 +13,12 @@ export const useSettingsStore = create(
       // AI-1
       ai1PresetId: 'theekHaiBoss',
       ai1Temperature: defaultPreset.temperature,
-      ai1MaxTokens: defaultPreset.max_tokens,
       ai1TopP: defaultPreset.top_p,
       ai1SystemPrompt: defaultPreset.systemPrompt,
 
       // AI-2
       ai2PresetId: 'theekHaiBoss',
       ai2Temperature: defaultPreset.temperature,
-      ai2MaxTokens: defaultPreset.max_tokens,
       ai2TopP: defaultPreset.top_p,
       ai2SystemPrompt: defaultPreset.systemPrompt,
 
@@ -33,7 +31,6 @@ export const useSettingsStore = create(
         set({
           ai1PresetId: presetId,
           ai1Temperature: preset.temperature,
-          ai1MaxTokens: preset.max_tokens,
           ai1TopP: preset.top_p,
           ai1SystemPrompt: preset.systemPrompt
         });
@@ -45,7 +42,6 @@ export const useSettingsStore = create(
         set({
           ai2PresetId: presetId,
           ai2Temperature: preset.temperature,
-          ai2MaxTokens: preset.max_tokens,
           ai2TopP: preset.top_p,
           ai2SystemPrompt: preset.systemPrompt
         });
@@ -58,12 +54,10 @@ export const useSettingsStore = create(
         set({
           ai1PresetId: pairing.ai1,
           ai1Temperature: preset1.temperature,
-          ai1MaxTokens: preset1.max_tokens,
           ai1TopP: preset1.top_p,
           ai1SystemPrompt: preset1.systemPrompt,
           ai2PresetId: pairing.ai2,
           ai2Temperature: preset2.temperature,
-          ai2MaxTokens: preset2.max_tokens,
           ai2TopP: preset2.top_p,
           ai2SystemPrompt: preset2.systemPrompt
         });
@@ -71,8 +65,6 @@ export const useSettingsStore = create(
 
       setAI1Temperature: (v) => set({ ai1Temperature: v, ai1PresetId: 'custom' }),
       setAI2Temperature: (v) => set({ ai2Temperature: v, ai2PresetId: 'custom' }),
-      setAI1MaxTokens: (v) => set({ ai1MaxTokens: v, ai1PresetId: 'custom' }),
-      setAI2MaxTokens: (v) => set({ ai2MaxTokens: v, ai2PresetId: 'custom' }),
     }),
     {
       name: 'ai-arena-settings'

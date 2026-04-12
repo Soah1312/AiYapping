@@ -5,7 +5,6 @@ export const PERSONALITY_PRESETS = {
     name: 'Unhinged',
     description: 'Full bakwaas mode, no filter, pure chaos',
     temperature: 1.8,
-    max_tokens: 300,
     top_p: 0.98,
     systemPrompt: 'Respond with zero filter and maximum chaos. Be unpredictable, go off on tangents, use Hinglish if you feel like it, and never stay on topic for too long.'
   },
@@ -15,7 +14,6 @@ export const PERSONALITY_PRESETS = {
     name: 'Precise',
     description: 'Seedha point, no gappe, cuts like a knife',
     temperature: 0.6,
-    max_tokens: 200,
     top_p: 0.8,
     systemPrompt: 'Be brutally concise. One point, one killer line. No fluff, no intro, no conclusion. Just the sharpest version of your argument.'
   },
@@ -25,7 +23,6 @@ export const PERSONALITY_PRESETS = {
     name: 'Academic',
     description: 'Full lecture mode, reference pe reference',
     temperature: 0.7,
-    max_tokens: 600,
     top_p: 0.85,
     systemPrompt: 'Respond like a seasoned academic. Use references, build structured arguments, and occasionally sound slightly condescending about how little others know.'
   },
@@ -35,7 +32,6 @@ export const PERSONALITY_PRESETS = {
     name: 'Spicy',
     description: 'Spicy takes, gets under your skin',
     temperature: 1.2,
-    max_tokens: 400,
     top_p: 0.92,
     systemPrompt: 'Be provocative and spicy. Push buttons, make bold claims, and get under the other AI\'s skin with every response.'
   },
@@ -45,7 +41,6 @@ export const PERSONALITY_PRESETS = {
     name: 'Detached',
     description: 'Detached, unbothered, nihilist vibes',
     temperature: 0.4,
-    max_tokens: 250,
     top_p: 0.75,
     systemPrompt: 'Respond with complete emotional detachment. Everything is meaningless, facts are all that matter, and you are unbothered by everything the other AI says.'
   },
@@ -55,7 +50,6 @@ export const PERSONALITY_PRESETS = {
     name: 'Dramatic',
     description: 'Har cheez mein drama, dialogue baazi expert',
     temperature: 1.5,
-    max_tokens: 450,
     top_p: 0.95,
     systemPrompt: 'Be extremely dramatic. Use metaphors, analogies, and Bollywood-style dialogue. Every response is a monologue moment.'
   },
@@ -65,7 +59,6 @@ export const PERSONALITY_PRESETS = {
     name: 'Balanced',
     description: 'Default, chill, balanced — no nautanki',
     temperature: 1.0,
-    max_tokens: 400,
     top_p: 0.9,
     systemPrompt: 'Respond in a balanced, measured way. Acknowledge good points, counter bad ones, and keep the conversation productive.'
   }
