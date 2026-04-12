@@ -64,16 +64,14 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
         <div style={{ display: 'flex', justifyContent: 'center', margin: '20px 0 8px' }}>
           <button
             type="button"
-            className={`chaos-toggle${chaosMode ? ' active' : ''}`}
+            className={`chaos-btn${chaosMode ? ' chaos-btn--on' : ''}`}
             onClick={() => setChaosMode(!chaosMode)}
+            aria-pressed={chaosMode}
           >
-            <div className="chaos-toggle-track">
-              <div className="chaos-toggle-knob" />
-            </div>
-            <span className="chaos-toggle-label">
-              {chaosMode ? 'CHAOS MODE' : 'Chaos Mode'}
+            <span className="chaos-btn-dot" aria-hidden="true" />
+            <span className="chaos-btn-text">
+              Chaos Mode
             </span>
-            <span className="chaos-toggle-flame">{chaosMode ? '🔥' : '💤'}</span>
           </button>
         </div>
 

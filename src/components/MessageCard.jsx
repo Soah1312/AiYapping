@@ -1,10 +1,11 @@
 import { motion } from 'framer-motion';
-import { AlertTriangle, RotateCcw } from 'lucide-react';
+import { AlertTriangle, RotateCcw, ChevronDown } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import TypingIndicator from './TypingIndicator';
 import { MODEL_BY_ID } from '../lib/modelConfig';
 import { useTheme } from '../context/ThemeContext';
+import { useState } from 'react';
 
 function inferIconPath(modelText) {
   const text = String(modelText || '').toLowerCase();
@@ -26,6 +27,9 @@ function inferIconPath(modelText) {
 export default function MessageCard({ message, onRetry, readOnly = false }) {
   const { theme } = useTheme();
   const isClaude = theme === 'claude';
+  const isGemini = theme === 'gemini';
+  const [showThinking, setShowThinking] = useState(false);
+  const hasThinking = message.thinking && /\S/.test(String(message.thinking));
 
   /* ── System / director note ── */
   if (message.role === 'system') {
@@ -130,6 +134,40 @@ export default function MessageCard({ message, onRetry, readOnly = false }) {
         </div>
 
       </div>
+
+      {/* Thinking section (Gemini) */}
+      {isGemini && hasThinking && (
+        <div className="msg-thinking-container">
+          <button
+            type="button"
+            className="msg-thinking-toggle"
+            onClick={() => setShowThinking(!showThinking)}
+            aria-expanded={showThinking}
+          >
+            <ChevronDown 
+              size={16} 
+              style={{
+                transform: showThinking ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 0.2s ease'
+              }}
+            />
+            <span>Show thinking</span>
+          </button>
+          {showThinking && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              className="msg-thinking-content"
+            >
+              <div className="msg-markdown text-sm" style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.thinking}</ReactMarkdown>
+              </div>
+            </motion.div>
+          )}
+        </div>
+      )}
 
       {/* Streaming indicator */}
       {message.status === 'streaming' && !message.content && (
