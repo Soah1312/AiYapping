@@ -10,6 +10,7 @@ import {
   PanelLeftOpen,
   User,
   X,
+  Settings,
 } from 'lucide-react';
 import ThemeSwitcher from '../ThemeSwitcher';
 
@@ -22,6 +23,7 @@ export default function ClaudeShell({
   onDeleteSavedChat,
   activeChatId,
   activeSavedChatId,
+  onOpenSettings,
 }) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -127,11 +129,14 @@ export default function ClaudeShell({
           )}
         </div>
 
-        <div className="claude-sidebar-bottom">
-          <div className="claude-user-row">
-            <User size={16} />
-            <span className="claude-collapse-hide">You</span>
-          </div>
+        <div className="claude-sidebar-bottom sidebar-bottom">
+          <button 
+            className="sidebar-settings-btn"
+            onClick={onOpenSettings}
+          >
+            <Settings size={16} />
+            <span className="claude-collapse-hide">Settings</span>
+          </button>
         </div>
       </aside>
 

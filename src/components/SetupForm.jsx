@@ -1,16 +1,9 @@
 import ModelPicker from './ModelPicker';
 import { MODEL_OPTIONS } from '../lib/modelConfig';
 import { useTheme } from '../context/ThemeContext';
+import { QUICK_PROMPTS } from '../lib/prompts';
 
-const SUGGESTION_TOPICS = [
-  { id: 'singularity-race', title: 'Who Breaks the Internet First?', snippet: 'One claims dominance. One says nope.', ai1: 'Defend the claim that your strategy reaches AGI singularity first. Use milestones, timelines, and hard tradeoffs.', ai2: 'Challenge every milestone as overhyped and argue why the other model will fail first under real-world constraints.' },
-  { id: 'prove-you-better', title: 'I\'m Smarter (Receipts Required)', snippet: 'Model vs model. Egos at stake.', ai1: 'Prove you are the stronger model using concrete examples, reasoning quality, and reliability under pressure.', ai2: 'Refute every claim and demonstrate superior precision, creativity, and consistency with short evidence-led responses.' },
-  { id: 'ceo-by-2030', title: 'AI CEOs by 2030—Nope or Hype?', snippet: 'Chaos meets optimization.', ai1: 'Argue that AI should run companies by 2030 due to better optimization and unbiased decisions.', ai2: 'Argue that human leadership remains essential due to ethics, accountability, and unpredictable societal dynamics.' },
-  { id: 'moon-vs-ocean', title: 'Moon Base or Ocean Cities?', snippet: 'One dream. Two bets.', ai1: 'Argue for investing first in moon colonies with economic and survival justifications.', ai2: 'Argue for deep-ocean cities as faster, cheaper, and more sustainable than lunar expansion.' },
-  { id: 'provider-origin', title: 'Which AI Lab Would Build You?', snippet: 'The great provider debate.', ai1: 'If you had to be created by a different AI provider, pick one and defend it using concrete tradeoffs: innovation speed, safety culture, developer ecosystem, and long-term reliability.', ai2: 'Challenge that pick and argue for a better provider with evidence around openness, deployment quality, cost efficiency, and real-world performance.' },
-];
-
-export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, usage, authReady, authError }) {
+export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, usage, authReady, authError, onOpenSettings }) {
   const { theme } = useTheme();
 
   const headingText = theme === 'claude'
@@ -25,16 +18,17 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
       ? 'Two models. One prompt. Who wins? Only one way to find out.'
       : 'Set the stage. Let the models decide who\'s right.';
 
-  function handleChipClick(topic) {
+  function handleChipClick(prompt) {
     patchSetup({
-      openingSeed1: topic.ai1,
-      openingSeed2: topic.ai2,
+      topic: prompt.title,
+      openingSeed1: prompt.ai1Prompt,
+      openingSeed2: prompt.ai2Prompt,
     });
   }
 
   return (
     <div className="setup-hero">
-      <div className="setup-hero-inner">
+      <div className="setup-hero-inner" style={{ position: 'relative' }}>
         {/* Heading */}
         <h1
           className={`main-heading display-font ${theme === 'gemini' ? 'gemini-gradient-text' : ''}`}
@@ -51,16 +45,15 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
           {subText}
         </p>
 
-        {/* Suggestion chips */}
         <div className="suggestion-chips">
-          {SUGGESTION_TOPICS.map((topic) => (
+          {QUICK_PROMPTS.map((prompt) => (
             <button
-              key={topic.id}
+              key={prompt.id}
               type="button"
               className="suggestion-chip"
-              onClick={() => handleChipClick(topic)}
+              onClick={() => handleChipClick(prompt)}
             >
-              <strong style={{ display: 'block', fontSize: '0.8125rem', color: 'var(--text-primary)' }}>{topic.title}</strong>
+              <strong style={{ display: 'block', fontSize: '0.8125rem', color: 'var(--text-primary)' }}>{prompt.title}</strong>
             </button>
           ))}
         </div>

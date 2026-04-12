@@ -172,11 +172,17 @@ export default function MeowPage() {
     setLoading(true);
     setError('');
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, 20000);
+
     try {
       const response = await fetch('/api/admin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password }),
+        signal: controller.signal,
       });
 
       let payload = null;
@@ -201,8 +207,13 @@ export default function MeowPage() {
       });
     } catch (nextError) {
       setStats(null);
-      setError(String(nextError?.message || 'Access denied'));
+      if (nextError?.name === 'AbortError') {
+        setError('Admin request timed out. Please try again.');
+      } else {
+        setError(String(nextError?.message || 'Access denied'));
+      }
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
     }
   }

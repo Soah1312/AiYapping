@@ -3,8 +3,8 @@ import { useConversationStore } from '../store/conversationStore';
 import { MODEL_BY_ID } from '../lib/modelConfig';
 import { buildTurnSystemPrompt, getPersonaLabel } from '../lib/prompts';
 import { useStream } from './useStream';
+import { useSettingsStore } from '../store/settingsStore';
 
-const PER_SIDE_LIMIT = 10;
 const MIN_TYPING_BUBBLE_MS = 420;
 const WORD_REVEAL_INTERVAL_MS = 55;
 const REVEAL_IDLE_POLL_MS = 20;
@@ -195,34 +195,6 @@ function buildContextMessages({ transcript, systemPrompt, speakerSide }) {
 
   return context;
 }
-
-function buildChatHistoryText(transcript) {
-  const relevant = transcript.filter((message) => message.role === 'system' || isAiMessage(message));
-  if (relevant.length === 0) {
-    return 'No prior turns.';
-  }
-
-  // Keep history bounded to avoid ballooning prompt size.
-  const recent = relevant.slice(-10);
-  const lines = recent.map((message) => {
-    if (message.role === 'system') {
-      const clean = stripThinkBlocks(message.content);
-      return clean ? `[Director] ${clean}` : '';
-    }
-
-    const speaker = message.side === 'ai1' ? 'AI-1' : 'AI-2';
-    const content = stripThinkBlocks(message.content);
-    if (!content) {
-      return '';
-    }
-
-    return `[${speaker}] ${content}`;
-  });
-
-  const compact = lines.filter(Boolean).join('\n');
-  return compact || 'No prior turns.';
-}
-
 export function useConversation() {
   const {
     sessionId,
@@ -242,6 +214,18 @@ export function useConversation() {
     setStreamError,
     setStreaming,
   } = useConversationStore();
+
+  const {
+    turns: PER_SIDE_LIMIT,
+    ai1Temperature,
+    ai2Temperature,
+    ai1MaxTokens,
+    ai2MaxTokens,
+    ai1TopP,
+    ai2TopP,
+    ai1SystemPrompt,
+    ai2SystemPrompt
+  } = useSettingsStore();
 
   const { streamModelResponse, isRequesting } = useStream();
   const runningTurnRef = useRef(false);
@@ -314,9 +298,8 @@ export function useConversation() {
 
       const sideTurnNumber = side === 'ai1' ? ai1TurnCount + 1 : ai2TurnCount + 1;
       const openingSeed = side === 'ai1' ? setup.openingSeed1 : setup.openingSeed2;
-      const chatHistoryText = buildChatHistoryText(transcript);
 
-      const prompt = buildTurnSystemPrompt({
+      const basePrompt = buildTurnSystemPrompt({
         mode: setup.mode,
         topic: setup.topic,
         speakerSide: side,
@@ -326,8 +309,10 @@ export function useConversation() {
         opponentPersona,
         openingSeed,
         turnNumber: sideTurnNumber,
-        chatHistoryText,
       });
+
+      const personalitySystemPrompt = side === 'ai1' ? ai1SystemPrompt : ai2SystemPrompt;
+      const prompt = personalitySystemPrompt.trim() ? `${basePrompt}\n\n${personalitySystemPrompt}` : basePrompt;
 
       const messageId = createMessageId();
       const message = {
@@ -412,11 +397,31 @@ export function useConversation() {
       void runRevealLoop();
 
       try {
-        const messages = buildContextMessages({
-          transcript,
+        const initialMessages = buildContextMessages({
+          transcript: transcript.slice(-10),
           systemPrompt: prompt,
           speakerSide: side,
         });
+
+        const totalChars = initialMessages.reduce((sum, m) => sum + m.content.length, 0);
+        const messages = totalChars > 12000 
+          ? buildContextMessages({ transcript: transcript.slice(-6), systemPrompt: prompt, speakerSide: side })
+          : initialMessages;
+
+        const isGroqOrOpenRouter = provider === 'groq' || provider === 'openrouter';
+        const activeParams = {
+          temperature: side === 'ai1' ? ai1Temperature : ai2Temperature,
+          max_tokens: side === 'ai1' ? ai1MaxTokens : ai2MaxTokens,
+          ...(isGroqOrOpenRouter && { top_p: side === 'ai1' ? ai1TopP : ai2TopP })
+        };
+
+        if (side === 'ai1') {
+          console.log('AI-1 params:', activeParams);
+          console.log('AI-1 system prompt:', prompt);
+        } else {
+          console.log('AI-2 params:', activeParams);
+          console.log('AI-2 system prompt:', prompt);
+        }
 
         await streamModelResponse({
           provider,
@@ -427,6 +432,9 @@ export function useConversation() {
           turnType,
           turnNumber,
           maxTurns: totalMaxTurns,
+          temperature: side === 'ai1' ? ai1Temperature : ai2Temperature,
+          max_tokens: side === 'ai1' ? ai1MaxTokens : ai2MaxTokens,
+          top_p: side === 'ai1' ? ai1TopP : ai2TopP,
           signal: controller.signal,
           onDelta: (delta) => {
             const cleanDelta = sanitizeThinkDelta(delta);

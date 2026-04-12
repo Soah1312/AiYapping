@@ -13,6 +13,8 @@ import DuelControls from '../components/DuelControls';
 import MessageCard from '../components/MessageCard';
 import ShareButton from '../components/ShareButton';
 import Toast from '../components/Toast';
+import SettingsPanel from '../components/SettingsPanel';
+import { Settings } from 'lucide-react';
 
 const SIDEBAR_CHAT_TOPICS = [
   { id: 'singularity-race', title: 'Who Triggers Singularity First?', snippet: 'One predicts the path, one tries to derail it.', ai1: 'Defend the claim that your strategy reaches AGI singularity first. Use milestones, timelines, and hard tradeoffs.', ai2: 'Challenge every milestone as overhyped and argue why the other model will fail first under real-world constraints.' },
@@ -30,6 +32,7 @@ export default function ArenaPage() {
   const [authReady, setAuthReady] = useState(false);
   const [authError, setAuthError] = useState('');
   const [starting, setStarting] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [toast, setToast] = useState({ message: '', type: 'info' });
   const previousStatusRef = useRef('idle');
   const titleRequestConversationRef = useRef('');
@@ -349,7 +352,36 @@ export default function ArenaPage() {
   const Shell = SHELLS[theme] || ClaudeShell;
 
   return (
-    <Shell
+    <>
+      <style>{`
+        .sidebar-settings-btn {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          width: 100%;
+          padding: 8px 12px;
+          border-radius: 8px;
+          background: transparent;
+          border: none;
+          color: var(--text-primary);
+          font-size: 0.875rem;
+          cursor: pointer;
+        }
+
+        .sidebar-settings-btn:hover {
+          background: var(--bg-hover);
+        }
+
+        .sidebar-bottom {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          padding: 12px;
+          border-top: 1px solid var(--border-color);
+        }
+      `}</style>
+      <Shell
       sidebarChats={SIDEBAR_CHAT_TOPICS}
       savedChats={savedChats}
       onSelectChat={handleSidebarSelect}
@@ -357,7 +389,9 @@ export default function ArenaPage() {
       onDeleteSavedChat={handleSavedChatDelete}
       activeChatId={activeSidebarChat?.id || ''}
       activeSavedChatId={activeSavedChatId || ''}
+      onOpenSettings={() => setSettingsOpen(true)}
     >
+      <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       {inSetup ? (
         <SetupForm
           setup={setup}
@@ -417,6 +451,7 @@ export default function ArenaPage() {
         type={toast.type}
         onClose={() => setToast({ message: '', type: 'info' })}
       />
-    </Shell>
+      </Shell>
+    </>
   );
 }
