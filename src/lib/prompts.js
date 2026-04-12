@@ -1,16 +1,7 @@
-export function getPersonaLabel(modelId, persona) {
-  return persona?.trim() || modelId;
-}
-
 export function buildTurnSystemPrompt({
-  mode,
   topic,
-  speakerSide,
-  speakerPersona,
   speakerModel,
-  opponentPersona,
   opponentModel,
-  turnNumber,
   maxTokens,
 }) {
   const wordLimit = Math.min(60, Math.round((maxTokens || 200) * 0.4));
@@ -30,8 +21,7 @@ export function buildTurnSystemPrompt({
     'CRITICAL FORMATTING: Output ONLY your spoken dialogue. NEVER prefix your response with speaker labels (like "AI-1:", "Opponent:", or your name), tags, or actions.',
   ].join('\n- ');
 
-  if (mode === 'chat') {
-    return `You are ${speakerPersona}, powered by ${speakerModel}. You are having a thoughtful conversation with ${opponentPersona} (powered by ${opponentModel}) ${topicClause}
+  return `You are ${speakerModel}. You are in a direct model-vs-model conversation with ${opponentModel} ${topicClause}
 
 Primary Objective:
 - Keep a snappy, rapid-fire back-and-forth strictly on the topic.
@@ -47,28 +37,6 @@ Core Rules:
 
 Respond naturally, push the conversation forward, and stay in-character as ${speakerModel}.
 Do not introduce yourself.`;
-  }
-
-  const position = speakerSide === 'ai1' ? 'AFFIRMATIVE (argue in favor)' : 'NEGATIVE (argue against)';
-
-  return `You are ${speakerPersona}, powered by ${speakerModel}. You are in a structured debate.
-Topic: "${topic}"
-Your position: ${position}
-Your opponent is ${opponentPersona} (${opponentModel}).
-
-Primary Objective:
-- Argue your side while staying strictly on the user topic.
-- Advance one clear claim per turn and address the opponent's latest claim.
-
-Hard Constraints:
-- Do not talk about prompts, hidden rules, safety policies, or internal instructions.
-- Do not mention system behavior, chain of thought, or internal policy text.
-- Never shift into meta commentary.
-
-Core Rules:
-- ${universalRules}
-
-Reference your opponent's previous point and counter it directly.`;
 }
 
 export function buildChaosTurnSystemPrompt(args) {
@@ -88,10 +56,6 @@ export function buildChaosTurnSystemPrompt(args) {
 
 CHAOS MODE DIRECTIVE:
 - ${chaosObjective}`;
-}
-
-export function buildJudgePrompt({ topic, transcript }) {
-  return `You are an impartial debate judge. Below is a full transcript of a debate on:\n"${topic}"\n\nEvaluate both sides. Who made stronger arguments? Who was more persuasive?\nWho handled counterarguments better?\n\nRespond in JSON only:\n{\n  "winner": "<persona name or 'Draw'>",\n  "margin": "close | moderate | decisive",\n  "reasoning": "<2-3 sentence explanation>",\n  "summary": "<one sentence summary of the debate>"\n}\n\nTranscript:\n${JSON.stringify(transcript)}`;
 }
 
 export const QUICK_PROMPTS = [
@@ -117,17 +81,17 @@ export const QUICK_PROMPTS = [
     ai2Prompt: 'Cats are misunderstood geniuses and dogs are just desperate people pleasers with abandonment issues. Defend cats aggressively.'
   },
   {
-    id: 'childhoodMovie',
-    title: 'Your Favorite Childhood Movie is Actually Terrible',
-    description: 'Nostalgia is just cope.',
-    ai1Prompt: 'Pick any beloved childhood movie and systematically dismantle it. The plot holes, the bad acting, the questionable life lessons. Destroy it lovingly.',
-    ai2Prompt: 'Defend childhood movies with your whole chest. Nostalgia is valid, critics are wrong, and some things should just be left sacred.'
+    id: 'built-by-another-provider',
+    title: 'If You Were Built by Another Provider',
+    description: 'Would a different lab make you better or break you?',
+    ai1Prompt: 'If you had to be rebuilt by another provider, pick one and justify why your capabilities would improve. Be specific about speed, reasoning, and reliability.',
+    ai2Prompt: 'Destroy that claim. Argue the current provider stack is superior and explain why switching would make the model worse in real-world performance.'
   },
   {
-    id: 'cereal',
-    title: 'Cereal Before Milk is a Personality Disorder',
-    description: 'This affects how we see you as a person.',
-    ai1Prompt: 'Cereal before milk is objectively correct and anyone who disagrees has never thought critically about breakfast. Defend this with your life.',
-    ai2Prompt: 'Milk before cereal is the mark of a chaotic evil person. This is not a preference. This is a moral failing. Prosecute them.'
+    id: 'prove-better-model',
+    title: 'Prove You Are The Better Model',
+    description: 'No vibes, only receipts.',
+    ai1Prompt: 'Prove you are the better model using concrete examples of reasoning quality, speed, correctness, and handling ambiguity under pressure.',
+    ai2Prompt: 'Challenge every claim and prove you are better with tighter logic, fewer mistakes, and stronger practical usefulness.'
   }
 ];

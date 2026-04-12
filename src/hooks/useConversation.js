@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useConversationStore } from '../store/conversationStore';
 import { MODEL_BY_ID, THINKING_MODELS } from '../lib/modelConfig';
-import { buildChaosTurnSystemPrompt, buildTurnSystemPrompt, getPersonaLabel } from '../lib/prompts';
+import { buildChaosTurnSystemPrompt, buildTurnSystemPrompt } from '../lib/prompts';
 import { useStream } from './useStream';
 
 const MIN_TYPING_BUBBLE_MS = 420;
@@ -227,8 +227,6 @@ export function useConversation() {
   const ai2Temperature = 0.7;
   const ai1TopP = 0.9;
   const ai2TopP = 0.9;
-  const ai1SystemPrompt = '';
-  const ai2SystemPrompt = '';
 
   const { streamModelResponse, isRequesting } = useStream();
   const runningTurnRef = useRef(false);
@@ -289,15 +287,7 @@ export function useConversation() {
       const speakerModel = speakerModelMeta?.model || speakerModelId;
       const opponentModel = opponentModelMeta?.model || opponentModelId;
       const provider = speakerModelMeta?.provider || 'groq';
-
-      const speakerPersona = getPersonaLabel(
-        speakerModelMeta?.label || speakerModel,
-        side === 'ai1' ? setup.persona1 : setup.persona2,
-      );
-      const opponentPersona = getPersonaLabel(
-        opponentModelMeta?.label || opponentModel,
-        side === 'ai1' ? setup.persona2 : setup.persona1,
-      );
+      const speakerLabel = speakerModelMeta?.label || speakerModel;
 
       const isGroqOrOpenRouter = provider === 'groq' || provider === 'openrouter';
       const isGroq = provider === 'groq';
@@ -310,24 +300,15 @@ export function useConversation() {
 
       const basePromptBuilder = chaosMode ? buildChaosTurnSystemPrompt : buildTurnSystemPrompt;
       const basePrompt = basePromptBuilder({
-        mode: setup.mode,
         topic: setup.topic,
-        speakerSide: side,
         speakerModel,
         opponentModel,
-        speakerPersona,
-        opponentPersona,
-        turnNumber: sideTurnNumber,
         maxTokens: speakerMaxTokens,
       });
 
-      const personalitySystemPrompt = side === 'ai1' ? ai1SystemPrompt : ai2SystemPrompt;
       const userCustomPrompt = (sideTurnNumber === 1 && openingSeed?.trim()) ? openingSeed.trim() : '';
 
       let prompt = basePrompt;
-      if (personalitySystemPrompt?.trim()) {
-        prompt += `\n\nPERSONALITY INSTRUCTIONS:\n${personalitySystemPrompt.trim()}`;
-      }
       if (userCustomPrompt) {
         prompt += `\n\nOPENING DIRECTION (do NOT repeat this text, express the idea in your own words):\n${userCustomPrompt}`;
       }
@@ -344,7 +325,7 @@ export function useConversation() {
         role: 'assistant',
         side,
         model: speakerModel,
-        persona: speakerPersona,
+        persona: speakerLabel,
         content: '',
         turn: turnNumber,
         timestamp: new Date().toISOString(),
@@ -440,10 +421,10 @@ export function useConversation() {
 
         console.log(`[${provider}] Final params:`, activeParams);
         console.log(`[${provider}] System prompt length: ${prompt.length} chars`);
-        console.log(`[${provider}] Personality: ${speakerPersona}`);
+        console.log(`[${provider}] Speaker: ${speakerLabel}`);
 
         if (!isGroq && isThinkingModel) {
-          console.warn(`${speakerPersona} is a thinking model and works best on Groq. Response quality may vary.`);
+          console.warn(`${speakerLabel} is a thinking model and works best on Groq. Response quality may vary.`);
         }
 
         await streamModelResponse({
@@ -564,9 +545,6 @@ export function useConversation() {
       setup.ai2Model,
       setup.openingSeed1,
       setup.openingSeed2,
-      setup.mode,
-      setup.persona1,
-      setup.persona2,
       setup.topic,
       pauseConversation,
       streamModelResponse,
