@@ -1003,6 +1003,99 @@ h1, h2, h3, h4, .display-font {
   transform: translateY(-2px);
 }
 
+.post-duel-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.verdict-btn-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.verdict-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  padding: 6px 12px;
+  border-radius: 8px;
+  z-index: 200;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  max-width: 260px;
+  white-space: normal;
+  text-align: center;
+}
+
+.verdict-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--border-color);
+}
+
+.verdict-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  transition: all 0.15s ease;
+}
+
+.verdict-btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: var(--accent);
+}
+
+.verdict-btn--locked {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.verdict-btn--exhausted {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.verdict-btn:disabled {
+  cursor: not-allowed;
+}
+
+.verdict-btn-spinner {
+  animation: verdict-spin 1s linear infinite;
+}
+
+@keyframes verdict-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .verdict-card {
   margin: 24px auto;
   max-width: 720px;

@@ -15,6 +15,7 @@ import MessageCard from '../components/MessageCard';
 import ShareButton from '../components/ShareButton';
 import Toast from '../components/Toast';
 import VerdictCard from '../components/VerdictCard';
+import VerdictButton from '../components/VerdictButton';
 
 const SIDEBAR_CHAT_TOPICS = [
   { id: 'singularity-race', title: 'Who Triggers Singularity First?', snippet: 'One predicts the path, one tries to derail it.', ai1: 'Defend the claim that your strategy reaches AGI singularity first. Use milestones, timelines, and hard tradeoffs.', ai2: 'Challenge every milestone as overhyped and argue why the other model will fail first under real-world constraints.' },
@@ -33,6 +34,7 @@ export default function ArenaPage() {
   const [authError, setAuthError] = useState('');
   const [starting, setStarting] = useState(false);
   const [showJumpButton, setShowJumpButton] = useState(false);
+  const [verdictByConversation, setVerdictByConversation] = useState({});
   const [toast, setToast] = useState({ message: '', type: 'info' });
   const previousStatusRef = useRef('idle');
   const titleRequestConversationRef = useRef('');
@@ -312,6 +314,7 @@ export default function ArenaPage() {
   const canRun = Boolean(setup.openingSeed1?.trim()) && Boolean(setup.openingSeed2?.trim()) && authReady && Boolean(sessionId);
   const inSetup = status === 'idle';
   const isDuelComplete = status === 'completed' && transcript.length > 0;
+  const activeVerdict = conversationKey ? verdictByConversation[conversationKey] : '';
 
   useEffect(() => {
     if (inSetup) {
@@ -402,6 +405,22 @@ export default function ArenaPage() {
     titleAppliedConversationRef.current = '';
     setGeneratedChatTitle('');
     resetConversation({ keepSetup: false });
+  }
+
+  function handleVerdictReceived(result) {
+    if (!conversationKey) {
+      return;
+    }
+
+    const verdictText = String(result?.verdict || '').trim();
+    if (!verdictText) {
+      return;
+    }
+
+    setVerdictByConversation((state) => ({
+      ...state,
+      [conversationKey]: verdictText,
+    }));
   }
 
   function jumpToLatest() {
@@ -495,16 +514,18 @@ export default function ArenaPage() {
               {isDuelComplete && (
                 <>
                   <p className="session-end-note">That's all the horsepower we can give you for free</p>
-                  <div style={{ display: 'flex', justifyContent: 'center', marginTop: '12px', marginBottom: '24px' }}>
+                  <div className="post-duel-actions">
+                    <VerdictButton
+                      transcript={transcript}
+                      ai1Name={ai1Label}
+                      ai2Name={ai2Label}
+                      topic={setup.topic || generatedChatTitle || 'Untitled Arena'}
+                      onVerdictReceived={handleVerdictReceived}
+                      hasVerdict={Boolean(activeVerdict)}
+                    />
                     <ShareButton setup={setup} transcript={transcript} summary={summary} />
                   </div>
-                  <VerdictCard
-                    transcript={transcript}
-                    ai1Name={ai1Label}
-                    ai2Name={ai2Label}
-                    topic={setup.topic || generatedChatTitle || 'Untitled Arena'}
-                    conversationKey={conversationKey}
-                  />
+                  {activeVerdict && <VerdictCard verdict={activeVerdict} />}
                 </>
               )}
             </div>
