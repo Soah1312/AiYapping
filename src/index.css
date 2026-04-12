@@ -756,16 +756,6 @@ h1, h2, h3, h4, .display-font {
   border-color: var(--border-color);
 }
 
-[data-theme='claude'] .app-header > div:last-child {
-  display: none;
-}
-
-@media (min-width: 768px) {
-  [data-theme='claude'] .app-header > div:last-child {
-    display: flex;
-  }
-}
-
 [data-theme='chatgpt'] .app-header {
   background: #212121;
   border-color: rgba(255,255,255,0.06);
