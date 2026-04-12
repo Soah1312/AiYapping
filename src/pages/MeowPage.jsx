@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Lock, Users, BarChart3, MessageCircle, Zap, Eye } from 'lucide-react';
+import { Users, BarChart3, MessageCircle, Zap, Eye } from 'lucide-react';
 
 // Dark Academia Stat Card
 function AcademiaStatCard({ label, value, icon }) {
@@ -179,12 +179,26 @@ export default function MeowPage() {
         body: JSON.stringify({ password }),
       });
 
-      const payload = await response.json();
+      let payload = null;
+      try {
+        payload = await response.json();
+      } catch {
+        payload = null;
+      }
+
       if (!response.ok) {
         throw new Error(String(payload?.error || 'Access denied'));
       }
 
       setStats(payload);
+      console.info('[meow] Admin stats loaded', {
+        generatedAt: payload?.generatedAt,
+        users: payload?.users,
+        totalVisits: payload?.totalVisits,
+        recentChats: Array.isArray(payload?.recentChats) ? payload.recentChats.length : 0,
+        perUserApiCalls: Array.isArray(payload?.perUserApiCalls) ? payload.perUserApiCalls.length : 0,
+        perUserVisits: Array.isArray(payload?.perUserVisits) ? payload.perUserVisits.length : 0,
+      });
     } catch (nextError) {
       setStats(null);
       setError(String(nextError?.message || 'Access denied'));
@@ -200,6 +214,37 @@ export default function MeowPage() {
 
     const date = new Date(stats.generatedAt);
     return Number.isNaN(date.getTime()) ? '' : date.toLocaleString();
+  }, [stats]);
+
+  const metricCards = useMemo(() => {
+    if (!stats) {
+      return [];
+    }
+
+    const asNumber = (value) => (Number.isFinite(Number(value)) ? Number(value) : null);
+    const avgTurns = asNumber(stats.avgTurnsPerDuel);
+    const completionRate = asNumber(stats.completionRatePct);
+    const errorRate = asNumber(stats.errorRatePct);
+    const p95Latency = asNumber(stats.p95TurnLatencyMs);
+
+    return [
+      {
+        label: 'Avg Turns / Duel',
+        value: avgTurns === null ? '--' : avgTurns.toFixed(1),
+      },
+      {
+        label: 'Completion Rate',
+        value: completionRate === null ? '--' : `${completionRate.toFixed(1)}%`,
+      },
+      {
+        label: 'Error Rate',
+        value: errorRate === null ? '--' : `${errorRate.toFixed(1)}%`,
+      },
+      {
+        label: 'P95 Turn Latency',
+        value: p95Latency === null ? '--' : `${(p95Latency / 1000).toFixed(2)}s`,
+      },
+    ];
   }, [stats]);
 
   return (
@@ -337,7 +382,14 @@ export default function MeowPage() {
           <>
             {/* Control Bar */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
-              <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, fontFamily: 'Playfair Display, Lora, "Libre Baskerville", serif', color: '#e8dcc8' }}>Admin Dashboard</h2>
+              <div>
+                <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, fontFamily: 'Playfair Display, Lora, "Libre Baskerville", serif', color: '#e8dcc8' }}>Admin Dashboard</h2>
+                {generatedAt && (
+                  <p style={{ margin: '0.35rem 0 0', fontSize: '0.8rem', color: '#8b7355', fontFamily: 'Merriweather, "Source Serif Pro", Garamond, serif' }}>
+                    Last sync: {generatedAt}
+                  </p>
+                )}
+              </div>
               <button
                 type="button"
                 onClick={fetchStats}
@@ -383,6 +435,9 @@ export default function MeowPage() {
               <AcademiaStatCard label="Total Users" value={stats.users ?? 0} icon={<Users size={28} strokeWidth={1.5} color="#cd853f" style={{ opacity: 0.6 }} />} />
               <AcademiaStatCard label="Total Visits" value={stats.totalVisits ?? 0} icon={<BarChart3 size={28} strokeWidth={1.5} color="#cd853f" style={{ opacity: 0.6 }} />} />
               <AcademiaStatCard label="Recent Chats" value={Array.isArray(stats.recentChats) ? stats.recentChats.length : 0} icon={<MessageCircle size={28} strokeWidth={1.5} color="#cd853f" style={{ opacity: 0.6 }} />} />
+              {metricCards.map((metric) => (
+                <AcademiaStatCard key={metric.label} label={metric.label} value={metric.value} />
+              ))}
             </div>
 
             {/* Content Grid */}
@@ -474,6 +529,40 @@ export default function MeowPage() {
                     {(stats.perUserVisits || []).length === 0 && (
                       <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#8b7355' }}>
                         <p style={{ margin: 0, fontSize: '0.85rem', fontFamily: 'Merriweather, "Source Serif Pro", Garamond, serif' }}>No visits</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Model Error Rates */}
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <div style={{
+                  borderRadius: '0.25rem',
+                  padding: '1.5rem',
+                  background: 'linear-gradient(135deg, #1a1410 0%, #141110 100%)',
+                  border: '2px solid #8b7355',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  flex: 1,
+                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.02)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
+                    <Zap size={18} strokeWidth={1.5} color="#cd853f" style={{ opacity: 0.7, flexShrink: 0 }} />
+                    <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, fontFamily: 'Playfair Display, Lora, "Libre Baskerville", serif', color: '#e8dcc8' }}>Model Error Rates</h3>
+                  </div>
+
+                  <div style={{ display: 'grid', gap: '0.75rem', flex: 1 }}>
+                    {(stats.modelErrorRates || []).slice(0, 8).map((row) => (
+                      <AcademiaMetric
+                        key={row.model}
+                        userId={row.model}
+                        value={`${Number.isFinite(Number(row.errorRatePct)) ? Number(row.errorRatePct).toFixed(1) : '0.0'}% (${row.errorTurns}/${row.totalTurns})`}
+                      />
+                    ))}
+                    {(stats.modelErrorRates || []).length === 0 && (
+                      <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#8b7355' }}>
+                        <p style={{ margin: 0, fontSize: '0.85rem', fontFamily: 'Merriweather, "Source Serif Pro", Garamond, serif' }}>No model errors tracked yet</p>
                       </div>
                     )}
                   </div>

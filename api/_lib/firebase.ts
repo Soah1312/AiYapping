@@ -902,6 +902,7 @@ export async function getAdminDashboardStats() {
     const turnCount = Number.isFinite(Number(data.turnCount)) ? Number(data.turnCount) : 0;
     const updatedAt = typeof data.updatedAt === 'string' ? data.updatedAt : '';
     const createdAt = typeof data.createdAt === 'string' ? data.createdAt : '';
+    const transcript = Array.isArray(data.transcript) ? (data.transcript as Array<Record<string, unknown>>) : [];
 
     return {
       id,
@@ -910,6 +911,7 @@ export async function getAdminDashboardStats() {
       turnCount,
       updatedAt,
       createdAt,
+      transcript,
     };
   };
 
@@ -924,9 +926,24 @@ export async function getAdminDashboardStats() {
     conversations,
     usageRows,
   }: {
-    conversations: Array<{ id: string; ownerId: string; topic: string; turnCount: number; updatedAt: string; createdAt: string }>;
+    conversations: Array<{ id: string; ownerId: string; topic: string; turnCount: number; updatedAt: string; createdAt: string; transcript: Array<Record<string, unknown>> }>;
     usageRows: Array<{ userId: string; totalApiCalls: number; lastReset: string; updatedAt: string }>;
   }) => {
+    const toNumber = (value: unknown) => {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : 0;
+    };
+
+    const percentile = (values: number[], p: number) => {
+      if (!values.length) {
+        return null;
+      }
+
+      const sorted = [...values].sort((a, b) => a - b);
+      const rank = Math.max(0, Math.min(sorted.length - 1, Math.ceil((p / 100) * sorted.length) - 1));
+      return sorted[rank] ?? null;
+    };
+
     const visitByUser = new Map<string, number>();
     for (const chat of conversations) {
       visitByUser.set(chat.ownerId, (visitByUser.get(chat.ownerId) || 0) + 1);
@@ -944,6 +961,85 @@ export async function getAdminDashboardStats() {
       .sort((a, b) => parseIsoMs(b.updatedAt || b.createdAt) - parseIsoMs(a.updatedAt || a.createdAt))
       .slice(0, 25);
 
+    const totalTurns = conversations.reduce((sum, chat) => sum + toNumber(chat.turnCount), 0);
+    const avgTurnsPerDuel = conversations.length > 0 ? totalTurns / conversations.length : 0;
+
+    const latencyMs: number[] = [];
+    let analyzedForCompletion = 0;
+    let completedDuels = 0;
+    let interruptedDuels = 0;
+    let errorTurns = 0;
+    let totalAiTurns = 0;
+    const modelTurnMap = new Map<string, { total: number; errors: number }>();
+
+    for (const chat of conversations) {
+      const transcript = Array.isArray(chat.transcript) ? chat.transcript : [];
+      const aiMessages = transcript.filter((item) => {
+        const role = String(item.role || '');
+        return role === 'assistant';
+      });
+
+      if (aiMessages.length === 0) {
+        continue;
+      }
+
+      totalAiTurns += aiMessages.length;
+
+      let hasStatusSignal = false;
+      let hasInterruption = false;
+
+      for (const message of aiMessages) {
+        const status = String(message.status || '');
+        const model = String(message.model || 'unknown');
+        const modelStats = modelTurnMap.get(model) || { total: 0, errors: 0 };
+        modelStats.total += 1;
+
+        if (status) {
+          hasStatusSignal = true;
+        }
+
+        if (status === 'error' || status === 'interrupted') {
+          hasInterruption = true;
+          errorTurns += 1;
+          modelStats.errors += 1;
+        }
+
+        modelTurnMap.set(model, modelStats);
+
+        const startedAtMs = parseIsoMs(message.timestamp);
+        const finishedAtMs = parseIsoMs(message.finishedAt);
+        if (startedAtMs > 0 && finishedAtMs >= startedAtMs) {
+          latencyMs.push(finishedAtMs - startedAtMs);
+        }
+      }
+
+      if (!hasStatusSignal) {
+        continue;
+      }
+
+      analyzedForCompletion += 1;
+      if (hasInterruption) {
+        interruptedDuels += 1;
+      } else {
+        completedDuels += 1;
+      }
+    }
+
+    const completionRatePct = analyzedForCompletion > 0 ? (completedDuels / analyzedForCompletion) * 100 : null;
+    const errorRatePct = totalAiTurns > 0 ? (errorTurns / totalAiTurns) * 100 : null;
+    const p50TurnLatencyMs = percentile(latencyMs, 50);
+    const p95TurnLatencyMs = percentile(latencyMs, 95);
+
+    const modelErrorRates = [...modelTurnMap.entries()]
+      .map(([model, stats]) => ({
+        model,
+        totalTurns: stats.total,
+        errorTurns: stats.errors,
+        errorRatePct: stats.total > 0 ? (stats.errors / stats.total) * 100 : 0,
+      }))
+      .sort((a, b) => b.errorRatePct - a.errorRatePct || b.totalTurns - a.totalTurns || a.model.localeCompare(b.model))
+      .slice(0, 10);
+
     const uniqueUsers = new Set<string>();
     for (const row of usageRows) {
       uniqueUsers.add(row.userId);
@@ -958,6 +1054,17 @@ export async function getAdminDashboardStats() {
       recentChats,
       perUserApiCalls,
       perUserVisits,
+      avgTurnsPerDuel,
+      completionRatePct,
+      completedDuels,
+      interruptedDuels,
+      analyzedDuels: analyzedForCompletion,
+      errorRatePct,
+      errorTurns,
+      totalAiTurns,
+      p50TurnLatencyMs,
+      p95TurnLatencyMs,
+      modelErrorRates,
       generatedAt: nowIso(),
     };
   };

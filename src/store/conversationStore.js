@@ -120,7 +120,21 @@ function sanitizeSavedChats(chats) {
 function buildSavedChatTitle(_setup, generatedTitle = '') {
   const cleanTitle = String(generatedTitle || '').trim().slice(0, 220);
   if (cleanTitle) {
+    const words = cleanTitle.match(/[A-Za-z0-9]+(?:['-][A-Za-z0-9]+)*/g) || [];
+    if (words.length > 0) {
+      return words.slice(0, 6).join(' ');
+    }
     return cleanTitle;
+  }
+
+  const ai1 = String(_setup?.openingSeed1 || '').trim();
+  const ai2 = String(_setup?.openingSeed2 || '').trim();
+  const fallbackSource = ai1 || ai2 || String(_setup?.topic || '').trim();
+  if (fallbackSource) {
+    return fallbackSource
+      .replace(/\s+/g, ' ')
+      .slice(0, 72)
+      .replace(/[\s,.;:!?-]+$/g, '');
   }
 
   return 'Untitled chat';
@@ -164,6 +178,28 @@ export const useConversationStore = create(persist((set, get) => ({
   setConversationId: (conversationId) => set({ conversationId }),
   setConversationKey: (conversationKey) => set({ conversationKey }),
   setGeneratedChatTitle: (generatedChatTitle) => set({ generatedChatTitle: String(generatedChatTitle || '').trim() }),
+
+  applyGeneratedTitleToSavedChat: (conversationKey, generatedTitle) =>
+    set((state) => {
+      const key = String(conversationKey || '').trim();
+      const nextTitle = String(generatedTitle || '').trim().slice(0, 220);
+      if (!key || !nextTitle) {
+        return {};
+      }
+
+      const hasMatch = state.savedChats.some((chat) => chat.conversationKey === key);
+      if (!hasMatch) {
+        return {};
+      }
+
+      return {
+        savedChats: state.savedChats.map((chat) => (
+          chat.conversationKey === key
+            ? { ...chat, title: buildSavedChatTitle(chat.setup, nextTitle) }
+            : chat
+        )),
+      };
+    }),
 
   patchSetup: (patch) =>
     set((state) => ({
@@ -216,8 +252,42 @@ export const useConversationStore = create(persist((set, get) => ({
 
   pauseConversation: () => set({ status: 'paused' }),
   resumeConversation: () => set({ status: 'running' }),
-  completeConversation: () => set({ status: 'completed', isStreaming: false }),
-  stopConversation: () => set({ status: 'completed', isStreaming: false }),
+  completeConversation: () =>
+    set((state) => {
+      const finishedAt = new Date().toISOString();
+      return {
+      status: 'completed',
+      isStreaming: false,
+      transcript: state.transcript.map((message) => (
+        message.status === 'streaming'
+          ? {
+            ...message,
+            status: 'interrupted',
+            interrupted: true,
+            finishedAt,
+          }
+          : message
+      )),
+      };
+    }),
+  stopConversation: () =>
+    set((state) => {
+      const finishedAt = new Date().toISOString();
+      return {
+      status: 'completed',
+      isStreaming: false,
+      transcript: state.transcript.map((message) => (
+        message.status === 'streaming'
+          ? {
+            ...message,
+            status: 'interrupted',
+            interrupted: true,
+            finishedAt,
+          }
+          : message
+      )),
+      };
+    }),
 
   setStreaming: (isStreaming) => set({ isStreaming }),
   setStreamError: (streamError) => set({ streamError }),

@@ -37,7 +37,7 @@ export default function ArenaPage() {
 
   const {
     sessionId, conversationKey, setup, usage, summary, savedChats, activeSavedChatId, generatedChatTitle,
-    patchSetup, setSessionId, setUsage, setGeneratedChatTitle,
+    patchSetup, setSessionId, setUsage, setGeneratedChatTitle, applyGeneratedTitleToSavedChat,
     resetConversation, startConversation, saveCurrentChat, loadSavedChat, deleteSavedChat,
   } = useConversationStore();
 
@@ -115,19 +115,9 @@ export default function ArenaPage() {
     }
   }, [generatedChatTitle, saveCurrentChat, status]);
 
-  /* ── Generate chat title with Mistral after first agent output begins ── */
+  /* ── Generate chat title with Mistral once a duel starts ── */
   useEffect(() => {
     if (status !== 'running' || !conversationKey) {
-      return;
-    }
-
-    const hasAgentOutputStarted = transcript.some((message) => {
-      const isAgent = message.side === 'ai1' || message.side === 'ai2';
-      const hasStatus = message.status === 'streaming' || message.status === 'done';
-      return isAgent && hasStatus;
-    });
-
-    if (!hasAgentOutputStarted) {
       return;
     }
 
@@ -136,6 +126,7 @@ export default function ArenaPage() {
     }
 
     titleRequestConversationRef.current = conversationKey;
+    const requestedConversationKey = conversationKey;
 
     let cancelled = false;
 
@@ -159,6 +150,7 @@ export default function ArenaPage() {
         const title = String(payload?.title || '').trim();
         if (title && !cancelled) {
           setGeneratedChatTitle(title);
+          applyGeneratedTitleToSavedChat(requestedConversationKey, title);
         }
       } catch {
         // Non-blocking: chat save falls back to Untitled if title generation fails.
@@ -169,13 +161,13 @@ export default function ArenaPage() {
       cancelled = true;
     };
   }, [
+    applyGeneratedTitleToSavedChat,
     conversationKey,
     setGeneratedChatTitle,
     setup.openingSeed1,
     setup.openingSeed2,
     setup.topic,
     status,
-    transcript,
   ]);
 
   /* ── If title arrives after completion, update saved chat title once ── */

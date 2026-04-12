@@ -602,6 +602,13 @@ async function createNvidiaStreamResponse({
         }
         controller.enqueue(encoder.encode('data: [DONE]\n\n'));
       } catch (error) {
+        if (admission) {
+          await releaseConversationAdmissionOnFailure({
+            conversationKey: admission.conversationKey,
+            sessionId: admission.sessionId,
+            reason: safeErrorMessage(error),
+          });
+        }
         write({ error: String((error as Error)?.message || 'NVIDIA stream failed') });
       } finally {
         controller.close();
@@ -855,6 +862,13 @@ async function createHuggingFaceStreamResponse({
         }
         controller.enqueue(encoder.encode('data: [DONE]\n\n'));
       } catch (error) {
+        if (admission) {
+          await releaseConversationAdmissionOnFailure({
+            conversationKey: admission.conversationKey,
+            sessionId: admission.sessionId,
+            reason: safeErrorMessage(error),
+          });
+        }
         write({ error: String((error as Error)?.message || 'Hugging Face stream failed') });
       } finally {
         controller.close();
@@ -1034,6 +1048,13 @@ async function createGroqStreamResponse({
         }
         controller.enqueue(encoder.encode('data: [DONE]\n\n'));
       } catch (error) {
+        if (admission) {
+          await releaseConversationAdmissionOnFailure({
+            conversationKey: admission.conversationKey,
+            sessionId: admission.sessionId,
+            reason: safeErrorMessage(error),
+          });
+        }
         write({
           error: String((error as Error)?.message || 'Groq stream failed'),
           key: selectedKey ? keyLabel(selectedKey, groqKeys.indexOf(selectedKey)) : undefined,
@@ -1230,6 +1251,13 @@ async function createOpenRouterStreamResponse({
         }
         controller.enqueue(encoder.encode('data: [DONE]\n\n'));
       } catch (error) {
+        if (admission) {
+          await releaseConversationAdmissionOnFailure({
+            conversationKey: admission.conversationKey,
+            sessionId: admission.sessionId,
+            reason: safeErrorMessage(error),
+          });
+        }
         write({
           error: String((error as Error)?.message || 'OpenRouter stream failed'),
           key: selectedKey ? keyLabel(selectedKey, openrouterKeys.indexOf(selectedKey)) : undefined,
@@ -1264,7 +1292,26 @@ async function performProviderRequestWithAdmission({
   const startedAt = Date.now();
 
   while (true) {
-    const response = await invoke();
+    let response: Response;
+    try {
+      response = await invoke();
+    } catch (error) {
+      await releaseConversationAdmissionOnFailure({
+        conversationKey: admission.conversationKey,
+        sessionId: admission.sessionId,
+        reason: safeErrorMessage(error),
+      });
+      throw error;
+    }
+
+    if (!response.ok && response.status !== 429) {
+      await releaseConversationAdmissionOnFailure({
+        conversationKey: admission.conversationKey,
+        sessionId: admission.sessionId,
+        reason: `provider_status_${response.status}`,
+      });
+      return response;
+    }
 
     if (response.status !== 429) {
       return response;
@@ -1278,6 +1325,11 @@ async function performProviderRequestWithAdmission({
       || errorText.includes('All AI engines are currently yapping too hard');
 
     if (!isProviderSaturated) {
+      await releaseConversationAdmissionOnFailure({
+        conversationKey: admission.conversationKey,
+        sessionId: admission.sessionId,
+        reason: `provider_429_nonretryable_${reason || 'unknown'}`,
+      });
       return response;
     }
 

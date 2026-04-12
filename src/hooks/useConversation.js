@@ -456,6 +456,7 @@ export function useConversation() {
           content: trimmed,
           status: 'done',
           interrupted: false,
+          finishedAt: new Date().toISOString(),
         });
       } catch (error) {
         const errorText = String(error?.message || 'Unknown stream error');
@@ -499,7 +500,12 @@ export function useConversation() {
           status: interrupted ? 'interrupted' : 'error',
           interrupted,
           error: errorText,
+          finishedAt: new Date().toISOString(),
         });
+
+        if (interrupted) {
+          return;
+        }
 
         const contextualError = interrupted
           ? `${errorText} (interrupted side=${side} turn=${turnNumber})`

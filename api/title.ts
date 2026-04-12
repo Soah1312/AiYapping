@@ -11,7 +11,7 @@ type TitleRequestBody = {
 const HF_CHAT_COMPLETIONS_URL = 'https://router.huggingface.co/v1/chat/completions';
 const TITLE_MODEL = 'mistral-community/Mistral-7B-Instruct-v0.2';
 const TITLE_MIN_WORDS = 4;
-const TITLE_MAX_WORDS = 9;
+const TITLE_MAX_WORDS = 6;
 
 function normalizeApiKeyValue(value: unknown) {
   return String(value || '')
@@ -148,7 +148,7 @@ export default async function handler(request: Request): Promise<Response> {
 
     const titlePrompt = [
       'Generate a concise chat title from these two AI prompts.',
-      'Return only the title, plain text, no quotes, 4 to 9 words.',
+      'Return only the title, plain text, no quotes, 4 to 6 words.',
       `Topic: ${topic || 'N/A'}`,
       `Prompt 1: ${prompt1 || 'N/A'}`,
       `Prompt 2: ${prompt2 || 'N/A'}`,
