@@ -3,6 +3,17 @@
     "deploymentEnabled": false
   },
   "ignoreCommand": "if [ -n \"$VERCEL_GIT_COMMIT_REF\" ]; then exit 0; else exit 1; fi",
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.puter.com; connect-src 'self' https://*.puter.com https://*.puter.site; frame-src 'self' https://*.puter.com;"
+        }
+      ]
+    }
+  ],
   "rewrites": [
     {
       "source": "/((?!api/).*)",

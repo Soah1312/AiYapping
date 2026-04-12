@@ -14,6 +14,7 @@ import DuelControls from '../components/DuelControls';
 import MessageCard from '../components/MessageCard';
 import ShareButton from '../components/ShareButton';
 import Toast from '../components/Toast';
+import VerdictCard from '../components/VerdictCard';
 
 const SIDEBAR_CHAT_TOPICS = [
   { id: 'singularity-race', title: 'Who Triggers Singularity First?', snippet: 'One predicts the path, one tries to derail it.', ai1: 'Defend the claim that your strategy reaches AGI singularity first. Use milestones, timelines, and hard tradeoffs.', ai2: 'Challenge every milestone as overhyped and argue why the other model will fail first under real-world constraints.' },
@@ -310,6 +311,7 @@ export default function ArenaPage() {
 
   const canRun = Boolean(setup.openingSeed1?.trim()) && Boolean(setup.openingSeed2?.trim()) && authReady && Boolean(sessionId);
   const inSetup = status === 'idle';
+  const isDuelComplete = status === 'completed' && transcript.length > 0;
 
   useEffect(() => {
     if (inSetup) {
@@ -490,12 +492,19 @@ export default function ArenaPage() {
               {transcript.map((msg) => (
                 <MessageCard key={msg.id} message={msg} />
               ))}
-              {status === 'completed' && transcript.length > 0 && (
+              {isDuelComplete && (
                 <>
                   <p className="session-end-note">That's all the horsepower we can give you for free</p>
                   <div style={{ display: 'flex', justifyContent: 'center', marginTop: '12px', marginBottom: '24px' }}>
                     <ShareButton setup={setup} transcript={transcript} summary={summary} />
                   </div>
+                  <VerdictCard
+                    transcript={transcript}
+                    ai1Name={ai1Label}
+                    ai2Name={ai2Label}
+                    topic={setup.topic || generatedChatTitle || 'Untitled Arena'}
+                    conversationKey={conversationKey}
+                  />
                 </>
               )}
             </div>

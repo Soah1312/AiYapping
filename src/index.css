@@ -1003,6 +1003,69 @@ h1, h2, h3, h4, .display-font {
   transform: translateY(-2px);
 }
 
+.verdict-card {
+  margin: 24px auto;
+  max-width: 720px;
+  width: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--card-radius);
+  padding: 24px;
+  font-family: inherit;
+}
+
+.verdict-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.verdict-gavel {
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.verdict-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  flex: 1;
+}
+
+.verdict-badge {
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.verdict-body {
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
+.verdict-loading {
+  color: var(--text-secondary);
+  font-style: italic;
+  font-size: 0.875rem;
+}
+
+.verdict-text {
+  white-space: pre-wrap;
+  font-family: inherit;
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  line-height: 1.8;
+}
+
 @media (max-width: 767px) {
   .chat-feed {
     padding: 0.75rem 0.5rem;
