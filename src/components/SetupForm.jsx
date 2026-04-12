@@ -2,9 +2,11 @@ import ModelPicker from './ModelPicker';
 import { MODEL_OPTIONS } from '../lib/modelConfig';
 import { useTheme } from '../context/ThemeContext';
 import { QUICK_PROMPTS } from '../lib/prompts';
+import { useConversationStore } from '../store/conversationStore';
 
 export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, usage, authReady, authError, onOpenSettings }) {
   const { theme } = useTheme();
+  const { chaosMode, setChaosMode } = useConversationStore();
 
   const headingText = theme === 'claude'
     ? 'Let the chaos begin.'
@@ -56,6 +58,23 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
               <strong style={{ display: 'block', fontSize: '0.8125rem', color: 'var(--text-primary)' }}>{prompt.title}</strong>
             </button>
           ))}
+        </div>
+
+        {/* Chaos Mode Toggle */}
+        <div style={{ display: 'flex', justifyContent: 'center', margin: '20px 0 8px' }}>
+          <button
+            type="button"
+            className={`chaos-toggle${chaosMode ? ' active' : ''}`}
+            onClick={() => setChaosMode(!chaosMode)}
+          >
+            <div className="chaos-toggle-track">
+              <div className="chaos-toggle-knob" />
+            </div>
+            <span className="chaos-toggle-label">
+              {chaosMode ? 'CHAOS MODE' : 'Chaos Mode'}
+            </span>
+            <span className="chaos-toggle-flame">{chaosMode ? '🔥' : '💤'}</span>
+          </button>
         </div>
 
         {/* Setup form */}

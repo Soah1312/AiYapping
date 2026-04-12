@@ -37,7 +37,7 @@ export default function ArenaPage() {
   const backendPersistedConversationRef = useRef('');
 
   const {
-    sessionId, conversationId, conversationKey, setup, usage, summary, savedChats, activeSavedChatId, generatedChatTitle,
+    sessionId, conversationId, conversationKey, setup, usage, summary, savedChats, activeSavedChatId, generatedChatTitle, chaosMode,
     patchSetup, setSessionId, setUsage, setGeneratedChatTitle, setConversationId, applyGeneratedTitleToSavedChat,
     resetConversation, startConversation, saveCurrentChat, loadSavedChat, deleteSavedChat,
   } = useConversationStore();
@@ -402,6 +402,7 @@ export default function ArenaPage() {
           <div className="claude-chat-header">
             <div className="claude-chat-header-left">
               <span className="status-badge claude-chat-pill">{ai1Label} vs {ai2Label}</span>
+              {chaosMode && <span className="chaos-badge">🔥 CHAOS</span>}
               <span className="status-badge claude-chat-pill">Turns: {aiTurnCount}</span>
             </div>
             {theme === 'claude' && (

@@ -94,7 +94,7 @@ export const QUICK_PROMPTS = [
     id: 'cats',
     title: 'Cats Are Sociopaths and I Have Proof',
     description: 'The purring is a manipulation tactic.',
-    ai1Prompt: 'Cats are manipulative little sociopaths and you have a 47 slide presentation to prove it. Present your case with receipts.',
+    ai1Prompt: 'Cats are manipulative little sociopaths. Expose their schemes one damning fact at a time. No mercy.',
     ai2Prompt: 'Cats are misunderstood geniuses and dogs are just desperate people pleasers with abandonment issues. Defend cats aggressively.'
   },
   {

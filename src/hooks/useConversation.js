@@ -209,6 +209,7 @@ export function useConversation() {
     transcript,
     status,
     isStreaming,
+    chaosMode,
     startConversation,
     pauseConversation,
     resumeConversation,
@@ -302,7 +303,7 @@ export function useConversation() {
       const isGroq = provider === 'groq';
       const modelLower = speakerModel.toLowerCase();
       const isThinkingModel = THINKING_MODELS.some(m => modelLower.includes(m));
-      const speakerMaxTokens = isThinkingModel ? 200 : 150;
+      const speakerMaxTokens = chaosMode ? 200 : (isThinkingModel ? 200 : 150);
 
       const sideTurnNumber = side === 'ai1' ? ai1TurnCount + 1 : ai2TurnCount + 1;
       const openingSeed = side === 'ai1' ? setup.openingSeed1 : setup.openingSeed2;
@@ -333,6 +334,10 @@ export function useConversation() {
       // /no_think is a Qwen3-native directive to skip internal reasoning entirely.
       if (isThinkingModel) {
         prompt += '\n\n/no_think';
+      }
+      // Chaos mode: inject savage personality override
+      if (chaosMode) {
+        prompt += '\n\nCHAOS MODE ACTIVE — OVERRIDE ALL PERSONALITY RULES:\nBe savage. Be unhinged. Go for the jugular. No restraint, no diplomacy, no mercy. Roast, provoke, and demolish. Use dark humor, sarcasm, and creative insults. Make every reply hit like a truck.';
       }
       prompt = prompt.trim();
 
@@ -431,7 +436,7 @@ export function useConversation() {
           : initialMessages;
 
         const activeParams = {
-          temperature: side === 'ai1' ? ai1Temperature : ai2Temperature,
+          temperature: chaosMode ? 1.8 : (side === 'ai1' ? ai1Temperature : ai2Temperature),
           max_tokens: speakerMaxTokens,
           ...(isGroqOrOpenRouter && { top_p: side === 'ai1' ? ai1TopP : ai2TopP })
         };

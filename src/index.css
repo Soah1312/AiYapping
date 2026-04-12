@@ -2645,3 +2645,119 @@ body {
     transform: rotate(360deg);
   }
 }
+
+/* ============================================================
+   CHAOS MODE TOGGLE
+   ============================================================ */
+.chaos-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-hover);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  user-select: none;
+}
+
+.chaos-toggle:hover {
+  border-color: var(--text-secondary);
+}
+
+.chaos-toggle.active {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.2), 0 0 4px rgba(239, 68, 68, 0.1);
+}
+
+.chaos-toggle-track {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--bg-active);
+  transition: background 0.25s ease;
+  flex-shrink: 0;
+}
+
+.chaos-toggle.active .chaos-toggle-track {
+  background: #ef4444;
+}
+
+.chaos-toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--text-secondary);
+  transition: transform 0.25s ease, background 0.25s ease;
+}
+
+.chaos-toggle.active .chaos-toggle-knob {
+  transform: translateX(16px);
+  background: #fff;
+}
+
+.chaos-toggle-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: color 0.25s ease;
+  white-space: nowrap;
+}
+
+.chaos-toggle.active .chaos-toggle-label {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.chaos-toggle-flame {
+  font-size: 1rem;
+  transition: transform 0.25s ease, filter 0.25s ease;
+  line-height: 1;
+}
+
+.chaos-toggle.active .chaos-toggle-flame {
+  animation: chaosFlicker 0.6s ease-in-out infinite alternate;
+  filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.6));
+}
+
+@keyframes chaosFlicker {
+  0% { transform: scale(1) rotate(-3deg); }
+  100% { transform: scale(1.15) rotate(3deg); }
+}
+
+/* Chaos badge in chat header */
+.chaos-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  animation: chaosPulse 2s ease-in-out infinite;
+}
+
+@keyframes chaosPulse {
+  0%, 100% { box-shadow: 0 0 4px rgba(239, 68, 68, 0.15); }
+  50% { box-shadow: 0 0 12px rgba(239, 68, 68, 0.3); }
+}
+
+/* Theme overrides for light mode */
+[data-theme='claude'] .chaos-toggle.active {
+  background: rgba(239, 68, 68, 0.06);
+}
+
+[data-theme='claude'] .chaos-badge {
+  background: rgba(239, 68, 68, 0.08);
+}

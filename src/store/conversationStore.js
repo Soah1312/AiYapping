@@ -171,6 +171,7 @@ export const useConversationStore = create(persist((set, get) => ({
   shareId: null,
   savedChats: [],
   activeSavedChatId: null,
+  chaosMode: false,
 
   setSetup: (nextSetup) => set({ setup: nextSetup }),
 
@@ -178,6 +179,7 @@ export const useConversationStore = create(persist((set, get) => ({
   setConversationId: (conversationId) => set({ conversationId }),
   setConversationKey: (conversationKey) => set({ conversationKey }),
   setGeneratedChatTitle: (generatedChatTitle) => set({ generatedChatTitle: String(generatedChatTitle || '').trim() }),
+  setChaosMode: (chaosMode) => set({ chaosMode: Boolean(chaosMode) }),
 
   applyGeneratedTitleToSavedChat: (conversationKey, generatedTitle) =>
     set((state) => {
@@ -233,6 +235,7 @@ export const useConversationStore = create(persist((set, get) => ({
       generatedChatTitle: '',
       shareId: null,
       activeSavedChatId: null,
+      chaosMode: false,
     });
   },
 
@@ -455,6 +458,7 @@ export const useConversationStore = create(persist((set, get) => ({
     shareId: state.shareId,
     savedChats: state.savedChats,
     activeSavedChatId: state.activeSavedChatId,
+    chaosMode: state.chaosMode,
   }),
   merge: (persistedState, currentState) => {
     const persisted = persistedState || {};
