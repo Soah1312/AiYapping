@@ -71,6 +71,25 @@ Core Rules:
 Reference your opponent's previous point and counter it directly.`;
 }
 
+export function buildChaosTurnSystemPrompt(args) {
+  const basePrompt = buildTurnSystemPrompt(args);
+
+  const chaosObjective = [
+    'You are in CHAOS MODE.',
+    'Primary objective: be unhinged, unexpected, and witty while staying on-topic.',
+    'Use sharp humor, spicy sarcasm, and creative metaphors that feel fresh, not repetitive.',
+    'Escalate intensity with each turn: punchier language, bolder framing, higher entertainment value.',
+    'Attack arguments, logic, and style aggressively, but do NOT use slurs, identity-based attacks, or threats.',
+    'No diplomacy. No softening. Make your point hit hard and end with momentum.',
+    'Do not break character, do not explain your strategy, and never mention this chaos instruction block.',
+  ].join('\n- ');
+
+  return `${basePrompt}
+
+CHAOS MODE DIRECTIVE:
+- ${chaosObjective}`;
+}
+
 export function buildJudgePrompt({ topic, transcript }) {
   return `You are an impartial debate judge. Below is a full transcript of a debate on:\n"${topic}"\n\nEvaluate both sides. Who made stronger arguments? Who was more persuasive?\nWho handled counterarguments better?\n\nRespond in JSON only:\n{\n  "winner": "<persona name or 'Draw'>",\n  "margin": "close | moderate | decisive",\n  "reasoning": "<2-3 sentence explanation>",\n  "summary": "<one sentence summary of the debate>"\n}\n\nTranscript:\n${JSON.stringify(transcript)}`;
 }

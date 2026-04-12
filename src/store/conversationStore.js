@@ -235,7 +235,7 @@ export const useConversationStore = create(persist((set, get) => ({
       generatedChatTitle: '',
       shareId: null,
       activeSavedChatId: null,
-      chaosMode: false,
+      chaosMode: current.chaosMode,
     });
   },
 

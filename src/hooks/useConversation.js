@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useConversationStore } from '../store/conversationStore';
 import { MODEL_BY_ID, THINKING_MODELS } from '../lib/modelConfig';
-import { buildTurnSystemPrompt, getPersonaLabel } from '../lib/prompts';
+import { buildChaosTurnSystemPrompt, buildTurnSystemPrompt, getPersonaLabel } from '../lib/prompts';
 import { useStream } from './useStream';
 
 const MIN_TYPING_BUBBLE_MS = 420;
@@ -308,7 +308,8 @@ export function useConversation() {
       const sideTurnNumber = side === 'ai1' ? ai1TurnCount + 1 : ai2TurnCount + 1;
       const openingSeed = side === 'ai1' ? setup.openingSeed1 : setup.openingSeed2;
 
-      const basePrompt = buildTurnSystemPrompt({
+      const basePromptBuilder = chaosMode ? buildChaosTurnSystemPrompt : buildTurnSystemPrompt;
+      const basePrompt = basePromptBuilder({
         mode: setup.mode,
         topic: setup.topic,
         speakerSide: side,
@@ -334,10 +335,6 @@ export function useConversation() {
       // /no_think is a Qwen3-native directive to skip internal reasoning entirely.
       if (isThinkingModel) {
         prompt += '\n\n/no_think';
-      }
-      // Chaos mode: inject savage personality override
-      if (chaosMode) {
-        prompt += '\n\nCHAOS MODE ACTIVE — OVERRIDE ALL PERSONALITY RULES:\nBe savage. Be unhinged. Go for the jugular. No restraint, no diplomacy, no mercy. Roast, provoke, and demolish. Use dark humor, sarcasm, and creative insults. Make every reply hit like a truck.';
       }
       prompt = prompt.trim();
 
@@ -558,6 +555,7 @@ export function useConversation() {
       addMessage,
       completeConversation,
       shouldStopBySideCap,
+      chaosMode,
       sessionId,
       conversationKey,
       setStreamError,
