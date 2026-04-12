@@ -688,6 +688,49 @@ h1, h2, h3, h4, .display-font {
   flex-shrink: 0;
 }
 
+[data-theme='claude'] .claude-history-item .history-delete-btn,
+[data-theme='chatgpt'] .gpt-history-item .history-delete-btn,
+[data-theme='gemini'] .gemini-history-item .history-delete-btn {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(2px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+[data-theme='claude'] .claude-history-item:hover .history-delete-btn,
+[data-theme='claude'] .claude-history-item:focus-within .history-delete-btn,
+[data-theme='chatgpt'] .gpt-history-item:hover .history-delete-btn,
+[data-theme='chatgpt'] .gpt-history-item:focus-within .history-delete-btn,
+[data-theme='gemini'] .gemini-history-item:hover .history-delete-btn,
+[data-theme='gemini'] .gemini-history-item:focus-within .history-delete-btn {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(0);
+}
+
+[data-theme='chatgpt'] .gpt-history-item,
+[data-theme='gemini'] .gemini-history-item {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+[data-theme='chatgpt'] .gpt-history-open,
+[data-theme='gemini'] .gemini-history-open {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (hover: none) {
+  [data-theme='claude'] .claude-history-item .history-delete-btn,
+  [data-theme='chatgpt'] .gpt-history-item .history-delete-btn,
+  [data-theme='gemini'] .gemini-history-item .history-delete-btn {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0);
+  }
+}
+
 .history-delete-btn:hover {
   color: var(--danger);
   border-color: color-mix(in oklab, var(--danger) 60%, var(--border));

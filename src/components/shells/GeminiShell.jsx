@@ -4,6 +4,7 @@ import {
   Plus,
   Search,
   MessageSquare,
+  Trash2,
   Menu,
   X,
   Settings,
@@ -80,17 +81,33 @@ export default function GeminiShell({
 
           <p className="gemini-section-label gemini-collapse-hide">Recent chats</p>
           {(savedChats || []).map((chat) => (
-            <button
+            <div
               key={chat.id}
-              className={`gemini-nav-item ${activeSavedChatId === chat.id ? 'active' : ''}`}
-              onClick={() => {
-                onSelectSavedChat?.(chat.id);
-                setMobileSidebarOpen(false);
-              }}
+              className={`gemini-history-item ${activeSavedChatId === chat.id ? 'active' : ''}`}
             >
-              <MessageSquare size={16} />
-              <span className="gemini-collapse-hide sidebar-item-title truncate">{chat.title}</span>
-            </button>
+              <button
+                type="button"
+                className={`gemini-nav-item history-open-btn gemini-history-open ${activeSavedChatId === chat.id ? 'active' : ''}`}
+                onClick={() => {
+                  onSelectSavedChat?.(chat.id);
+                  setMobileSidebarOpen(false);
+                }}
+              >
+                <MessageSquare size={16} />
+                <span className="gemini-collapse-hide sidebar-item-title truncate">{chat.title}</span>
+              </button>
+              <button
+                type="button"
+                className="history-delete-btn"
+                aria-label="Delete saved chat"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onDeleteSavedChat?.(chat.id);
+                }}
+              >
+                <Trash2 size={13} />
+              </button>
+            </div>
           ))}
 
           {sidebarOpen && (savedChats || []).length === 0 && (
