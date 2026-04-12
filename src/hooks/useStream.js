@@ -153,6 +153,7 @@ export function useStream() {
       temperature,
       max_tokens,
       top_p,
+      thinking,
       onDelta,
       signal,
     }) => {
@@ -190,6 +191,7 @@ export function useStream() {
               temperature,
               max_tokens,
               top_p,
+              thinking,
             }),
             signal,
           });

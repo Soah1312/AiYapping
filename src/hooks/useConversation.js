@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useConversationStore } from '../store/conversationStore';
-import { MODEL_BY_ID } from '../lib/modelConfig';
+import { MODEL_BY_ID, THINKING_MODELS } from '../lib/modelConfig';
 import { buildTurnSystemPrompt, getPersonaLabel } from '../lib/prompts';
 import { useStream } from './useStream';
 
@@ -182,15 +182,22 @@ function buildContextMessages({ transcript, systemPrompt, speakerSide }) {
     }
 
     const clean = stripThinkBlocks(message.content);
-    if (!clean) {
-      return;
-    }
+    const finalContent = clean || '[The opponent stared in silence.]';
 
     context.push({
       role: message.side === speakerSide ? 'assistant' : 'user',
-      content: clean,
+      content: finalContent,
     });
   });
+
+  // Most Chat APIs crash if the context lacks a single 'user' message. 
+  // If this is Turn 1, artificially start the conversation.
+  if (context.length === 1 && context[0].role === 'system') {
+    context.push({
+      role: 'user',
+      content: '[Director Note] Please begin.',
+    });
+  }
 
   return context;
 }
@@ -217,8 +224,6 @@ export function useConversation() {
   const PER_SIDE_LIMIT = 5;
   const ai1Temperature = 0.7;
   const ai2Temperature = 0.7;
-  const ai1MaxTokens = 150;
-  const ai2MaxTokens = 150;
   const ai1TopP = 0.9;
   const ai2TopP = 0.9;
   const ai1SystemPrompt = '';
@@ -293,6 +298,12 @@ export function useConversation() {
         side === 'ai1' ? setup.persona2 : setup.persona1,
       );
 
+      const isGroqOrOpenRouter = provider === 'groq' || provider === 'openrouter';
+      const isGroq = provider === 'groq';
+      const modelLower = speakerModel.toLowerCase();
+      const isThinkingModel = THINKING_MODELS.some(m => modelLower.includes(m));
+      const speakerMaxTokens = isThinkingModel ? 200 : 150;
+
       const sideTurnNumber = side === 'ai1' ? ai1TurnCount + 1 : ai2TurnCount + 1;
       const openingSeed = side === 'ai1' ? setup.openingSeed1 : setup.openingSeed2;
 
@@ -304,12 +315,26 @@ export function useConversation() {
         opponentModel,
         speakerPersona,
         opponentPersona,
-        openingSeed,
         turnNumber: sideTurnNumber,
+        maxTokens: speakerMaxTokens,
       });
 
       const personalitySystemPrompt = side === 'ai1' ? ai1SystemPrompt : ai2SystemPrompt;
-      const prompt = personalitySystemPrompt.trim() ? `${basePrompt}\n\n${personalitySystemPrompt}` : basePrompt;
+      const userCustomPrompt = (sideTurnNumber === 1 && openingSeed?.trim()) ? openingSeed.trim() : '';
+
+      let prompt = basePrompt;
+      if (personalitySystemPrompt?.trim()) {
+        prompt += `\n\nPERSONALITY INSTRUCTIONS:\n${personalitySystemPrompt.trim()}`;
+      }
+      if (userCustomPrompt) {
+        prompt += `\n\nOPENING DIRECTION (do NOT repeat this text, express the idea in your own words):\n${userCustomPrompt}`;
+      }
+      // Qwen3/thinking models burn tokens on <think> blocks, leaving blank output.
+      // /no_think is a Qwen3-native directive to skip internal reasoning entirely.
+      if (isThinkingModel) {
+        prompt += '\n\n/no_think';
+      }
+      prompt = prompt.trim();
 
       const messageId = createMessageId();
       const message = {
@@ -405,19 +430,18 @@ export function useConversation() {
           ? buildContextMessages({ transcript: transcript.slice(-6), systemPrompt: prompt, speakerSide: side })
           : initialMessages;
 
-        const isGroqOrOpenRouter = provider === 'groq' || provider === 'openrouter';
         const activeParams = {
           temperature: side === 'ai1' ? ai1Temperature : ai2Temperature,
-          max_tokens: side === 'ai1' ? ai1MaxTokens : ai2MaxTokens,
+          max_tokens: speakerMaxTokens,
           ...(isGroqOrOpenRouter && { top_p: side === 'ai1' ? ai1TopP : ai2TopP })
         };
 
-        if (side === 'ai1') {
-          console.log('AI-1 params:', activeParams);
-          console.log('AI-1 system prompt:', prompt);
-        } else {
-          console.log('AI-2 params:', activeParams);
-          console.log('AI-2 system prompt:', prompt);
+        console.log(`[${provider}] Final params:`, activeParams);
+        console.log(`[${provider}] System prompt length: ${prompt.length} chars`);
+        console.log(`[${provider}] Personality: ${speakerPersona}`);
+
+        if (!isGroq && isThinkingModel) {
+          console.warn(`${speakerPersona} is a thinking model and works best on Groq. Response quality may vary.`);
         }
 
         await streamModelResponse({
@@ -429,9 +453,7 @@ export function useConversation() {
           turnType,
           turnNumber,
           maxTurns: totalMaxTurns,
-          temperature: side === 'ai1' ? ai1Temperature : ai2Temperature,
-          max_tokens: side === 'ai1' ? ai1MaxTokens : ai2MaxTokens,
-          top_p: side === 'ai1' ? ai1TopP : ai2TopP,
+          ...activeParams,
           signal: controller.signal,
           onDelta: (delta) => {
             const cleanDelta = sanitizeThinkDelta(delta);

@@ -1,4 +1,5 @@
 export const FREE_TURN_LIMIT = 999999;
+export const THINKING_MODELS = ['qwen3', 'qwq', 'deepseek-r1'];
 
 export const MODEL_OPTIONS = [
   {

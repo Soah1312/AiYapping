@@ -25,6 +25,7 @@ type ChatRequestBody = {
   temperature?: number;
   max_tokens?: number;
   top_p?: number;
+  thinking?: any;
 };
 
 type AdmissionContext = {
@@ -37,6 +38,7 @@ type AdmissionContext = {
   temperature?: number;
   max_tokens?: number;
   top_p?: number;
+  thinking?: any;
 };
 
 const ACTIVE_PRIORITY_RETRY_TIMEOUT_MS = 5 * 60 * 1000;
@@ -938,6 +940,7 @@ async function createGroqStreamResponse({
         max_tokens: admission?.max_tokens ?? 500,
         ...(admission?.temperature !== undefined && { temperature: admission.temperature }),
         ...(admission?.top_p !== undefined && !dropTopP && { top_p: admission.top_p }),
+        ...(admission?.thinking !== undefined && { thinking: admission.thinking }),
       }),
     });
 
@@ -1438,6 +1441,7 @@ export default async function handler(request: Request): Promise<Response> {
       temperature: body.temperature,
       max_tokens: body.max_tokens,
       top_p: body.top_p,
+      thinking: body.thinking,
     };
 
     stage = 'usage-check';
