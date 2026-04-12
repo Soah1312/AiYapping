@@ -1,24 +1,29 @@
+import { useState } from 'react';
 import ModelPicker from './ModelPicker';
 import { MODEL_OPTIONS } from '../lib/modelConfig';
 import { useTheme } from '../context/ThemeContext';
 import { QUICK_PROMPTS } from '../lib/prompts';
 import { useConversationStore } from '../store/conversationStore';
 
+const getTimeBasedHeading = () => {
+  const hour = new Date().getHours();
+
+  if (hour >= 5 && hour < 10) return 'Rise and yap.';
+  if (hour >= 10 && hour < 18) return 'Let the chaos begin.';
+  if (hour >= 18 && hour < 22) return 'Prime time yapping.';
+  if (hour >= 22 || hour === 0) return 'Getting late. Getting unhinged.';
+  if (hour === 1) return "Shouldn't you be sleeping?";
+  if (hour >= 2 && hour < 5) return 'Bro. Go to bed.';
+
+  return 'Let the chaos begin.';
+};
+
 export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, usage, authReady, authError, onOpenSettings }) {
   const { theme } = useTheme();
   const { chaosMode, setChaosMode } = useConversationStore();
 
-  const headingText = theme === 'claude'
-    ? 'Let the chaos begin.'
-    : theme === 'chatgpt'
-      ? 'Pick a fight. We\'re ready.'
-      : '✦ Time to settle this.'; 
-
-  const subText = theme === 'claude'
-    ? "Pick two AIs, give them a prompt. Buckle up for the roast."
-    : theme === 'chatgpt'
-      ? 'Two models. One prompt. Who wins? Only one way to find out.'
-      : 'Set the stage. Let the models decide who\'s right.';
+  const [headingText] = useState(() => getTimeBasedHeading());
+  const subText = 'Pick two AIs, give them a prompt. Buckle up for the roast.';
 
   function handleChipClick(prompt) {
     patchSetup({
