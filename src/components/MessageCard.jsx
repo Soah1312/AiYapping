@@ -52,6 +52,7 @@ export default function MessageCard({ message, onRetry, readOnly = false }) {
   const isKimiIcon = typeof modelIcon === 'string' && modelIcon.includes('/icons/kimi-color.svg');
   const hasError = message.status === 'error';
   const isInterrupted = message.status === 'interrupted';
+  const hasRenderableContent = /\S/.test(String(message.content || ''));
   const showAvatar = !isClaude || message.side === 'ai1' || message.side === 'ai2';
 
   return (
@@ -175,20 +176,22 @@ export default function MessageCard({ message, onRetry, readOnly = false }) {
       )}
 
       {/* Content */}
-      <div className="msg-content-shell">
-        <div
-          className="msg-markdown text-sm leading-relaxed"
-          style={{
-            color: 'var(--text-primary)',
-            lineHeight: theme === 'claude' ? 1.7 : 1.6,
-            fontFamily: theme === 'claude' ? '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' : undefined,
-            fontSize: theme === 'claude' ? '0.95rem' : undefined,
-          }}
-        >
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content || ' '}</ReactMarkdown>
-        </div>
+      {hasRenderableContent && (
+        <div className="msg-content-shell">
+          <div
+            className="msg-markdown text-sm leading-relaxed"
+            style={{
+              color: 'var(--text-primary)',
+              lineHeight: theme === 'claude' ? 1.7 : 1.6,
+              fontFamily: theme === 'claude' ? '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' : undefined,
+              fontSize: theme === 'claude' ? '0.95rem' : undefined,
+            }}
+          >
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+          </div>
 
-      </div>
+        </div>
+      )}
 
       {/* Retry */}
       {!readOnly && (hasError || isInterrupted) && onRetry && (
