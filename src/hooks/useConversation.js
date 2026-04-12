@@ -3,8 +3,8 @@ import { useConversationStore } from '../store/conversationStore';
 import { MODEL_BY_ID } from '../lib/modelConfig';
 import { buildTurnSystemPrompt, getPersonaLabel } from '../lib/prompts';
 import { useStream } from './useStream';
+import { useSettingsStore } from '../store/settingsStore';
 
-const PER_SIDE_LIMIT = 10;
 const MIN_TYPING_BUBBLE_MS = 420;
 const WORD_REVEAL_INTERVAL_MS = 55;
 const REVEAL_IDLE_POLL_MS = 20;
@@ -243,6 +243,18 @@ export function useConversation() {
     setStreaming,
   } = useConversationStore();
 
+  const {
+    turns: PER_SIDE_LIMIT,
+    ai1Temperature,
+    ai2Temperature,
+    ai1MaxTokens,
+    ai2MaxTokens,
+    ai1TopP,
+    ai2TopP,
+    ai1SystemPrompt,
+    ai2SystemPrompt
+  } = useSettingsStore();
+
   const { streamModelResponse, isRequesting } = useStream();
   const runningTurnRef = useRef(false);
   const abortControllerRef = useRef(null);
@@ -316,7 +328,7 @@ export function useConversation() {
       const openingSeed = side === 'ai1' ? setup.openingSeed1 : setup.openingSeed2;
       const chatHistoryText = buildChatHistoryText(transcript);
 
-      const prompt = buildTurnSystemPrompt({
+      const basePrompt = buildTurnSystemPrompt({
         mode: setup.mode,
         topic: setup.topic,
         speakerSide: side,
@@ -328,6 +340,9 @@ export function useConversation() {
         turnNumber: sideTurnNumber,
         chatHistoryText,
       });
+
+      const personalitySystemPrompt = side === 'ai1' ? ai1SystemPrompt : ai2SystemPrompt;
+      const prompt = personalitySystemPrompt.trim() ? `${basePrompt}\n\n${personalitySystemPrompt}` : basePrompt;
 
       const messageId = createMessageId();
       const message = {
@@ -427,6 +442,9 @@ export function useConversation() {
           turnType,
           turnNumber,
           maxTurns: totalMaxTurns,
+          temperature: side === 'ai1' ? ai1Temperature : ai2Temperature,
+          max_tokens: side === 'ai1' ? ai1MaxTokens : ai2MaxTokens,
+          top_p: side === 'ai1' ? ai1TopP : ai2TopP,
           signal: controller.signal,
           onDelta: (delta) => {
             const cleanDelta = sanitizeThinkDelta(delta);

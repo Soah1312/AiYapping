@@ -22,6 +22,9 @@ type ChatRequestBody = {
   turnType?: TurnType;
   turnNumber?: number;
   maxTurns?: number;
+  temperature?: number;
+  max_tokens?: number;
+  top_p?: number;
 };
 
 type AdmissionContext = {
@@ -31,6 +34,9 @@ type AdmissionContext = {
   maxTurns: number;
   sessionId: string;
   requestId: string;
+  temperature?: number;
+  max_tokens?: number;
+  top_p?: number;
 };
 
 const ACTIVE_PRIORITY_RETRY_TIMEOUT_MS = 5 * 60 * 1000;
@@ -421,9 +427,9 @@ async function createNvidiaStreamResponse({
   const nvidiaBaseBody: Record<string, unknown> = {
     model: resolvedModelId,
     messages: nvidiaMessages,
-    temperature: isGlmModel ? 1 : isMistralLargeModel ? 0.15 : isKimiModel ? 0.6 : 0.7,
+    temperature: admission?.temperature ?? (isGlmModel ? 1 : isMistralLargeModel ? 0.15 : isKimiModel ? 0.6 : 0.7),
     top_p: isGlmModel ? 1 : isMistralLargeModel ? 1 : isKimiModel ? 0.9 : 0.9,
-    max_tokens: isGlmModel ? 16384 : isMistralLargeModel ? 2048 : isKimiModel ? 4096 : 900,
+    max_tokens: admission?.max_tokens ?? (isGlmModel ? 16384 : isMistralLargeModel ? 2048 : isKimiModel ? 4096 : 900),
     frequency_penalty: isMistralLargeModel ? 0 : 0,
     presence_penalty: isMistralLargeModel ? 0 : 0,
     stream: true,
@@ -688,7 +694,8 @@ async function createHuggingFaceStreamResponse({
           model: candidateModel,
           messages: normalizedMessages,
           stream: true,
-          max_tokens: 500,
+          max_tokens: admission?.max_tokens ?? 500,
+          ...(admission?.temperature !== undefined && { temperature: admission.temperature }),
         }),
       });
 
@@ -913,6 +920,7 @@ async function createGroqStreamResponse({
   let selectedKey = '';
   let rateLimitedCount = 0;
   let lastErrorText = '';
+  let dropTopP = false;
 
   for (let index = 0; index < groqKeys.length; index += 1) {
     const apiKey = groqKeys[index];
@@ -927,7 +935,9 @@ async function createGroqStreamResponse({
         model: modelId,
         messages: normalizedMessages,
         stream: true,
-        max_tokens: 500,
+        max_tokens: admission?.max_tokens ?? 500,
+        ...(admission?.temperature !== undefined && { temperature: admission.temperature }),
+        ...(admission?.top_p !== undefined && !dropTopP && { top_p: admission.top_p }),
       }),
     });
 
@@ -944,6 +954,15 @@ async function createGroqStreamResponse({
       rateLimitedCount += 1;
       console.warn(`[api/chat] Groq key ${keyLabel(apiKey, index)} rate-limited, rotating...`);
       continue;
+    }
+
+    if (candidate.status === 400 && !dropTopP) {
+      const lowerError = lastErrorText.toLowerCase();
+      if (lowerError.includes('top_p') || lowerError.includes('parameter') || lowerError.includes('sampling')) {
+        dropTopP = true;
+        index -= 1; // Retry the same key
+        continue;
+      }
     }
 
     if (candidate.status === 400 || candidate.status >= 500) {
@@ -1116,6 +1135,7 @@ async function createOpenRouterStreamResponse({
   let selectedKey = '';
   let rateLimitedCount = 0;
   let lastErrorText = '';
+  let dropTopP = false;
 
   for (let index = 0; index < openrouterKeys.length; index += 1) {
     const apiKey = openrouterKeys[index];
@@ -1130,7 +1150,9 @@ async function createOpenRouterStreamResponse({
         model: modelId,
         messages: normalizedMessages,
         stream: true,
-        max_tokens: 500,
+        max_tokens: admission?.max_tokens ?? 500,
+        ...(admission?.temperature !== undefined && { temperature: admission.temperature }),
+        ...(admission?.top_p !== undefined && !dropTopP && { top_p: admission.top_p }),
       }),
     });
 
@@ -1147,6 +1169,15 @@ async function createOpenRouterStreamResponse({
       rateLimitedCount += 1;
       console.warn(`[api/chat] OpenRouter key ${keyLabel(apiKey, index)} rate-limited, rotating...`);
       continue;
+    }
+
+    if (candidate.status === 400 && !dropTopP) {
+      const lowerError = lastErrorText.toLowerCase();
+      if (lowerError.includes('top_p') || lowerError.includes('parameter') || lowerError.includes('sampling')) {
+        dropTopP = true;
+        index -= 1; // Retry the same key
+        continue;
+      }
     }
 
     if (candidate.status === 400 || candidate.status >= 500) {
@@ -1404,6 +1435,9 @@ export default async function handler(request: Request): Promise<Response> {
       maxTurns,
       sessionId: body.sessionId,
       requestId,
+      temperature: body.temperature,
+      max_tokens: body.max_tokens,
+      top_p: body.top_p,
     };
 
     stage = 'usage-check';

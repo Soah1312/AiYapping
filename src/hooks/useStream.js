@@ -150,6 +150,9 @@ export function useStream() {
       turnType,
       turnNumber,
       maxTurns,
+      temperature,
+      max_tokens,
+      top_p,
       onDelta,
       signal,
     }) => {
@@ -184,6 +187,9 @@ export function useStream() {
               turnType,
               turnNumber,
               maxTurns,
+              temperature,
+              max_tokens,
+              top_p,
             }),
             signal,
           });

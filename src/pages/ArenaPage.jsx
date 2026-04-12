@@ -13,6 +13,8 @@ import DuelControls from '../components/DuelControls';
 import MessageCard from '../components/MessageCard';
 import ShareButton from '../components/ShareButton';
 import Toast from '../components/Toast';
+import SettingsPanel from '../components/SettingsPanel';
+import { Settings } from 'lucide-react';
 
 const SIDEBAR_CHAT_TOPICS = [
   { id: 'singularity-race', title: 'Who Triggers Singularity First?', snippet: 'One predicts the path, one tries to derail it.', ai1: 'Defend the claim that your strategy reaches AGI singularity first. Use milestones, timelines, and hard tradeoffs.', ai2: 'Challenge every milestone as overhyped and argue why the other model will fail first under real-world constraints.' },
@@ -30,6 +32,7 @@ export default function ArenaPage() {
   const [authReady, setAuthReady] = useState(false);
   const [authError, setAuthError] = useState('');
   const [starting, setStarting] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [toast, setToast] = useState({ message: '', type: 'info' });
   const previousStatusRef = useRef('idle');
   const titleRequestConversationRef = useRef('');
@@ -264,6 +267,7 @@ export default function ArenaPage() {
       activeChatId={activeSidebarChat?.id || ''}
       activeSavedChatId={activeSavedChatId || ''}
     >
+      <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       {inSetup ? (
         <SetupForm
           setup={setup}
@@ -274,6 +278,7 @@ export default function ArenaPage() {
           usage={usage}
           authReady={authReady}
           authError={authError}
+          onOpenSettings={() => setSettingsOpen(true)}
         />
       ) : (
         <>
@@ -284,8 +289,18 @@ export default function ArenaPage() {
               <span className="status-badge claude-chat-pill">Turns: {aiTurnCount}</span>
             </div>
             {theme === 'claude' && status !== 'completed' && (
-              <div className="claude-chat-header-right">
+              <div className="claude-chat-header-right" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <ShareButton setup={setup} transcript={transcript} summary={summary} />
+                <button onClick={() => setSettingsOpen(true)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                  <Settings size={18} />
+                </button>
+              </div>
+            )}
+            {(theme !== 'claude' || status === 'completed') && (
+              <div className="claude-chat-header-right">
+                <button onClick={() => setSettingsOpen(true)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                  <Settings size={18} />
+                </button>
               </div>
             )}
           </div>

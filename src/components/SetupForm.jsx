@@ -1,6 +1,7 @@
 import ModelPicker from './ModelPicker';
 import { MODEL_OPTIONS } from '../lib/modelConfig';
 import { useTheme } from '../context/ThemeContext';
+import { Settings } from 'lucide-react';
 
 const SUGGESTION_TOPICS = [
   { id: 'singularity-race', title: 'Who Breaks the Internet First?', snippet: 'One claims dominance. One says nope.', ai1: 'Defend the claim that your strategy reaches AGI singularity first. Use milestones, timelines, and hard tradeoffs.', ai2: 'Challenge every milestone as overhyped and argue why the other model will fail first under real-world constraints.' },
@@ -10,7 +11,7 @@ const SUGGESTION_TOPICS = [
   { id: 'provider-origin', title: 'Which AI Lab Would Build You?', snippet: 'The great provider debate.', ai1: 'If you had to be created by a different AI provider, pick one and defend it using concrete tradeoffs: innovation speed, safety culture, developer ecosystem, and long-term reliability.', ai2: 'Challenge that pick and argue for a better provider with evidence around openness, deployment quality, cost efficiency, and real-world performance.' },
 ];
 
-export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, usage, authReady, authError }) {
+export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, usage, authReady, authError, onOpenSettings }) {
   const { theme } = useTheme();
 
   const headingText = theme === 'claude'
@@ -34,7 +35,22 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
 
   return (
     <div className="setup-hero">
-      <div className="setup-hero-inner">
+      <div className="setup-hero-inner" style={{ position: 'relative' }}>
+        <button 
+          onClick={onOpenSettings} 
+          style={{ 
+            position: 'absolute', 
+            top: 0, 
+            right: 0, 
+            background: 'transparent', 
+            border: 'none', 
+            color: 'var(--text-secondary)', 
+            cursor: 'pointer' 
+          }}
+          type="button"
+        >
+          <Settings size={20} />
+        </button>
         {/* Heading */}
         <h1
           className={`main-heading display-font ${theme === 'gemini' ? 'gemini-gradient-text' : ''}`}
