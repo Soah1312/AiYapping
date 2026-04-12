@@ -34,10 +34,11 @@ export default function ArenaPage() {
   const previousStatusRef = useRef('idle');
   const titleRequestConversationRef = useRef('');
   const titleAppliedConversationRef = useRef('');
+  const backendPersistedConversationRef = useRef('');
 
   const {
-    sessionId, conversationKey, setup, usage, summary, savedChats, activeSavedChatId, generatedChatTitle,
-    patchSetup, setSessionId, setUsage, setGeneratedChatTitle, applyGeneratedTitleToSavedChat,
+    sessionId, conversationId, conversationKey, setup, usage, summary, savedChats, activeSavedChatId, generatedChatTitle,
+    patchSetup, setSessionId, setUsage, setGeneratedChatTitle, setConversationId, applyGeneratedTitleToSavedChat,
     resetConversation, startConversation, saveCurrentChat, loadSavedChat, deleteSavedChat,
   } = useConversationStore();
 
@@ -113,7 +114,98 @@ export default function ArenaPage() {
         type: 'info',
       });
     }
-  }, [generatedChatTitle, saveCurrentChat, status]);
+
+    if (!sessionId || !conversationKey || activeSavedChatId) {
+      return;
+    }
+
+    const persistenceMarker = `${conversationKey}:${transcript.length}`;
+    if (backendPersistedConversationRef.current === persistenceMarker) {
+      return;
+    }
+
+    backendPersistedConversationRef.current = persistenceMarker;
+
+    const payload = {
+      sessionId,
+      conversationId: conversationId || undefined,
+      topic: setup.topic || generatedChatTitle || 'Untitled Arena',
+      config: {
+        model1: setup.ai1Model,
+        model2: setup.ai2Model,
+        mode: setup.mode === 'debate' ? 'debate' : 'chat',
+      },
+      transcript: transcript.map((message) => ({
+        role: message.role,
+        content: String(message.content || ''),
+        model: message.model || '',
+        timestamp: message.timestamp,
+        side: message.side,
+        status: message.status,
+        finishedAt: message.finishedAt || null,
+        interrupted: Boolean(message.interrupted),
+      })),
+      verdict: summary?.verdict
+        ? {
+          winner: summary.verdict,
+          reason: summary.consensus || '',
+        }
+        : null,
+    };
+
+    (async () => {
+      try {
+        const response = await fetch('/api/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        let body = null;
+        try {
+          body = await response.json();
+        } catch {
+          body = null;
+        }
+
+        if (!response.ok) {
+          throw new Error(String(body?.error || `Save failed (${response.status})`));
+        }
+
+        if (body?.conversationId) {
+          setConversationId(body.conversationId);
+        }
+
+        console.info('[arena] Duel persisted for admin stats', {
+          conversationKey,
+          conversationId: body?.conversationId || conversationId || null,
+          turnCount: transcript.length,
+        });
+      } catch (error) {
+        backendPersistedConversationRef.current = '';
+        console.warn('[arena] Failed to persist duel for admin stats', {
+          conversationKey,
+          error: String(error?.message || error),
+        });
+      }
+    })();
+  }, [
+    activeSavedChatId,
+    conversationId,
+    conversationKey,
+    generatedChatTitle,
+    saveCurrentChat,
+    sessionId,
+    setConversationId,
+    setup.ai1Model,
+    setup.ai2Model,
+    setup.mode,
+    setup.topic,
+    status,
+    summary?.consensus,
+    summary?.verdict,
+    transcript,
+  ]);
 
   /* ── Generate chat title with Mistral once a duel starts ── */
   useEffect(() => {
@@ -235,6 +327,7 @@ export default function ArenaPage() {
     e.preventDefault();
     if (!canRun || starting) return;
     setStarting(true);
+    backendPersistedConversationRef.current = '';
     titleRequestConversationRef.current = '';
     titleAppliedConversationRef.current = '';
     setGeneratedChatTitle('');
@@ -245,6 +338,7 @@ export default function ArenaPage() {
   }
 
   function handleNewChat() {
+    backendPersistedConversationRef.current = '';
     titleRequestConversationRef.current = '';
     titleAppliedConversationRef.current = '';
     setGeneratedChatTitle('');
