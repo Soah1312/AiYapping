@@ -258,7 +258,36 @@ export default function ArenaPage() {
   const Shell = SHELLS[theme] || ClaudeShell;
 
   return (
-    <Shell
+    <>
+      <style>{`
+        .sidebar-settings-btn {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          width: 100%;
+          padding: 8px 12px;
+          border-radius: 8px;
+          background: transparent;
+          border: none;
+          color: var(--text-primary);
+          font-size: 0.875rem;
+          cursor: pointer;
+        }
+
+        .sidebar-settings-btn:hover {
+          background: var(--bg-hover);
+        }
+
+        .sidebar-bottom {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          padding: 12px;
+          border-top: 1px solid var(--border-color);
+        }
+      `}</style>
+      <Shell
       sidebarChats={SIDEBAR_CHAT_TOPICS}
       savedChats={savedChats}
       onSelectChat={handleSidebarSelect}
@@ -266,6 +295,7 @@ export default function ArenaPage() {
       onDeleteSavedChat={handleSavedChatDelete}
       activeChatId={activeSidebarChat?.id || ''}
       activeSavedChatId={activeSavedChatId || ''}
+      onOpenSettings={() => setSettingsOpen(true)}
     >
       <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       {inSetup ? (
@@ -278,7 +308,6 @@ export default function ArenaPage() {
           usage={usage}
           authReady={authReady}
           authError={authError}
-          onOpenSettings={() => setSettingsOpen(true)}
         />
       ) : (
         <>
@@ -289,18 +318,8 @@ export default function ArenaPage() {
               <span className="status-badge claude-chat-pill">Turns: {aiTurnCount}</span>
             </div>
             {theme === 'claude' && status !== 'completed' && (
-              <div className="claude-chat-header-right" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <ShareButton setup={setup} transcript={transcript} summary={summary} />
-                <button onClick={() => setSettingsOpen(true)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
-                  <Settings size={18} />
-                </button>
-              </div>
-            )}
-            {(theme !== 'claude' || status === 'completed') && (
               <div className="claude-chat-header-right">
-                <button onClick={() => setSettingsOpen(true)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
-                  <Settings size={18} />
-                </button>
+                <ShareButton setup={setup} transcript={transcript} summary={summary} />
               </div>
             )}
           </div>
@@ -338,6 +357,7 @@ export default function ArenaPage() {
         type={toast.type}
         onClose={() => setToast({ message: '', type: 'info' })}
       />
-    </Shell>
+      </Shell>
+    </>
   );
 }

@@ -408,6 +408,21 @@ export function useConversation() {
           ? buildContextMessages({ transcript: transcript.slice(-6), systemPrompt: prompt, speakerSide: side })
           : initialMessages;
 
+        const isGroqOrOpenRouter = provider === 'groq' || provider === 'openrouter';
+        const activeParams = {
+          temperature: side === 'ai1' ? ai1Temperature : ai2Temperature,
+          max_tokens: side === 'ai1' ? ai1MaxTokens : ai2MaxTokens,
+          ...(isGroqOrOpenRouter && { top_p: side === 'ai1' ? ai1TopP : ai2TopP })
+        };
+
+        if (side === 'ai1') {
+          console.log('AI-1 params:', activeParams);
+          console.log('AI-1 system prompt:', prompt);
+        } else {
+          console.log('AI-2 params:', activeParams);
+          console.log('AI-2 system prompt:', prompt);
+        }
+
         await streamModelResponse({
           provider,
           model: speakerModel,

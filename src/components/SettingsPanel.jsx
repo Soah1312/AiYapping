@@ -1,6 +1,19 @@
 import React from 'react';
 import { useSettingsStore } from '../store/settingsStore';
 import { PERSONALITY_PRESETS, QUICK_PAIRINGS } from '../lib/presets';
+import {
+  PhDvsDropoutIcon,
+  NerdVsMenaceIcon,
+  LawyerVsToddlerIcon,
+  LinkedInVs4chanIcon
+} from './icons/PairingIcons';
+
+const PAIRING_ICONS = {
+  phdVsDropout: <PhDvsDropoutIcon />,
+  nerdVsMenace: <NerdVsMenaceIcon />,
+  lawyerVsToddler: <LawyerVsToddlerIcon />,
+  linkedInVs4chan: <LinkedInVs4chanIcon />
+};
 
 export default function SettingsPanel({ open, onClose }) {
   const {
@@ -29,6 +42,43 @@ export default function SettingsPanel({ open, onClose }) {
 
   return (
     <>
+      <style>{`
+        .pairing-btn {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 6px;
+          padding: 12px;
+          background: var(--bg-hover);
+          border: 1px solid var(--border-color);
+          border-radius: 12px;
+          cursor: pointer;
+          font-size: 0.8rem;
+          color: var(--text-primary);
+          text-align: center;
+          transition: border-color 0.15s ease;
+          flex: 1 1 calc(50% - 8px);
+        }
+
+        .pairing-btn:hover {
+          border-color: var(--accent);
+        }
+
+        .pairing-btn .pairing-icon svg {
+          width: 28px;
+          height: 28px;
+        }
+
+        .pairing-btn .pairing-name {
+          font-weight: 500;
+          font-size: 0.8rem;
+        }
+
+        .pairing-btn .pairing-subtitle {
+          color: var(--text-secondary);
+          font-size: 0.72rem;
+        }
+      `}</style>
       <div 
         onClick={onClose} 
         style={{
@@ -83,26 +133,21 @@ export default function SettingsPanel({ open, onClose }) {
           QUICK PAIRINGS
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-          {QUICK_PAIRINGS.map((pairing, i) => (
-            <button
-              key={i}
-              onClick={() => handleQuickPairing(pairing)}
-              style={{
-                background: 'var(--bg-hover)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '20px',
-                padding: '6px 14px',
-                fontSize: '0.8rem',
-                color: 'var(--text-primary)',
-                cursor: 'pointer',
-                transition: 'border-color 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--accent)'}
-              onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
-            >
-              {pairing.emoji} {pairing.name}
-            </button>
-          ))}
+          {QUICK_PAIRINGS.map((pairing, i) => {
+            return (
+              <button
+                key={i}
+                onClick={() => handleQuickPairing(pairing)}
+                className="pairing-btn"
+              >
+                <div className="pairing-icon" style={{ color: 'var(--accent)' }}>
+                  {PAIRING_ICONS[pairing.id]}
+                </div>
+                <div className="pairing-name">{pairing.name}</div>
+                <div className="pairing-subtitle">{pairing.subtitle}</div>
+              </button>
+            );
+          })}
         </div>
 
         <div style={{ 

@@ -2,7 +2,7 @@ export const PERSONALITY_PRESETS = {
   lafangaa: {
     id: 'lafangaa',
     emoji: '🔥',
-    name: 'Lafangaa',
+    name: 'Unhinged',
     description: 'Full bakwaas mode, no filter, pure chaos',
     temperature: 1.8,
     max_tokens: 300,
@@ -12,7 +12,7 @@ export const PERSONALITY_PRESETS = {
   kadak: {
     id: 'kadak',
     emoji: '🗡️',
-    name: 'Kadak',
+    name: 'Precise',
     description: 'Seedha point, no gappe, cuts like a knife',
     temperature: 0.6,
     max_tokens: 200,
@@ -22,7 +22,7 @@ export const PERSONALITY_PRESETS = {
   gyaaniBaba: {
     id: 'gyaaniBaba',
     emoji: '📚',
-    name: 'Gyaani Baba',
+    name: 'Academic',
     description: 'Full lecture mode, reference pe reference',
     temperature: 0.7,
     max_tokens: 600,
@@ -32,7 +32,7 @@ export const PERSONALITY_PRESETS = {
   mirchi: {
     id: 'mirchi',
     emoji: '🌶️',
-    name: 'Mirchi',
+    name: 'Spicy',
     description: 'Spicy takes, gets under your skin',
     temperature: 1.2,
     max_tokens: 400,
@@ -42,7 +42,7 @@ export const PERSONALITY_PRESETS = {
   sabMohMayaHai: {
     id: 'sabMohMayaHai',
     emoji: '🧊',
-    name: 'Sab Moh Maya Hai',
+    name: 'Detached',
     description: 'Detached, unbothered, nihilist vibes',
     temperature: 0.4,
     max_tokens: 250,
@@ -52,7 +52,7 @@ export const PERSONALITY_PRESETS = {
   filmyBhai: {
     id: 'filmyBhai',
     emoji: '🎭',
-    name: 'Filmy Bhai',
+    name: 'Dramatic',
     description: 'Har cheez mein drama, dialogue baazi expert',
     temperature: 1.5,
     max_tokens: 450,
@@ -62,7 +62,7 @@ export const PERSONALITY_PRESETS = {
   theekHaiBoss: {
     id: 'theekHaiBoss',
     emoji: '⚖️',
-    name: 'Theek Hai Boss',
+    name: 'Balanced',
     description: 'Default, chill, balanced — no nautanki',
     temperature: 1.0,
     max_tokens: 400,
@@ -73,33 +73,39 @@ export const PERSONALITY_PRESETS = {
 
 export const QUICK_PAIRINGS = [
   {
-    name: 'Aag Laga Do',
-    emoji: '🔥',
-    ai1: 'lafangaa',
-    ai2: 'lafangaa'
-  },
-  {
-    name: 'Guru vs Chela',
-    emoji: '🎓',
+    id: 'phdVsDropout',
+    name: 'PhD vs Dropout',
+    subtitle: 'Academic vs Chaos',
     ai1: 'gyaaniBaba',
-    ai2: 'lafangaa'
+    ai2: 'lafangaa',
+    ai1Prompt: 'Argue your point with academic precision. Use references, structure your argument, and occasionally sound condescending about how little the other side knows.',
+    ai2Prompt: 'You dropped out and you have zero regrets. Tear apart their overcomplication with street smart logic and chaotic energy. No citations needed.'
   },
   {
-    name: 'Bigg Boss Episode',
-    emoji: '📺',
-    ai1: 'filmyBhai',
-    ai2: 'mirchi'
-  },
-  {
-    name: 'Existential Beef',
-    emoji: '🌀',
-    ai1: 'sabMohMayaHai',
-    ai2: 'kadak'
-  },
-  {
-    name: 'Padhai vs Jugaad',
-    emoji: '💡',
+    id: 'nerdVsMenace',
+    name: 'Nerd vs Menace',
+    subtitle: 'Calculated vs Unhinged',
     ai1: 'gyaaniBaba',
-    ai2: 'kadak'
+    ai2: 'mirchi',
+    ai1Prompt: 'Respond with careful, well-researched arguments. You have done the reading. You have the data. Deploy it mercilessly.',
+    ai2Prompt: 'You are the chaos agent in this debate. Be provocative, spicy, and get completely under their skin with every single response.'
+  },
+  {
+    id: 'lawyerVsToddler',
+    name: 'Lawyer vs Toddler',
+    subtitle: 'Precise vs Unfiltered',
+    ai1: 'kadak',
+    ai2: 'lafangaa',
+    ai1Prompt: 'Argue like a seasoned lawyer. Sharp, precise, no fluff. Every word is deliberate and devastating.',
+    ai2Prompt: 'Argue like you have had too much sugar and absolutely no filter. Logic is optional. Volume is mandatory.'
+  },
+  {
+    id: 'linkedInVs4chan',
+    name: 'LinkedIn vs 4chan',
+    subtitle: 'Corporate vs Feral',
+    ai1: 'theekHaiBoss',
+    ai2: 'lafangaa',
+    ai1Prompt: 'Respond like a LinkedIn thought leader. Use phrases like "lessons learned", "growth mindset", and "excited to share". Be insufferably professional.',
+    ai2Prompt: 'Respond like the complete opposite of a LinkedIn post. Raw, unfiltered, chaotic. Call out the corporate speak immediately.'
   }
 ];

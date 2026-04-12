@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { SquarePen, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { SquarePen, PanelLeftClose, PanelLeftOpen, Settings } from 'lucide-react';
 import ThemeSwitcher from '../ThemeSwitcher';
 
 export default function GptShell({
@@ -12,6 +12,7 @@ export default function GptShell({
   onDeleteSavedChat,
   activeChatId,
   activeSavedChatId,
+  onOpenSettings,
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
@@ -66,10 +67,13 @@ export default function GptShell({
           )}
         </div>
 
-        <div className="gpt-sidebar-bottom">
-          <button className="sidebar-item gpt-user-row" type="button">
-            <span className="gpt-user-avatar">U</span>
-            <span className="sidebar-item-title gpt-collapse-hide">User</span>
+        <div className="gpt-sidebar-bottom sidebar-bottom">
+          <button 
+            className="sidebar-settings-btn"
+            onClick={onOpenSettings}
+          >
+            <Settings size={16} />
+            <span className="sidebar-item-title gpt-collapse-hide">Settings</span>
           </button>
         </div>
       </aside>

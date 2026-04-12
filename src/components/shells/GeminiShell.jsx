@@ -6,6 +6,7 @@ import {
   MessageSquare,
   Menu,
   X,
+  Settings,
 } from 'lucide-react';
 import ThemeSwitcher from '../ThemeSwitcher';
 
@@ -18,6 +19,7 @@ export default function GeminiShell({
   onDeleteSavedChat,
   activeChatId,
   activeSavedChatId,
+  onOpenSettings,
 }) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -94,6 +96,16 @@ export default function GeminiShell({
           {sidebarOpen && (savedChats || []).length === 0 && (
             <p className="gemini-empty-recents">You haven't seen them yap yet</p>
           )}
+        </div>
+
+        <div className="sidebar-bottom">
+          <button 
+            className="sidebar-settings-btn"
+            onClick={onOpenSettings}
+          >
+            <Settings size={16} />
+            <span className="gemini-collapse-hide">Settings</span>
+          </button>
         </div>
       </aside>
 
