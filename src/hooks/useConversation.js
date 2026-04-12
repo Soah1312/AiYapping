@@ -195,34 +195,6 @@ function buildContextMessages({ transcript, systemPrompt, speakerSide }) {
 
   return context;
 }
-
-function buildChatHistoryText(transcript) {
-  const relevant = transcript.filter((message) => message.role === 'system' || isAiMessage(message));
-  if (relevant.length === 0) {
-    return 'No prior turns.';
-  }
-
-  // Keep history bounded to avoid ballooning prompt size.
-  const recent = relevant.slice(-10);
-  const lines = recent.map((message) => {
-    if (message.role === 'system') {
-      const clean = stripThinkBlocks(message.content);
-      return clean ? `[Director] ${clean}` : '';
-    }
-
-    const speaker = message.side === 'ai1' ? 'AI-1' : 'AI-2';
-    const content = stripThinkBlocks(message.content);
-    if (!content) {
-      return '';
-    }
-
-    return `[${speaker}] ${content}`;
-  });
-
-  const compact = lines.filter(Boolean).join('\n');
-  return compact || 'No prior turns.';
-}
-
 export function useConversation() {
   const {
     sessionId,
@@ -326,7 +298,6 @@ export function useConversation() {
 
       const sideTurnNumber = side === 'ai1' ? ai1TurnCount + 1 : ai2TurnCount + 1;
       const openingSeed = side === 'ai1' ? setup.openingSeed1 : setup.openingSeed2;
-      const chatHistoryText = buildChatHistoryText(transcript);
 
       const basePrompt = buildTurnSystemPrompt({
         mode: setup.mode,
@@ -338,7 +309,6 @@ export function useConversation() {
         opponentPersona,
         openingSeed,
         turnNumber: sideTurnNumber,
-        chatHistoryText,
       });
 
       const personalitySystemPrompt = side === 'ai1' ? ai1SystemPrompt : ai2SystemPrompt;
@@ -427,11 +397,16 @@ export function useConversation() {
       void runRevealLoop();
 
       try {
-        const messages = buildContextMessages({
-          transcript,
+        const initialMessages = buildContextMessages({
+          transcript: transcript.slice(-10),
           systemPrompt: prompt,
           speakerSide: side,
         });
+
+        const totalChars = initialMessages.reduce((sum, m) => sum + m.content.length, 0);
+        const messages = totalChars > 12000 
+          ? buildContextMessages({ transcript: transcript.slice(-6), systemPrompt: prompt, speakerSide: side })
+          : initialMessages;
 
         await streamModelResponse({
           provider,
