@@ -28,8 +28,17 @@ export default function GptShell({
       {/* Sidebar */}
       <aside className={`app-sidebar gpt-sidebar scrollbar-thin ${sidebarOpen ? 'sidebar-open sidebar-expanded' : 'sidebar-collapsed'}`}>
         <div className="gpt-sidebar-top">
-          <Link to="/" className="gpt-wordmark">
-            <img src="/icons/openai-color.svg" alt="" className="gpt-logo-image" aria-hidden="true" />
+          <Link to="/" className="gpt-wordmark flex items-center gap-2" style={{ textDecoration: 'none' }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="url(#yap-grad-gpt2)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="yap-logo shrink-0" aria-hidden="true">
+              <defs>
+                <linearGradient id="yap-grad-gpt2" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#f43f5e" />
+                  <stop offset="100%" stopColor="#f97316" />
+                </linearGradient>
+              </defs>
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              <path d="M12 9v4M8 11v2M16 11v2" />
+            </svg>
             <span className="gpt-wordmark-text gpt-collapse-hide">Ai Yapping</span>
           </Link>
         </div>
@@ -106,10 +115,15 @@ export default function GptShell({
               {sidebarOpen ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
             </button>
             <Link to="/" className="brand-name flex items-center gap-2" style={{ fontWeight: '600', fontSize: '1.25rem', color: 'var(--text-primary)', textDecoration: 'none' }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-orange-500">
-                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-                <path d="M15 9h-6" />
-                <path d="M15 13h-6" />
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="url(#yap-grad-gpt)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="yap-logo">
+                <defs>
+                  <linearGradient id="yap-grad-gpt" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#f43f5e" />
+                    <stop offset="100%" stopColor="#f97316" />
+                  </linearGradient>
+                </defs>
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                <path d="M12 9v4M8 11v2M16 11v2" />
               </svg>
               <span className="brand-name-mobile-only">Ai Yapping</span>
             </Link>
