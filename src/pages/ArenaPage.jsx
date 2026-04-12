@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { ensureAnonymousUser } from '../lib/firebaseClient';
 import { useConversation } from '../hooks/useConversation';
 import { useConversationStore } from '../store/conversationStore';
@@ -30,6 +31,7 @@ export default function ArenaPage() {
   const [authReady, setAuthReady] = useState(false);
   const [authError, setAuthError] = useState('');
   const [starting, setStarting] = useState(false);
+  const [showJumpButton, setShowJumpButton] = useState(false);
   const [toast, setToast] = useState({ message: '', type: 'info' });
   const previousStatusRef = useRef('idle');
   const titleRequestConversationRef = useRef('');
@@ -306,13 +308,38 @@ export default function ArenaPage() {
     saveCurrentChat({ title: generatedChatTitle });
   }, [conversationKey, generatedChatTitle, saveCurrentChat, status]);
 
-  /* ── Auto-scroll ── */
-  useEffect(() => {
-    if (feedRef.current) feedRef.current.scrollTop = feedRef.current.scrollHeight;
-  }, [transcript.length, isStreaming]);
-
   const canRun = Boolean(setup.openingSeed1?.trim()) && Boolean(setup.openingSeed2?.trim()) && authReady && Boolean(sessionId);
   const inSetup = status === 'idle';
+
+  useEffect(() => {
+    if (inSetup) {
+      setShowJumpButton(false);
+      return;
+    }
+
+    const el = feedRef.current;
+    if (!el) return;
+
+    const handleScroll = () => {
+      const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+      setShowJumpButton(distanceFromBottom > 300);
+    };
+
+    handleScroll();
+    el.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      el.removeEventListener('scroll', handleScroll);
+    };
+  }, [inSetup]);
+
+  useEffect(() => {
+    if (inSetup) return;
+    const el = feedRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    setShowJumpButton(distanceFromBottom > 300);
+  }, [inSetup, transcript.length, isStreaming]);
 
   const ai1Label = MODEL_BY_ID[setup.ai1Model]?.label || 'AI-1';
   const ai2Label = MODEL_BY_ID[setup.ai2Model]?.label || 'AI-2';
@@ -373,6 +400,16 @@ export default function ArenaPage() {
     titleAppliedConversationRef.current = '';
     setGeneratedChatTitle('');
     resetConversation({ keepSetup: false });
+  }
+
+  function jumpToLatest() {
+    const el = feedRef.current;
+    if (!el) return;
+
+    el.scrollTo({
+      top: el.scrollHeight,
+      behavior: 'smooth',
+    });
   }
 
   /* ── Pick shell ── */
@@ -463,6 +500,26 @@ export default function ArenaPage() {
               )}
             </div>
           </div>
+
+          <AnimatePresence>
+            {showJumpButton && (
+              <motion.div
+                className="jump-to-latest-anchor"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <button
+                  type="button"
+                  onClick={jumpToLatest}
+                  className="jump-to-latest"
+                >
+                  ↓ Latest
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Controls */}
           <DuelControls

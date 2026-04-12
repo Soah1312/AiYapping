@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import ModelPicker from './ModelPicker';
 import { MODEL_OPTIONS } from '../lib/modelConfig';
 import { useTheme } from '../context/ThemeContext';
@@ -24,6 +24,19 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
 
   const [headingText] = useState(() => getTimeBasedHeading());
   const subText = 'Pick two AIs, give them a prompt. Buckle up for the roast.';
+  const remainingText = `${usage.remaining} yaps remaining. Use them wisely.`;
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        onRun({ preventDefault: () => {} });
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onRun]);
 
   function handleChipClick(prompt) {
     patchSetup({
@@ -106,13 +119,13 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
           <div className="col-span-full flex flex-wrap items-center justify-between gap-3 mt-2">
             <div>
               <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                Free duels left: <strong>{usage.remaining}</strong> / {usage.limit}
+                <strong>{remainingText}</strong>
               </p>
               {!authReady && <p className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>Warming up the neurons...</p>}
               {authError && <p className="mt-1 text-xs" style={{ color: 'var(--danger)' }}>{authError}</p>}
             </div>
 
-            <button type="submit" className="btn-primary" disabled={!canRun || starting}>
+            <button type="submit" className="btn-primary" disabled={!canRun || starting} title="Ctrl + Enter">
               {starting ? 'Igniting...' : 'Let\'s go'}
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="9 18 15 12 9 6" />
