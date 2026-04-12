@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { SquarePen, PanelLeftClose, PanelLeftOpen, Settings, Trash2 } from 'lucide-react';
+import { SquarePen, PanelLeftClose, PanelLeftOpen, Trash2 } from 'lucide-react';
 import ThemeSwitcher from '../ThemeSwitcher';
 
 export default function GptShell({
@@ -12,21 +12,21 @@ export default function GptShell({
   onDeleteSavedChat,
   activeChatId,
   activeSavedChatId,
-  onOpenSettings,
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   return (
     <div className="app-shell">
       {/* Mobile backdrop */}
       <div
-        className={`sidebar-backdrop ${sidebarOpen ? 'sidebar-open' : ''}`}
-        onClick={() => setSidebarOpen(false)}
+        className={`sidebar-backdrop ${mobileSidebarOpen ? 'sidebar-open' : ''}`}
+        onClick={() => setMobileSidebarOpen(false)}
         aria-hidden="true"
       />
 
       {/* Sidebar */}
-      <aside className={`app-sidebar gpt-sidebar scrollbar-thin ${sidebarOpen ? 'sidebar-open sidebar-expanded' : 'sidebar-collapsed'}`}>
+      <aside className={`app-sidebar gpt-sidebar scrollbar-thin ${mobileSidebarOpen ? 'sidebar-open' : ''} ${sidebarOpen ? 'sidebar-expanded' : 'sidebar-collapsed'}`}>
         <div className="gpt-sidebar-top">
           <Link to="/" className="gpt-wordmark flex items-center gap-2" style={{ textDecoration: 'none' }}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="url(#yap-grad-gpt2)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="yap-logo shrink-0" aria-hidden="true">
@@ -48,7 +48,7 @@ export default function GptShell({
             className="sidebar-item"
             onClick={() => {
               onSelectChat?.(null);
-              setSidebarOpen(false);
+              setMobileSidebarOpen(false);
             }}
           >
             <SquarePen size={16} />
@@ -68,7 +68,7 @@ export default function GptShell({
                 className={`sidebar-item history-open-btn gpt-history-open ${activeSavedChatId === chat.id ? 'active' : ''}`}
                 onClick={() => {
                   onSelectSavedChat?.(chat.id);
-                  setSidebarOpen(false);
+                  setMobileSidebarOpen(false);
                 }}
               >
                 <span className="sidebar-item-title block truncate">{chat.title}</span>
@@ -91,22 +91,21 @@ export default function GptShell({
             <p className="gpt-empty-recents">You haven't seen them yap yet</p>
           )}
         </div>
-
-        <div className="gpt-sidebar-bottom sidebar-bottom">
-          <button 
-            className="sidebar-settings-btn"
-            onClick={onOpenSettings}
-          >
-            <Settings size={16} />
-            <span className="sidebar-item-title gpt-collapse-hide">Settings</span>
-          </button>
-        </div>
       </aside>
 
       {/* Main */}
       <div className="app-main">
         <header className="app-header">
           <div className="flex items-center gap-2">
+            <button
+              className="hamburger-btn"
+              onClick={() => setMobileSidebarOpen(true)}
+              aria-label="Open sidebar"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
             <button
               className="gpt-header-toggle"
               onClick={() => setSidebarOpen((value) => !value)}

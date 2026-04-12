@@ -3,7 +3,6 @@ import { useConversationStore } from '../store/conversationStore';
 import { MODEL_BY_ID } from '../lib/modelConfig';
 import { buildTurnSystemPrompt, getPersonaLabel } from '../lib/prompts';
 import { useStream } from './useStream';
-import { useSettingsStore } from '../store/settingsStore';
 
 const MIN_TYPING_BUBBLE_MS = 420;
 const WORD_REVEAL_INTERVAL_MS = 55;
@@ -215,17 +214,15 @@ export function useConversation() {
     setStreaming,
   } = useConversationStore();
 
-  const {
-    turns: PER_SIDE_LIMIT,
-    ai1Temperature,
-    ai2Temperature,
-    ai1MaxTokens,
-    ai2MaxTokens,
-    ai1TopP,
-    ai2TopP,
-    ai1SystemPrompt,
-    ai2SystemPrompt
-  } = useSettingsStore();
+  const PER_SIDE_LIMIT = 5;
+  const ai1Temperature = 0.7;
+  const ai2Temperature = 0.7;
+  const ai1MaxTokens = 150;
+  const ai2MaxTokens = 150;
+  const ai1TopP = 0.9;
+  const ai2TopP = 0.9;
+  const ai1SystemPrompt = '';
+  const ai2SystemPrompt = '';
 
   const { streamModelResponse, isRequesting } = useStream();
   const runningTurnRef = useRef(false);

@@ -3,14 +3,10 @@ import { Link } from 'react-router-dom';
 import {
   Trash2,
   Plus,
-  Search,
-  SlidersHorizontal,
   MessageSquare,
   PanelLeftClose,
   PanelLeftOpen,
-  User,
   X,
-  Settings,
 } from 'lucide-react';
 import ThemeSwitcher from '../ThemeSwitcher';
 
@@ -23,7 +19,6 @@ export default function ClaudeShell({
   onDeleteSavedChat,
   activeChatId,
   activeSavedChatId,
-  onOpenSettings,
 }) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -86,18 +81,7 @@ export default function ClaudeShell({
           <span className="claude-collapse-hide">New chat</span>
         </button>
 
-        <button
-          type="button"
-          className="claude-nav-item"
-        >
-          <Search size={16} />
-          <span className="claude-collapse-hide">Search</span>
-        </button>
 
-        <button type="button" className="claude-nav-item">
-          <SlidersHorizontal size={16} />
-          <span className="claude-collapse-hide">Customize</span>
-        </button>
 
         <div className="claude-divider" />
 
@@ -139,15 +123,6 @@ export default function ClaudeShell({
           )}
         </div>
 
-        <div className="claude-sidebar-bottom sidebar-bottom">
-          <button 
-            className="sidebar-settings-btn"
-            onClick={onOpenSettings}
-          >
-            <Settings size={16} />
-            <span className="claude-collapse-hide">Settings</span>
-          </button>
-        </div>
       </aside>
 
       {/* Main */}

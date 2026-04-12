@@ -13,8 +13,6 @@ import DuelControls from '../components/DuelControls';
 import MessageCard from '../components/MessageCard';
 import ShareButton from '../components/ShareButton';
 import Toast from '../components/Toast';
-import SettingsPanel from '../components/SettingsPanel';
-import { Settings } from 'lucide-react';
 
 const SIDEBAR_CHAT_TOPICS = [
   { id: 'singularity-race', title: 'Who Triggers Singularity First?', snippet: 'One predicts the path, one tries to derail it.', ai1: 'Defend the claim that your strategy reaches AGI singularity first. Use milestones, timelines, and hard tradeoffs.', ai2: 'Challenge every milestone as overhyped and argue why the other model will fail first under real-world constraints.' },
@@ -32,7 +30,6 @@ export default function ArenaPage() {
   const [authReady, setAuthReady] = useState(false);
   const [authError, setAuthError] = useState('');
   const [starting, setStarting] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [toast, setToast] = useState({ message: '', type: 'info' });
   const previousStatusRef = useRef('idle');
   const titleRequestConversationRef = useRef('');
@@ -373,12 +370,10 @@ export default function ArenaPage() {
         }
 
         .sidebar-bottom {
-          position: absolute;
-          bottom: 0;
-          left: 0;
-          right: 0;
+          margin-top: auto;
           padding: 12px;
           border-top: 1px solid var(--border-color);
+          flex-shrink: 0;
         }
       `}</style>
       <Shell
@@ -389,9 +384,7 @@ export default function ArenaPage() {
       onDeleteSavedChat={handleSavedChatDelete}
       activeChatId={activeSidebarChat?.id || ''}
       activeSavedChatId={activeSavedChatId || ''}
-      onOpenSettings={() => setSettingsOpen(true)}
     >
-      <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       {inSetup ? (
         <SetupForm
           setup={setup}

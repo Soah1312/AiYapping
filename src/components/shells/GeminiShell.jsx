@@ -2,12 +2,10 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Plus,
-  Search,
   MessageSquare,
   Trash2,
   Menu,
   X,
-  Settings,
 } from 'lucide-react';
 import ThemeSwitcher from '../ThemeSwitcher';
 
@@ -20,7 +18,6 @@ export default function GeminiShell({
   onDeleteSavedChat,
   activeChatId,
   activeSavedChatId,
-  onOpenSettings,
 }) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -61,12 +58,7 @@ export default function GeminiShell({
             </Link>
           </div>
 
-          <button
-            className="gemini-icon-btn"
-            aria-label="Search"
-          >
-            <Search size={18} />
-          </button>
+
 
           <button
             className="gemini-mobile-close"
@@ -124,22 +116,19 @@ export default function GeminiShell({
             <p className="gemini-empty-recents">You haven't seen them yap yet</p>
           )}
         </div>
-
-        <div className="sidebar-bottom">
-          <button 
-            className="sidebar-settings-btn"
-            onClick={onOpenSettings}
-          >
-            <Settings size={16} />
-            <span className="gemini-collapse-hide">Settings</span>
-          </button>
-        </div>
       </aside>
 
       {/* Main */}
       <div className="app-main">
         <header className="app-header">
           <div className="flex items-center gap-3">
+            <button
+              className="hamburger-btn"
+              onClick={() => setMobileSidebarOpen(true)}
+              aria-label="Open sidebar"
+            >
+              <Menu size={20} />
+            </button>
             <Link to="/" className="brand-name flex items-center gap-2" style={{ fontWeight: '600', fontSize: '1.25rem', color: 'var(--text-primary)', textDecoration: 'none' }}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="url(#yap-grad-gemini)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="yap-logo">
                 <defs>
