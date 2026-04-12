@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { SquarePen, PanelLeftClose, PanelLeftOpen, Settings } from 'lucide-react';
+import { SquarePen, PanelLeftClose, PanelLeftOpen, Settings, Trash2 } from 'lucide-react';
 import ThemeSwitcher from '../ThemeSwitcher';
 
 export default function GptShell({
@@ -50,16 +50,32 @@ export default function GptShell({
 
           <p className="sidebar-section-label gpt-collapse-hide">Recents</p>
           {(savedChats || []).map((chat) => (
-            <button
+            <div
               key={chat.id}
-              className={`sidebar-item ${activeSavedChatId === chat.id ? 'active' : ''}`}
-              onClick={() => {
-                onSelectSavedChat?.(chat.id);
-                setSidebarOpen(false);
-              }}
+              className={`gpt-history-item ${activeSavedChatId === chat.id ? 'active' : ''}`}
             >
-              <span className="sidebar-item-title block truncate">{chat.title}</span>
-            </button>
+              <button
+                type="button"
+                className={`sidebar-item history-open-btn gpt-history-open ${activeSavedChatId === chat.id ? 'active' : ''}`}
+                onClick={() => {
+                  onSelectSavedChat?.(chat.id);
+                  setSidebarOpen(false);
+                }}
+              >
+                <span className="sidebar-item-title block truncate">{chat.title}</span>
+              </button>
+              <button
+                type="button"
+                className="history-delete-btn"
+                aria-label="Delete saved chat"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onDeleteSavedChat?.(chat.id);
+                }}
+              >
+                <Trash2 size={13} />
+              </button>
+            </div>
           ))}
 
           {sidebarOpen && (savedChats || []).length === 0 && (

@@ -513,6 +513,10 @@ function shouldUseLocalFallback(error: unknown) {
   return notProd && isPermissionDenied(error);
 }
 
+function shouldMirrorDevConversationStore() {
+  return typeof process !== 'undefined' && process.env?.NODE_ENV !== 'production';
+}
+
 function getLocalUsage(sessionId: string) {
   const stamp = todayStamp();
   const existing = devUsageStore.get(sessionId);
@@ -792,6 +796,21 @@ export async function createConversationSkeleton({
       updatedAt: nowIso(),
     });
 
+    if (shouldMirrorDevConversationStore()) {
+      devConversationStore.set(created.id, {
+        id: created.id,
+        shareId: null,
+        ownerId,
+        topic,
+        config,
+        transcript: [],
+        verdict: null,
+        turnCount: 0,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      });
+    }
+
     return created.id;
   } catch (error) {
     if (shouldUseLocalFallback(error)) {
@@ -859,6 +878,17 @@ export async function saveConversation({
     if (conversationId) {
       const conversationRef = doc(db, 'conversations', conversationId);
       await setDoc(conversationRef, payload, { merge: true });
+
+      if (shouldMirrorDevConversationStore()) {
+        const existing = devConversationStore.get(conversationId) || {};
+        devConversationStore.set(conversationId, {
+          ...existing,
+          id: conversationId,
+          ...payload,
+          createdAt: (existing.createdAt as string | undefined) || nowIso(),
+        });
+      }
+
       return conversationId;
     }
 
@@ -866,6 +896,14 @@ export async function saveConversation({
       ...payload,
       createdAt: nowIso(),
     });
+
+    if (shouldMirrorDevConversationStore()) {
+      devConversationStore.set(created.id, {
+        id: created.id,
+        ...payload,
+        createdAt: nowIso(),
+      });
+    }
 
     return created.id;
   } catch (error) {
@@ -959,7 +997,15 @@ export async function getAdminDashboardStats() {
 
     const recentChats = [...conversations]
       .sort((a, b) => parseIsoMs(b.updatedAt || b.createdAt) - parseIsoMs(a.updatedAt || a.createdAt))
-      .slice(0, 25);
+      .slice(0, 25)
+      .map((chat) => ({
+        id: chat.id,
+        ownerId: chat.ownerId,
+        topic: chat.topic,
+        turnCount: chat.turnCount,
+        updatedAt: chat.updatedAt,
+        createdAt: chat.createdAt,
+      }));
 
     const totalTurns = conversations.reduce((sum, chat) => sum + toNumber(chat.turnCount), 0);
     const avgTurnsPerDuel = conversations.length > 0 ? totalTurns / conversations.length : 0;
