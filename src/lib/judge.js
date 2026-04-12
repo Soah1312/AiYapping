@@ -47,72 +47,44 @@ ${ai2Name}: [X.X / 10] - [one-line reason]
 Keep it under 150 words total. Be a cricket commentator who has seen too much.`;
 };
 
-const extractResponseText = (response) => {
-  if (!response) return '';
-  if (typeof response === 'string') return response;
-  if (typeof response?.message === 'string') return response.message;
-  if (typeof response?.output_text === 'string') return response.output_text;
-
-  const firstPart = response?.message?.content?.[0]?.text;
-  if (typeof firstPart === 'string') return firstPart;
-
-  return '';
-};
-
-const hasPuter = () => {
-  return typeof globalThis?.puter !== 'undefined' && Boolean(globalThis?.puter?.ai?.chat);
-};
-
-const didPuterScriptFail = () => {
-  return Boolean(globalThis?.__puterLoadFailed);
-};
-
-const waitForPuter = (timeout = 10000) => {
-  return new Promise((resolve, reject) => {
-    if (hasPuter()) {
-      resolve(globalThis.puter);
-      return;
-    }
-
-    if (didPuterScriptFail()) {
-      reject(new Error('Puter.js script failed to load'));
-      return;
-    }
-
-    const start = Date.now();
-
-    const interval = setInterval(() => {
-      if (hasPuter()) {
-        clearInterval(interval);
-        resolve(globalThis.puter);
-      } else if (didPuterScriptFail()) {
-        clearInterval(interval);
-        reject(new Error('Puter.js script failed to load'));
-      } else if (Date.now() - start > timeout) {
-        clearInterval(interval);
-        reject(new Error('Puter.js timed out'));
-      }
-    }, 100);
-  });
-};
-
 export const getJudgeVerdict = async (transcript, ai1Name, ai2Name, topic) => {
   try {
-    const puterClient = await waitForPuter(10000);
-
     const prompt = buildJudgePrompt(transcript, ai1Name, ai2Name, topic);
 
-    const response = await Promise.race([
-      puterClient.ai.chat(prompt, {
-        model: 'claude-sonnet-4-6',
-        system: JUDGE_SYSTEM_PROMPT,
-      }),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Judge timed out')), 15000)
-      ),
-    ]);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000);
 
-    const text = extractResponseText(response);
+    const response = await fetch('/api/judge', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        prompt,
+        system: JUDGE_SYSTEM_PROMPT
+      }),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    let data;
+    const textOutput = await response.text();
+    try {
+      data = JSON.parse(textOutput);
+    } catch {
+      data = { error: textOutput };
+    }
+
+    if (!response.ok) {
+      throw new Error(`Server returned ${response.status}: ${data.error || 'Unknown error'}`);
+    }
+
+    if (data.error) {
+      throw new Error(data.error);
+    }
+
+    const text = data.verdict;
 
     if (!text || text.trim() === '') {
       throw new Error('Empty response from judge');

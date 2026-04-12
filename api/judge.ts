@@ -1,60 +1,87 @@
-import { generateText } from 'ai';
-import { groq } from '@ai-sdk/groq';
-
 export const config = {
   runtime: 'edge',
 };
 
-type JudgeRequestBody = {
-  transcript: Array<{ role: string; content: string; model?: string }>;
-  topic: string;
-  mode: 'debate' | 'chat';
-  consensusCheck?: boolean;
-};
-
-function buildJudgePrompt(body: JudgeRequestBody) {
-  return `You are an impartial judge reviewing an AI Arena discussion.\nTopic: "${body.topic}"\nMode: ${body.mode}\n\nEvaluate argument quality, factual grounding, and handling of counterpoints.\n\nReturn JSON only:\n{\n  "winner": "model1 | model2 | draw",\n  "margin": "close | moderate | decisive",\n  "reasoning": "2-3 sentence explanation",\n  "summary": "one sentence summary"\n}\n\nTranscript:\n${JSON.stringify(body.transcript)}`;
-}
-
-function buildConsensusPrompt(body: JudgeRequestBody) {
-  return `You are checking whether a debate should end by consensus.\nTopic: "${body.topic}"\n\nReview the transcript and determine if AI-2 has conceded, substantially agreed, or clearly ended opposition.\n\nReturn JSON only:\n{\n  "consensusTriggered": true | false,\n  "reason": "short explanation"\n}\n\nTranscript:\n${JSON.stringify(body.transcript)}`;
-}
-
-function extractJson(text: string) {
-  const start = text.indexOf('{');
-  const end = text.lastIndexOf('}');
-
-  if (start < 0 || end <= start) {
-    throw new Error('Judge did not return valid JSON.');
+export default async function handler(req: Request) {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
+    });
   }
 
-  return JSON.parse(text.slice(start, end + 1));
-}
-
-export default async function handler(request: Request): Promise<Response> {
-  if (request.method !== 'POST') {
+  if (req.method !== 'POST') {
     return Response.json({ error: 'Method not allowed' }, { status: 405 });
   }
 
   try {
-    const body = (await request.json()) as JudgeRequestBody;
+    const { prompt, system } = await req.json();
 
-    if (!body?.topic || !Array.isArray(body?.transcript)) {
-      return Response.json({ error: 'Missing topic or transcript.' }, { status: 400 });
+    if (!prompt) {
+      return Response.json({ error: 'Missing prompt' }, { 
+        status: 400,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+        }
+      });
     }
 
-    const output = await generateText({
-      model: groq('llama-3.3-70b-specdec'),
-      prompt: body.consensusCheck ? buildConsensusPrompt(body) : buildJudgePrompt(body),
-      maxOutputTokens: 500,
+    const token = process.env.PUTER_AUTH_TOKEN || process.env.PUTER_API_KEY;
+
+    if (!token) {
+      return Response.json({ error: 'Puter Auth Token not configured on server (Check Vercel Environment Variables)' }, { 
+        status: 500,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+        }
+      });
+    }
+
+    const response = await fetch('https://api.puter.com/puterai/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'claude-3-5-sonnet',
+        messages: [
+          ...(system ? [{ role: 'system', content: system }] : []),
+          { role: 'user', content: prompt }
+        ],
+      }),
     });
 
-    const verdict = extractJson(output.text);
-    return Response.json(verdict, { status: 200 });
+    if (!response.ok) {
+      const errorText = await response.text();
+      return Response.json({ error: `Puter API error: ${response.status}`, details: errorText }, { 
+        status: response.status,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+        }
+      });
+    }
+
+    const data = await response.json();
+    const verdict = data?.choices?.[0]?.message?.content || '';
+
+    return Response.json({ verdict }, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+      }
+    });
+
   } catch (error) {
-    return Response.json(
-      { error: String((error as Error)?.message || 'Judge failed') },
-      { status: 500 },
-    );
+    console.error('[api/judge] failure:', error);
+    return Response.json({ error: 'Internal Server Error' }, { 
+      status: 500,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+      }
+    });
   }
 }
