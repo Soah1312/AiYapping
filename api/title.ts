@@ -8,8 +8,10 @@ type TitleRequestBody = {
   prompt2?: string;
 };
 
-const HF_CHAT_COMPLETIONS_URL = 'https://router.huggingface.co/v1/chat/completions';
-const TITLE_MODEL = 'mistral-community/Mistral-7B-Instruct-v0.2';
+const GROQ_CHAT_COMPLETIONS_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const NVIDIA_CHAT_COMPLETIONS_URL = 'https://integrate.api.nvidia.com/v1/chat/completions';
+const TITLE_MODEL_GROQ = 'llama-3.3-70b-versatile';
+const TITLE_MODEL_NVIDIA_BACKUP = 'moonshotai/kimi-k2-instruct';
 const TITLE_MIN_WORDS = 4;
 const TITLE_MAX_WORDS = 6;
 
@@ -34,11 +36,18 @@ function resolveApiKeysByPrefix(prefix: string, fallbackKeyName?: string) {
   return [...new Set(explicitKeys.filter(Boolean))];
 }
 
-function resolveHuggingFaceApiKeys() {
-  return [
-    ...resolveApiKeysByPrefix('HUGGINGFACE_KEY_', 'HUGGINGFACE_API_KEY'),
-    normalizeApiKeyValue(process.env.HF_TOKEN),
-  ].filter(Boolean);
+function resolveGroqTitleApiKeys() {
+  return [...new Set([
+    ...resolveApiKeysByPrefix('GROQ_TITLE_KEY_', 'GROQ_TITLE_API_KEY'),
+    ...resolveApiKeysByPrefix('GROQ_KEY_', 'GROQ_API_KEY'),
+  ].filter(Boolean))];
+}
+
+function resolveNvidiaTitleApiKeys() {
+  return [...new Set([
+    ...resolveApiKeysByPrefix('NVIDIA_TITLE_KEY_', 'NVIDIA_TITLE_API_KEY'),
+    ...resolveApiKeysByPrefix('NVIDIA_KEY_', 'NVIDIA_API_KEY'),
+  ].filter(Boolean))];
 }
 
 function shuffleInPlace<T>(values: T[]) {
@@ -123,9 +132,28 @@ function extractAssistantText(payload: Record<string, unknown>) {
   return '';
 }
 
+function isSyntheticTopic(topic: string) {
+  const normalized = String(topic || '').trim();
+  if (!normalized) {
+    return false;
+  }
+
+  return /^ai-1:/i.test(normalized) || /\|\s*ai-2:/i.test(normalized);
+}
+
+function createTitleRequestId() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+
+  return `title-${Math.random().toString(36).slice(2, 10)}${Date.now()}`;
+}
+
 export default async function handler(request: Request): Promise<Response> {
+  const requestId = createTitleRequestId();
+
   if (request.method !== 'POST') {
-    return Response.json({ error: 'Method not allowed' }, { status: 405 });
+    return Response.json({ error: 'Method not allowed', requestId }, { status: 405 });
   }
 
   try {
@@ -133,18 +161,15 @@ export default async function handler(request: Request): Promise<Response> {
     const prompt1 = String(body?.prompt1 || '').trim();
     const prompt2 = String(body?.prompt2 || '').trim();
     const topic = String(body?.topic || '').trim();
+    const fallbackSource = !isSyntheticTopic(topic) ? topic : '';
 
     if (!prompt1 && !prompt2 && !topic) {
-      return Response.json({ error: 'Missing prompt text for title generation.' }, { status: 400 });
+      console.warn('[api/title] Empty input. Returning fallback title.', { requestId });
+      return Response.json({ title: normalizeTitle('', fallbackSource), fallback: true, source: 'fallback.empty_input', requestId }, { status: 200 });
     }
 
-    const hfKeys = shuffleInPlace(resolveHuggingFaceApiKeys());
-    if (hfKeys.length === 0) {
-      return Response.json({ error: 'Missing Hugging Face API keys for title generation.' }, { status: 500 });
-    }
-
-    let upstream: Response | null = null;
-    let lastErrorText = '';
+    const groqKeys = shuffleInPlace(resolveGroqTitleApiKeys());
+    const nvidiaKeys = shuffleInPlace(resolveNvidiaTitleApiKeys());
 
     const titlePrompt = [
       'Generate a concise chat title from these two AI prompts.',
@@ -154,66 +179,130 @@ export default async function handler(request: Request): Promise<Response> {
       `Prompt 2: ${prompt2 || 'N/A'}`,
     ].join('\n');
 
-    for (const key of hfKeys) {
-      const candidate = await fetch(HF_CHAT_COMPLETIONS_URL, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${key}`,
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify({
-          model: TITLE_MODEL,
-          messages: [
-            {
-              role: 'system',
-              content: 'You produce short, high-quality chat titles.',
-            },
-            {
-              role: 'user',
-              content: titlePrompt,
-            },
-          ],
-          stream: false,
-          temperature: 0.2,
-          max_tokens: 24,
-        }),
+    if (groqKeys.length === 0 && nvidiaKeys.length === 0) {
+      console.warn('[api/title] Missing title provider keys. Returning fallback title.', {
+        requestId,
+        hasGroqTitleKeys: groqKeys.length > 0,
+        hasNvidiaTitleKeys: nvidiaKeys.length > 0,
       });
+      return Response.json({ title: normalizeTitle('', fallbackSource), fallback: true, source: 'fallback.no_keys', requestId }, { status: 200 });
+    }
 
-      upstream = candidate;
-      if (candidate.ok) {
+    async function requestTitle(
+      keys: string[],
+      url: string,
+      provider: 'groq' | 'nvidia',
+      model: string,
+      extraHeaders: Record<string, string> = {},
+    ) {
+      let upstream: Response | null = null;
+      let lastErrorText = '';
+
+      for (const key of keys) {
+        const candidate = await fetch(url, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${key}`,
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            ...extraHeaders,
+          },
+          body: JSON.stringify({
+            model,
+            messages: [
+              {
+                role: 'system',
+                content: 'You produce short, high-quality chat titles.',
+              },
+              {
+                role: 'user',
+                content: titlePrompt,
+              },
+            ],
+            stream: false,
+            temperature: 0.2,
+            max_tokens: 24,
+          }),
+        });
+
+        upstream = candidate;
+        if (candidate.ok) {
+          const payload = (await candidate.json()) as Record<string, unknown>;
+          return {
+            rawTitle: extractAssistantText(payload),
+            provider,
+            status: candidate.status,
+            lastErrorText: '',
+          };
+        }
+
+        lastErrorText = await candidate.text();
+        if (candidate.status === 429) {
+          continue;
+        }
+
         break;
       }
 
-      lastErrorText = await candidate.text();
-      if (candidate.status === 429) {
-        continue;
+      return {
+        rawTitle: '',
+        provider,
+        status: upstream?.status || 0,
+        lastErrorText,
+      };
+    }
+
+    let rawTitle = '';
+    let selectedSource = 'fallback.normalized';
+
+    if (groqKeys.length > 0) {
+      const groqResult = await requestTitle(groqKeys, GROQ_CHAT_COMPLETIONS_URL, 'groq', TITLE_MODEL_GROQ);
+      rawTitle = groqResult.rawTitle;
+      if (rawTitle) {
+        selectedSource = 'provider.groq';
+      } else if (groqResult.status) {
+        console.warn('[api/title] Groq title request failed, trying NVIDIA backup.', {
+          requestId,
+          status: groqResult.status,
+          provider: groqResult.provider,
+          errorSnippet: String(groqResult.lastErrorText || '').slice(0, 240),
+        });
       }
-
-      break;
     }
 
-    if (!upstream) {
-      return Response.json({ error: 'Title generation request did not reach provider.' }, { status: 500 });
+    if (!rawTitle && nvidiaKeys.length > 0) {
+      const nvidiaResult = await requestTitle(nvidiaKeys, NVIDIA_CHAT_COMPLETIONS_URL, 'nvidia', TITLE_MODEL_NVIDIA_BACKUP, {
+        Accept: 'application/json',
+      });
+      rawTitle = nvidiaResult.rawTitle;
+      if (rawTitle) {
+        selectedSource = 'provider.nvidia';
+      } else if (nvidiaResult.status) {
+        console.warn('[api/title] NVIDIA title backup request failed.', {
+          requestId,
+          status: nvidiaResult.status,
+          provider: nvidiaResult.provider,
+          errorSnippet: String(nvidiaResult.lastErrorText || '').slice(0, 240),
+        });
+      }
     }
 
-    if (!upstream.ok) {
-      return Response.json(
-        { error: `Title generation failed (${upstream.status}): ${lastErrorText || 'Unknown upstream error'}` },
-        { status: upstream.status },
-      );
-    }
-
-    const payload = (await upstream.json()) as Record<string, unknown>;
-    const rawTitle = extractAssistantText(payload);
-    const fallbackSource = [topic, prompt1, prompt2].filter(Boolean).join(' ');
     const title = normalizeTitle(rawTitle, fallbackSource);
+    const fallback = !rawTitle;
+    if (fallback) {
+      console.warn('[api/title] Falling back to normalized local title.', {
+        requestId,
+        source: selectedSource,
+      });
+    }
 
-    return Response.json({ title }, { status: 200 });
+    return Response.json({ title, fallback, source: fallback ? 'fallback.normalized' : selectedSource, requestId }, { status: 200 });
   } catch (error) {
-    return Response.json(
-      { error: String((error as Error)?.message || 'Title generation failed') },
-      { status: 500 },
-    );
+    const message = String((error as Error)?.message || 'Title generation failed');
+    console.error('[api/title] Unhandled failure. Returning fallback title.', {
+      requestId,
+      error: message,
+    });
+    return Response.json({ title: 'Untitled chat', fallback: true, source: 'fallback.exception', requestId, error: message }, { status: 200 });
   }
 }

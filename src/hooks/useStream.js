@@ -3,6 +3,48 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 const HF_WARMUP_WAIT_MS = 20000;
 const HF_WARMUP_RETRIES = 1;
 
+function classifyChatFailure(errorText, status, payloadText = '') {
+  const normalized = `${String(errorText || '')} ${String(payloadText || '')}`.toLowerCase();
+
+  if (normalized.includes('admission_blocked_active_priority')) {
+    return 'chat.admission.active_priority_blocked';
+  }
+
+  if (normalized.includes('active_conversation_retry_timeout')) {
+    return 'chat.admission.provider_retry_timeout';
+  }
+
+  if (normalized.includes('all_keys_rate_limited') || normalized.includes('yapping too hard')) {
+    return 'chat.provider.all_keys_rate_limited';
+  }
+
+  if (normalized.includes('provider_bad_request')) {
+    return 'chat.provider.bad_request';
+  }
+
+  if (normalized.includes('provider_auth_error')) {
+    return 'chat.provider.auth_error';
+  }
+
+  if (normalized.includes('hugging face is waking up') || status === 503) {
+    return 'chat.provider.model_warmup';
+  }
+
+  if (normalized.includes('stream_pipeline_parse_error')) {
+    return 'chat.streaming.pipeline_parse_error';
+  }
+
+  if (status === 401 || status === 403) {
+    return 'chat.provider.auth_error';
+  }
+
+  if (status === 429) {
+    return 'chat.provider.rate_limited';
+  }
+
+  return 'chat.unknown';
+}
+
 function parseLine(line, onDelta) {
   const trimmed = line.trim();
   if (!trimmed) {
@@ -212,11 +254,13 @@ export function useStream() {
         if (!response.ok) {
           const text = await response.text();
           const payload = readErrorPayload(text);
+          const failureType = classifyChatFailure(payload, response.status, text);
 
           console.error('[useStream] /api/chat returned non-ok response', {
             ...diagnostics,
             status: response.status,
             payload,
+            failureType,
           });
 
           if (response.status === 503 && provider === 'huggingface') {
@@ -256,13 +300,20 @@ export function useStream() {
           buffer = lines.pop() || '';
 
           for (const line of lines) {
-            parseLine(line, (delta) => onDelta?.(delta));
+            try {
+              parseLine(line, (delta) => onDelta?.(delta));
+            } catch (lineError) {
+              throw new Error(`stream_pipeline_parse_error: ${String(lineError?.message || lineError)}`);
+            }
           }
         }
       } catch (error) {
+        const errorText = String(error?.message || error);
+        const failureType = classifyChatFailure(errorText, undefined);
         console.error('[useStream] streamModelResponse failed', {
           ...diagnostics,
-          error: String(error?.message || error),
+          error: errorText,
+          failureType,
         });
         throw error;
       } finally {

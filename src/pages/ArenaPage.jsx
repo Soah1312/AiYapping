@@ -223,6 +223,13 @@ export default function ArenaPage() {
     let cancelled = false;
 
     (async () => {
+      const titleDebug = {
+        conversationKey: requestedConversationKey,
+        topicLength: String(setup.topic || '').length,
+        prompt1Length: String(setup.openingSeed1 || '').length,
+        prompt2Length: String(setup.openingSeed2 || '').length,
+      };
+
       try {
         const response = await fetch('/api/title', {
           method: 'POST',
@@ -234,17 +241,39 @@ export default function ArenaPage() {
           }),
         });
 
-        if (!response.ok || cancelled) {
+        if (cancelled) {
+          return;
+        }
+
+        if (!response.ok) {
+          console.error('[arena/title] Request failed before payload parse.', {
+            ...titleDebug,
+            status: response.status,
+          });
           return;
         }
 
         const payload = await response.json();
         const title = String(payload?.title || '').trim();
+
+        console.info('[arena/title] Title generation result', {
+          ...titleDebug,
+          requestId: payload?.requestId || null,
+          source: payload?.source || 'unknown',
+          fallback: Boolean(payload?.fallback),
+          hasTitle: Boolean(title),
+          upstreamError: payload?.error || null,
+        });
+
         if (title && !cancelled) {
           setGeneratedChatTitle(title);
           applyGeneratedTitleToSavedChat(requestedConversationKey, title);
         }
-      } catch {
+      } catch (error) {
+        console.error('[arena/title] Title generation threw client-side error.', {
+          ...titleDebug,
+          error: String(error?.message || error),
+        });
         // Non-blocking: chat save falls back to Untitled if title generation fails.
       }
     })();
@@ -320,7 +349,8 @@ export default function ArenaPage() {
   function normalizeSetup() {
     const s1 = (setup.openingSeed1 || '').trim().slice(0, 200);
     const s2 = (setup.openingSeed2 || '').trim().slice(0, 200);
-    return { ...setup, topic: `AI-1: ${s1} | AI-2: ${s2}`.slice(0, 300), openingSeed1: s1, openingSeed2: s2, mode: 'chat' };
+    const topic = String(setup.topic || '').trim().slice(0, 120);
+    return { ...setup, topic, openingSeed1: s1, openingSeed2: s2, mode: 'chat' };
   }
 
   function handleRun(e) {

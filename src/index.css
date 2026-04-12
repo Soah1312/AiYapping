@@ -2539,9 +2539,20 @@ body {
   align-items: center;
   gap: 10px;
   min-height: 34px;
+  width: 100%;
+  min-width: 0;
+}
+
+[data-theme='claude'] .claude-history-icon {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 15px;
+  stroke-width: 1.9;
 }
 
 [data-theme='claude'] .claude-history-title {
+  flex: 1;
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

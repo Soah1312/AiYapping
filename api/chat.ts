@@ -45,6 +45,7 @@ const ACTIVE_PRIORITY_RETRY_TIMEOUT_MS = 5 * 60 * 1000;
 const ACTIVE_PRIORITY_RETRY_DELAY_MS = 8000;
 const ADMISSION_MAX_TURNS_FALLBACK = 20;
 const HF_CHAT_COMPLETIONS_URL = 'https://router.huggingface.co/v1/chat/completions';
+const HF_BAD_REQUEST_GROQ_FALLBACK_MODEL = 'llama-3.3-70b-versatile';
 
 type HfDeepSeekConfig = {
   endpointUrl: string;
@@ -393,6 +394,31 @@ function normalizeNvidiaMessages(messages: Array<{ role: string; content: string
   return merged;
 }
 
+function normalizeHuggingFaceMessages(messages: Array<{ role: string; content: string }>) {
+  const prepared = normalizeMessages(messages).map((message) => {
+    if (message.role === 'system') {
+      return {
+        role: 'user',
+        content: `[Instruction]\n${String(message.content || '')}`,
+      };
+    }
+
+    if (message.role === 'assistant') {
+      return {
+        role: 'assistant',
+        content: String(message.content || ''),
+      };
+    }
+
+    return {
+      role: 'user',
+      content: String(message.content || ''),
+    };
+  });
+
+  return normalizeAlternatingMessages(prepared);
+}
+
 async function createNvidiaStreamResponse({
   modelId,
   messages,
@@ -655,10 +681,8 @@ async function createHuggingFaceStreamResponse({
     );
   }
 
-  const normalizedMessages = normalizeMessages(messages).map((message) => ({
-    role: message.role,
-    content: typeof message.content === 'string' ? message.content : String(message.content || ''),
-  }));
+  const normalizedMessages = normalizeAlternatingMessages(messages);
+  const hfSafeMessages = normalizeHuggingFaceMessages(messages);
 
   const deepSeekConfig = resolveDeepSeekR1Config(modelId);
   const hfEndpoint = deepSeekConfig?.endpointUrl || HF_CHAT_COMPLETIONS_URL;
@@ -685,7 +709,7 @@ async function createHuggingFaceStreamResponse({
     const apiKey = hfKeys[keyIndex];
 
     for (const candidateModel of modelCandidates) {
-      const candidateResponse = await fetch(hfEndpoint, {
+      let candidateResponse = await fetch(hfEndpoint, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${apiKey}`,
@@ -704,11 +728,66 @@ async function createHuggingFaceStreamResponse({
       upstream = candidateResponse;
       upstreamModel = candidateModel;
 
+      if (!candidateResponse.ok && candidateResponse.status !== 503 && candidateResponse.status !== 429) {
+        lastErrorText = await candidateResponse.text();
+        const lowerInitialError = lastErrorText.toLowerCase();
+        const retryableRequestShapeError =
+          candidateResponse.status === 400 &&
+          (
+            lowerInitialError.includes('stream') ||
+            lowerInitialError.includes('unsupported parameter') ||
+            lowerInitialError.includes('messages') ||
+            lowerInitialError.includes('role') ||
+            lowerInitialError.includes('system') ||
+            lowerInitialError.includes('conversation')
+          );
+        const retryableTokenParamError =
+          candidateResponse.status === 400 &&
+          (
+            lowerInitialError.includes('max_tokens') ||
+            lowerInitialError.includes('max token') ||
+            lowerInitialError.includes('max_new_tokens')
+          );
+
+        if (retryableRequestShapeError || retryableTokenParamError) {
+          const fallbackBody: Record<string, unknown> = {
+            model: candidateModel,
+            messages: hfSafeMessages,
+            stream: false,
+            ...(admission?.temperature !== undefined && { temperature: admission.temperature }),
+          };
+
+          if (!retryableTokenParamError) {
+            fallbackBody.max_tokens = admission?.max_tokens ?? 500;
+          }
+
+          candidateResponse = await fetch(hfEndpoint, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              'Content-Type': 'application/json',
+              Accept: 'text/event-stream, application/json',
+            },
+            body: JSON.stringify(fallbackBody),
+          });
+
+          upstream = candidateResponse;
+          upstreamModel = candidateModel;
+
+          if (!candidateResponse.ok && candidateResponse.status !== 503 && candidateResponse.status !== 429) {
+            lastErrorText = await candidateResponse.text();
+          }
+        }
+      }
+
       if (candidateResponse.ok || candidateResponse.status === 503 || candidateResponse.status === 429) {
         break;
       }
 
-      lastErrorText = await candidateResponse.text();
+      if (!lastErrorText) {
+        lastErrorText = await candidateResponse.text();
+      }
+
       const lowerError = lastErrorText.toLowerCase();
       const retryableModelError =
         candidateResponse.status === 404 ||
@@ -764,8 +843,19 @@ async function createHuggingFaceStreamResponse({
 
   if (!upstream.ok) {
     const errorText = lastErrorText || (await upstream.text());
+    const reason =
+      upstream.status === 400
+        ? 'provider_bad_request'
+        : upstream.status === 401 || upstream.status === 403
+          ? 'provider_auth_error'
+          : 'provider_upstream_error';
     return Response.json(
-      { error: `Hugging Face error ${upstream.status} (${upstreamModel}): ${errorText}` },
+      {
+        error: `Hugging Face error ${upstream.status} (${upstreamModel}): ${errorText}`,
+        reason,
+        provider: 'huggingface',
+        model: upstreamModel,
+      },
       { status: upstream.status },
     );
   }
@@ -906,7 +996,7 @@ async function createGroqStreamResponse({
   sessionId: string;
   admission?: AdmissionContext;
 }) {
-  const normalizedMessages = normalizeMessages(messages);
+  const normalizedMessages = normalizeAlternatingMessages(messages);
   const groqKeys = shuffleInPlace(resolveGroqApiKeys());
 
   if (groqKeys.length === 0) {
@@ -997,7 +1087,22 @@ async function createGroqStreamResponse({
     }
 
     const errorText = lastErrorText || (await upstream.text());
-    return Response.json({ error: `Groq error ${upstream.status}: ${errorText}` }, { status: upstream.status });
+    const reason =
+      upstream.status === 400
+        ? 'provider_bad_request'
+        : upstream.status === 401 || upstream.status === 403
+          ? 'provider_auth_error'
+          : 'provider_upstream_error';
+
+    return Response.json(
+      {
+        error: `Groq error ${upstream.status}: ${errorText}`,
+        reason,
+        provider: 'groq',
+        model: modelId,
+      },
+      { status: upstream.status },
+    );
   }
 
   if (!upstream.body) {
@@ -1111,6 +1216,37 @@ function normalizeMessages(messages: Array<{ role: string; content: string }>) {
   });
 }
 
+function normalizeAlternatingMessages(messages: Array<{ role: string; content: string }>) {
+  const base = normalizeMessages(messages)
+    .map((message) => ({
+      role: message.role,
+      content: String(message.content || '').trim(),
+    }))
+    .filter((message) => message.content.length > 0);
+
+  const merged: Array<{ role: string; content: string }> = [];
+
+  for (const message of base) {
+    const last = merged[merged.length - 1];
+    if (last && last.role === message.role) {
+      // Some upstream providers reject same-role adjacency; merge to stabilize request shape.
+      last.content = `${last.content}\n\n${message.content}`;
+      continue;
+    }
+
+    merged.push({ ...message });
+  }
+
+  if (!merged.some((message) => message.role === 'user')) {
+    merged.push({
+      role: 'user',
+      content: 'Continue the conversation in one concise turn.',
+    });
+  }
+
+  return merged;
+}
+
 async function createOpenRouterStreamResponse({
   modelId,
   messages,
@@ -1122,7 +1258,7 @@ async function createOpenRouterStreamResponse({
   sessionId: string;
   admission?: AdmissionContext;
 }) {
-  const normalizedMessages = normalizeMessages(messages);
+  const normalizedMessages = normalizeAlternatingMessages(messages);
   const openrouterKeys = shuffleInPlace(resolveOpenRouterApiKeys());
 
   if (openrouterKeys.length === 0) {
@@ -1212,7 +1348,22 @@ async function createOpenRouterStreamResponse({
     }
 
     const errorText = lastErrorText || (await upstream.text());
-    return Response.json({ error: `OpenRouter error ${upstream.status}: ${errorText}` }, { status: upstream.status });
+    const reason =
+      upstream.status === 400
+        ? 'provider_bad_request'
+        : upstream.status === 401 || upstream.status === 403
+          ? 'provider_auth_error'
+          : 'provider_upstream_error';
+
+    return Response.json(
+      {
+        error: `OpenRouter error ${upstream.status}: ${errorText}`,
+        reason,
+        provider: 'openrouter',
+        model: modelId,
+      },
+      { status: upstream.status },
+    );
   }
 
   if (!upstream.body) {
@@ -1467,15 +1618,40 @@ export default async function handler(request: Request): Promise<Response> {
     const providerStage =
       provider === 'huggingface' ? 'huggingface-stream' : provider === 'nvidia' ? 'nvidia-stream' : provider === 'openrouter' ? 'openrouter-stream' : 'groq-stream';
 
-    const invokeProvider = () => {
+    const invokeProvider = async () => {
       if (provider === 'huggingface') {
         stage = providerStage;
-        return createHuggingFaceStreamResponse({
+        const hfResponse = await createHuggingFaceStreamResponse({
           modelId,
           messages: body.messages,
           sessionId: body.sessionId,
           admission: admissionContext,
         });
+
+        if (!hfResponse.ok && hfResponse.status === 400) {
+          const payload = await parseResponseJsonSafe(hfResponse);
+          const reason = String(payload?.reason || '');
+
+          if (reason === 'provider_bad_request') {
+            console.warn('[api/chat] Hugging Face returned provider_bad_request. Retrying this turn with Groq fallback model.', {
+              requestId,
+              conversationKey,
+              turnType,
+              turnNumber,
+              originalModel: modelId,
+              fallbackModel: HF_BAD_REQUEST_GROQ_FALLBACK_MODEL,
+            });
+
+            return createGroqStreamResponse({
+              modelId: HF_BAD_REQUEST_GROQ_FALLBACK_MODEL,
+              messages: body.messages,
+              sessionId: body.sessionId,
+              admission: admissionContext,
+            });
+          }
+        }
+
+        return hfResponse;
       }
 
       if (provider === 'nvidia') {

@@ -68,6 +68,29 @@ function sanitizeSetup(setup) {
   };
 }
 
+function normalizeLegacySavedTitle(title, setup) {
+  const raw = String(title || '').trim();
+  if (!raw) {
+    return buildSavedChatTitle(setup, '');
+  }
+
+  const compact = raw.replace(/\s+/g, ' ').trim();
+  const looksLegacySynthetic = /^ai[\s-]?1\b/i.test(compact);
+  if (!looksLegacySynthetic) {
+    return compact;
+  }
+
+  const seed = String(setup?.openingSeed1 || '').trim();
+  const source = seed || String(setup?.topic || '').trim();
+  const words = source.match(/[A-Za-z0-9]+(?:['-][A-Za-z0-9]+)*/g) || [];
+
+  if (words.length > 0) {
+    return words.slice(0, 6).join(' ');
+  }
+
+  return buildSavedChatTitle(setup, '');
+}
+
 function sanitizeSavedChat(chat) {
   if (!chat || typeof chat !== 'object') {
     return null;
@@ -92,13 +115,15 @@ function sanitizeSavedChat(chat) {
     }
     : { verdict: null, consensus: null };
 
+  const safeSetup = sanitizeSetup(chat.setup);
+
   return {
     id: chat.id,
     conversationKey: typeof chat.conversationKey === 'string' ? chat.conversationKey : null,
-    title: typeof chat.title === 'string' ? chat.title : 'Untitled chat',
+    title: normalizeLegacySavedTitle(chat.title, safeSetup),
     snippet: typeof chat.snippet === 'string' ? chat.snippet : '',
     createdAt: typeof chat.createdAt === 'string' ? chat.createdAt : new Date().toISOString(),
-    setup: sanitizeSetup(chat.setup),
+    setup: safeSetup,
     transcript,
     summary,
   };
@@ -127,17 +152,17 @@ function buildSavedChatTitle(_setup, generatedTitle = '') {
     return cleanTitle;
   }
 
-  const ai1 = String(_setup?.openingSeed1 || '').trim();
-  const ai2 = String(_setup?.openingSeed2 || '').trim();
-  const fallbackSource = ai1 || ai2 || String(_setup?.topic || '').trim();
-  if (fallbackSource) {
-    return fallbackSource
-      .replace(/\s+/g, ' ')
-      .slice(0, 72)
-      .replace(/[\s,.;:!?-]+$/g, '');
+  const topic = String(_setup?.topic || '').trim();
+  const syntheticTopic = /^ai-1:/i.test(topic) || /\|\s*ai-2:/i.test(topic);
+
+  if (topic && !syntheticTopic) {
+    const words = topic.match(/[A-Za-z0-9]+(?:['-][A-Za-z0-9]+)*/g) || [];
+    if (words.length > 0) {
+      return words.slice(0, 6).join(' ');
+    }
   }
 
-  return 'Untitled chat';
+  return 'AI model duel';
 }
 
 function buildSavedChatSnippet(transcript) {
@@ -473,9 +498,11 @@ export const useConversationStore = create(persist((set, get) => ({
     const transcript = persistedTranscript.filter((message) => message?.status !== 'streaming');
 
     const status =
-      persisted.status === 'running' || persisted.status === 'paused' || persisted.status === 'completed'
-        ? persisted.status
-        : currentState.status;
+      persisted.status === 'running'
+        ? 'paused'
+        : persisted.status === 'paused' || persisted.status === 'completed'
+          ? persisted.status
+          : currentState.status;
 
     return {
       ...currentState,

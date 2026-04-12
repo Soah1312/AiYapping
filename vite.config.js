@@ -101,6 +101,20 @@ export default defineConfig(({ mode }) => {
     process.env.HUGGINGFACE_API_KEY = env.HUGGINGFACE_API_KEY;
   }
 
+  for (const [key, value] of Object.entries(env)) {
+    if (!key.startsWith('GROQ_TITLE_KEY_')) {
+      continue;
+    }
+
+    if (value && !process.env[key]) {
+      process.env[key] = value;
+    }
+  }
+
+  if (env.GROQ_TITLE_API_KEY && !process.env.GROQ_TITLE_API_KEY) {
+    process.env.GROQ_TITLE_API_KEY = env.GROQ_TITLE_API_KEY;
+  }
+
   if (env.HUGGINGFACE_SPACE_DEEPSEEK_R1_URL && !process.env.HUGGINGFACE_SPACE_DEEPSEEK_R1_URL) {
     process.env.HUGGINGFACE_SPACE_DEEPSEEK_R1_URL = env.HUGGINGFACE_SPACE_DEEPSEEK_R1_URL;
   }
@@ -121,6 +135,20 @@ export default defineConfig(({ mode }) => {
 
   if (env.NVIDIA_API_KEY && !process.env.NVIDIA_API_KEY) {
     process.env.NVIDIA_API_KEY = env.NVIDIA_API_KEY;
+  }
+
+  for (const [key, value] of Object.entries(env)) {
+    if (!key.startsWith('NVIDIA_TITLE_KEY_')) {
+      continue;
+    }
+
+    if (value && !process.env[key]) {
+      process.env[key] = value;
+    }
+  }
+
+  if (env.NVIDIA_TITLE_API_KEY && !process.env.NVIDIA_TITLE_API_KEY) {
+    process.env.NVIDIA_TITLE_API_KEY = env.NVIDIA_TITLE_API_KEY;
   }
 
   for (const [key, value] of Object.entries(env)) {

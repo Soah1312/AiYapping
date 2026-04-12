@@ -101,7 +101,7 @@ export default function ClaudeShell({
                   setMobileSidebarOpen(false);
                 }}
               >
-                <MessageSquare size={15} />
+                <MessageSquare size={15} className="claude-history-icon" />
                 <span className="claude-history-title claude-collapse-hide">{chat.title}</span>
               </button>
               <button
