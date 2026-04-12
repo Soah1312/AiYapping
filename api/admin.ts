@@ -1,7 +1,8 @@
-import { getAdminDashboardStats } from './_lib/firebase';
+import { getAdminDashboardStats } from './_lib/firebase.js';
+import { getAdminDashboardStatsPrivileged, hasFirebaseAdminEnv } from './_lib/firebaseAdmin.js';
 
 export const config = {
-  runtime: 'edge',
+  runtime: 'nodejs',
 };
 
 type AdminRequestBody = {
@@ -13,16 +14,84 @@ function normalizePassword(value: unknown) {
 }
 
 function resolveExpectedPassword() {
-  return normalizePassword(process.env.MEOW_PASSWORD || process.env.ADMIN_MEOW_PASSWORD || '1234');
+  return normalizePassword(process.env.MEOW_PASSWORD || process.env.ADMIN_MEOW_PASSWORD || '');
 }
 
-export default async function handler(request: Request): Promise<Response> {
+function sendJson(request: any, response: any, payload: Record<string, unknown>, status: number) {
+  if (response && typeof response.status === 'function' && typeof response.json === 'function') {
+    response.status(status).json(payload);
+    return;
+  }
+
+  return Response.json(payload, { status });
+}
+
+async function parseRequestBody(request: any): Promise<AdminRequestBody> {
+  if (request && typeof request.json === 'function') {
+    return (await request.json()) as AdminRequestBody;
+  }
+
+  if (request && typeof request.body === 'object' && request.body !== null) {
+    return request.body as AdminRequestBody;
+  }
+
+  if (request && typeof request.body === 'string') {
+    try {
+      return JSON.parse(request.body) as AdminRequestBody;
+    } catch {
+      return {};
+    }
+  }
+
+  if (request && typeof request.on === 'function') {
+    const raw = await new Promise<string>((resolve, reject) => {
+      const chunks: Buffer[] = [];
+      request.on('data', (chunk: Buffer | string) => {
+        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk)));
+      });
+      request.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+      request.on('error', (error: unknown) => reject(error));
+    });
+
+    if (!raw.trim()) {
+      return {};
+    }
+
+    try {
+      return JSON.parse(raw) as AdminRequestBody;
+    } catch {
+      return {};
+    }
+  }
+
+  return {};
+}
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error(`Admin stats request timed out after ${timeoutMs}ms.`));
+    }, timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+}
+
+export default async function handler(request: any, response?: any): Promise<Response | void> {
   if (request.method !== 'POST') {
-    return Response.json({ error: 'Method not allowed' }, { status: 405 });
+    return sendJson(request, response, { error: 'Method not allowed' }, 405);
   }
 
   try {
-    const body = (await request.json()) as AdminRequestBody;
+    const body = await parseRequestBody(request);
     const providedPassword = normalizePassword(body?.password);
     const expectedPassword = resolveExpectedPassword();
 
@@ -31,10 +100,13 @@ export default async function handler(request: Request): Promise<Response> {
         at: new Date().toISOString(),
         hasPassword: Boolean(providedPassword),
       });
-      return Response.json({ error: 'Invalid password.' }, { status: 401 });
+      return sendJson(request, response, { error: 'Invalid password.' }, 401);
     }
 
-    const stats = await getAdminDashboardStats();
+    const statsPromise = hasFirebaseAdminEnv()
+      ? getAdminDashboardStatsPrivileged()
+      : getAdminDashboardStats();
+    const stats = await withTimeout(statsPromise, 15000);
     console.info('[admin] Dashboard stats generated', {
       at: stats.generatedAt,
       users: stats.users,
@@ -48,15 +120,17 @@ export default async function handler(request: Request): Promise<Response> {
       p95TurnLatencyMs: stats.p95TurnLatencyMs,
       modelErrorRows: stats.modelErrorRates?.length || 0,
     });
-    return Response.json(stats, { status: 200 });
+    return sendJson(request, response, stats, 200);
   } catch (error) {
     console.error('[admin] Stats request failed', {
       error: String((error as Error)?.message || error),
       at: new Date().toISOString(),
     });
-    return Response.json(
+    return sendJson(
+      request,
+      response,
       { error: String((error as Error)?.message || 'Admin stats failed') },
-      { status: 500 },
+      500,
     );
   }
 }
