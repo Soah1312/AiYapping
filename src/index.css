@@ -406,6 +406,15 @@ h1, h2, h3, h4, .display-font {
   }
 }
 
+/* Fix desktop collapsed alignment by hiding brand */
+[data-theme='claude'] .app-sidebar.sidebar-collapsed .claude-sidebar-brand {
+  display: none;
+}
+
+[data-theme='claude'] .app-sidebar.sidebar-collapsed .claude-sidebar-top {
+  justify-content: center;
+}
+
 [data-theme='claude'] .sidebar-item {
   display: flex;
   align-items: flex-start;
@@ -2173,8 +2182,7 @@ h1, h2, h3, h4, .display-font {
 }
 
 [data-theme='gemini'] .gemini-icon-btn,
-[data-theme='gemini'] .gemini-header-menu-btn,
-[data-theme='gemini'] .gemini-mobile-close {
+[data-theme='gemini'] .gemini-header-menu-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2185,6 +2193,29 @@ h1, h2, h3, h4, .display-font {
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
+}
+
+[data-theme='gemini'] .gemini-mobile-close {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+/* Fix desktop collapsed alignment by hiding brand */
+[data-theme='gemini'] .gemini-sidebar.sidebar-collapsed .gemini-sidebar-brand {
+  display: none;
+}
+
+[data-theme='gemini'] .gemini-sidebar.sidebar-collapsed .gemini-sidebar-left {
+  justify-content: center;
+  width: 100%;
 }
 
 [data-theme='gemini'] .gemini-icon-btn:hover,
