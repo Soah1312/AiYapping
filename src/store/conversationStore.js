@@ -184,10 +184,6 @@ export const useConversationStore = create(persist((set, get) => ({
   isStreaming: false,
   streamError: null,
   redirectDraft: '',
-  usage: {
-    remaining: FREE_TURN_LIMIT,
-    limit: FREE_TURN_LIMIT,
-  },
   summary: {
     verdict: null,
     consensus: null,
@@ -363,8 +359,6 @@ export const useConversationStore = create(persist((set, get) => ({
     }));
   },
 
-  setUsage: (usage) => set({ usage }),
-
   setVerdict: (verdict) =>
     set((state) => ({
       summary: {
@@ -478,7 +472,6 @@ export const useConversationStore = create(persist((set, get) => ({
     transcript: state.transcript,
     status: state.status,
     redirectDraft: state.redirectDraft,
-    usage: state.usage,
     summary: state.summary,
     shareId: state.shareId,
     savedChats: state.savedChats,
