@@ -57,6 +57,27 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onRun]);
 
+  useEffect(() => {
+    if (!ultraChaosMode) {
+      return;
+    }
+
+    const needsSync = setup.ai1Model !== ULTRA_CHAOS_OPUS_MODEL_ID
+      || setup.ai2Model !== ULTRA_CHAOS_SONNET_MODEL_ID;
+
+    if (needsSync) {
+      patchSetup({
+        ai1Model: ULTRA_CHAOS_OPUS_MODEL_ID,
+        ai2Model: ULTRA_CHAOS_SONNET_MODEL_ID,
+      });
+    }
+  }, [
+    patchSetup,
+    setup.ai1Model,
+    setup.ai2Model,
+    ultraChaosMode,
+  ]);
+
   function handleChipClick(prompt) {
     patchSetup({
       topic: prompt.title,

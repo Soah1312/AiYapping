@@ -15,7 +15,11 @@ export default function ModelPicker({
   onPersonaChange,
 }) {
   const availableOptions = Array.isArray(modelOptions) && modelOptions.length > 0 ? modelOptions : MODEL_OPTIONS;
-  const activeModel = MODEL_BY_ID[model] || availableOptions[0] || MODEL_OPTIONS[0];
+  const selectedFromVisibleOptions = availableOptions.find(
+    (option) => option.id === model || option.model === model,
+  );
+  const activeModel = selectedFromVisibleOptions || MODEL_BY_ID[model] || availableOptions[0] || MODEL_OPTIONS[0];
+  const selectedValue = selectedFromVisibleOptions?.id || activeModel.id;
   const seedValue = typeof openingSeed === 'string' ? openingSeed : (persona || '');
   const handleSeedChange = onOpeningSeedChange || onPersonaChange;
   const activeProviderLabel =
@@ -61,7 +65,7 @@ export default function ModelPicker({
         id={`${title}-model`}
         className="theme-input"
         style={{ fontSize: '0.8125rem', padding: '0.5rem 0.625rem', marginBottom: '0.75rem' }}
-        value={model}
+        value={selectedValue}
         onChange={(e) => onModelChange(e.target.value)}
       >
         {grouped.groq.length > 0 && (
