@@ -298,7 +298,11 @@ export function useConversation() {
       const isGroq = provider === 'groq';
       const modelLower = speakerModel.toLowerCase();
       const isThinkingModel = THINKING_MODELS.some(m => modelLower.includes(m));
-      const speakerMaxTokens = chaosMode ? 200 : (isThinkingModel ? 200 : 150);
+      const speakerMaxTokens = ultraChaosMode
+        ? 260
+        : chaosMode
+          ? 200
+          : (isThinkingModel ? 200 : 150);
 
       const sideTurnNumber = side === 'ai1' ? ai1TurnCount + 1 : ai2TurnCount + 1;
       const openingSeed = side === 'ai1' ? setup.openingSeed1 : setup.openingSeed2;
