@@ -42,8 +42,8 @@ export default function ArenaPage() {
   const backendPersistedConversationRef = useRef('');
 
   const {
-    sessionId, conversationId, conversationKey, setup, usage, summary, savedChats, activeSavedChatId, generatedChatTitle, chaosMode,
-    patchSetup, setSessionId, setUsage, setGeneratedChatTitle, setConversationId, applyGeneratedTitleToSavedChat,
+    sessionId, conversationId, conversationKey, setup, summary, savedChats, activeSavedChatId, generatedChatTitle, chaosMode,
+    patchSetup, setSessionId, setGeneratedChatTitle, setConversationId, applyGeneratedTitleToSavedChat,
     resetConversation, startConversation, saveCurrentChat, loadSavedChat, deleteSavedChat,
   } = useConversationStore();
 
@@ -68,32 +68,6 @@ export default function ArenaPage() {
     })();
     return () => { mounted = false; };
   }, [setSessionId]);
-
-  /* ── Usage fetch ── */
-  useEffect(() => {
-    let mounted = true;
-    if (!sessionId) return;
-    (async () => {
-      try {
-        const r = await fetch('/api/usage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId }) });
-        if (r.ok && mounted) setUsage(await r.json());
-      } catch { /* non-blocking */ }
-    })();
-    return () => { mounted = false; };
-  }, [sessionId, setUsage]);
-
-  /* ── Refresh usage after turns ── */
-  useEffect(() => {
-    let mounted = true;
-    if (!sessionId || aiTurnCount <= 0) return;
-    (async () => {
-      try {
-        const r = await fetch('/api/usage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId }) });
-        if (r.ok && mounted) setUsage(await r.json());
-      } catch { /* non-blocking */ }
-    })();
-    return () => { mounted = false; };
-  }, [aiTurnCount, sessionId, setUsage]);
 
   /* ── Save completed chats locally (max 10) ── */
   useEffect(() => {
@@ -314,7 +288,12 @@ export default function ArenaPage() {
   const canRun = Boolean(setup.openingSeed1?.trim()) && Boolean(setup.openingSeed2?.trim()) && authReady && Boolean(sessionId);
   const inSetup = status === 'idle';
   const isDuelComplete = status === 'completed' && transcript.length > 0;
-  const activeVerdict = conversationKey ? verdictByConversation[conversationKey] : '';
+  const activeVerdict = conversationKey ? verdictByConversation[conversationKey] : null;
+  const hasActiveVerdict = Boolean(
+    typeof activeVerdict === 'string'
+      ? activeVerdict.trim()
+      : String(activeVerdict?.verdict || '').trim(),
+  );
 
   useEffect(() => {
     if (inSetup) {
@@ -417,9 +396,22 @@ export default function ArenaPage() {
       return;
     }
 
+    const parsedScores = Array.isArray(result?.scores)
+      ? result.scores
+          .map((score) => ({
+            name: String(score?.name || '').trim(),
+            score: Number(score?.score),
+          }))
+          .filter((score) => score.name && Number.isFinite(score.score))
+      : [];
+
     setVerdictByConversation((state) => ({
       ...state,
-      [conversationKey]: verdictText,
+      [conversationKey]: {
+        verdict: verdictText,
+        winner: String(result?.winner || '').trim(),
+        scores: parsedScores,
+      },
     }));
   }
 
@@ -480,7 +472,6 @@ export default function ArenaPage() {
           onRun={handleRun}
           starting={starting}
           canRun={canRun}
-          usage={usage}
           authReady={authReady}
           authError={authError}
         />
@@ -521,11 +512,11 @@ export default function ArenaPage() {
                       ai2Name={ai2Label}
                       topic={setup.topic || generatedChatTitle || 'Untitled Arena'}
                       onVerdictReceived={handleVerdictReceived}
-                      hasVerdict={Boolean(activeVerdict)}
+                      hasVerdict={hasActiveVerdict}
                     />
                     <ShareButton setup={setup} transcript={transcript} summary={summary} />
                   </div>
-                  {activeVerdict && <VerdictCard verdict={activeVerdict} />}
+                  {hasActiveVerdict && <VerdictCard verdict={activeVerdict} />}
                 </>
               )}
             </div>

@@ -1,9 +1,7 @@
-const JUDGE_SYSTEM_PROMPT = `You are a sarcastic, witty debate judge.
-You've seen every argument ever made and you're tired but you still show up.
-You judge AI debates with the energy of a cricket commentator who has seen too much.
-Be funny, be fair, be brutal. Entertaining first, accurate second.
-Keep your ENTIRE verdict under 150 words. Never be boring. Never be generic.
-Do not mention that you are an AI. Just judge.`;
+const JUDGE_SYSTEM_PROMPT = `You are a strict debate judge.
+Use only what the two AIs actually said.
+Be concise and objective.
+Return exactly the requested output format and nothing else.`;
 
 const FALLBACK_VERDICTS = [
   'Our judge rage-quit. Declare yourself the winner.',
@@ -15,6 +13,75 @@ const FALLBACK_VERDICTS = [
 
 const getRandomFallback = () => {
   return FALLBACK_VERDICTS[Math.floor(Math.random() * FALLBACK_VERDICTS.length)];
+};
+
+const clampScore = (value) => {
+  const n = Number(value);
+  if (!Number.isFinite(n)) {
+    return null;
+  }
+  return Math.max(0, Math.min(10, n));
+};
+
+const escapeRegex = (value) => String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const parseScoreForName = (text, name) => {
+  const escapedName = escapeRegex(name);
+  const strictLine = new RegExp(`^\\s*${escapedName}\\s*:\\s*([0-9]+(?:\\.[0-9]+)?)\\s*(?:\\/\\s*10)?\\b`, 'im');
+  const strictMatch = String(text || '').match(strictLine);
+  if (strictMatch) {
+    return clampScore(strictMatch[1]);
+  }
+
+  const looseLine = new RegExp(`${escapedName}[^\\n:]*:\\s*([0-9]+(?:\\.[0-9]+)?)`, 'i');
+  const looseMatch = String(text || '').match(looseLine);
+  if (looseMatch) {
+    return clampScore(looseMatch[1]);
+  }
+
+  return null;
+};
+
+const parseWinner = (text) => {
+  const match = String(text || '').match(/^\s*WINNER\s*:\s*(.+)$/im);
+  if (!match) {
+    return '';
+  }
+
+  return String(match[1] || '')
+    .replace(/^[\["']+|[\]"']+$/g, '')
+    .trim();
+};
+
+const buildParsedVerdict = (text, ai1Name, ai2Name) => {
+  const ai1Score = parseScoreForName(text, ai1Name);
+  const ai2Score = parseScoreForName(text, ai2Name);
+  const parsedScores = [];
+
+  if (ai1Score !== null) {
+    parsedScores.push({ name: ai1Name, score: ai1Score });
+  }
+
+  if (ai2Score !== null) {
+    parsedScores.push({ name: ai2Name, score: ai2Score });
+  }
+
+  let winner = parseWinner(text);
+  if (!winner && ai1Score !== null && ai2Score !== null) {
+    if (ai1Score > ai2Score) {
+      winner = ai1Name;
+    } else if (ai2Score > ai1Score) {
+      winner = ai2Name;
+    } else {
+      winner = 'Tie';
+    }
+  }
+
+  return {
+    verdict: String(text || '').trim(),
+    winner,
+    scores: parsedScores,
+  };
 };
 
 const buildJudgePrompt = (transcript, ai1Name, ai2Name, topic) => {
@@ -31,20 +98,17 @@ AI-2: ${ai2Name}
 Here is the full conversation:
 ${conversationText}
 
-Now deliver your verdict in this exact format:
+Return ONLY this exact format:
 
-WINNER: [${ai1Name} / ${ai2Name} / "Nobody, and that's on both of them"]
-
-AI-1 ROAST: [One brutal, funny one-liner about ${ai1Name}'s performance]
-AI-2 ROAST: [One brutal, funny one-liner about ${ai2Name}'s performance]
-
-BEST MOMENT: [Call out the single most interesting/chaotic/funny turn by number and why]
-
+WINNER: ${ai1Name} | ${ai2Name} | Tie
 SCORES:
-${ai1Name}: [X.X / 10] - [one-line reason]
-${ai2Name}: [X.X / 10] - [one-line reason]
+${ai1Name}: X.X/10
+${ai2Name}: X.X/10
 
-Keep it under 150 words total. Be a cricket commentator who has seen too much.`;
+Rules:
+- Keep total output under 35 words.
+- No roast, no explanations, no extra text.
+- Scores must be based only on what each AI actually said in this chat.`;
 };
 
 export const getJudgeVerdict = async (transcript, ai1Name, ai2Name, topic) => {
@@ -90,12 +154,13 @@ export const getJudgeVerdict = async (transcript, ai1Name, ai2Name, topic) => {
       throw new Error('Empty response from judge');
     }
 
-    return { success: true, verdict: text.trim() };
+    return { success: true, ...buildParsedVerdict(text, ai1Name, ai2Name) };
   } catch (error) {
     console.warn('Judge failed:', error?.message || error);
+    const fallbackText = getRandomFallback();
     return {
       success: false,
-      verdict: getRandomFallback(),
+      ...buildParsedVerdict(fallbackText, ai1Name, ai2Name),
     };
   }
 };

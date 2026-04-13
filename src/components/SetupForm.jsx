@@ -61,25 +61,12 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
         >
           {headingText}
         </h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.9375rem', lineHeight: 1.6, maxWidth: '32rem', margin: '0 auto' }}>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.9375rem', lineHeight: 1.6, maxWidth: '32rem', margin: '0 auto', marginBottom: '1rem' }}>
           {subText}
         </p>
 
-        <div className="suggestion-chips">
-          {QUICK_PROMPTS.map((prompt) => (
-            <button
-              key={prompt.id}
-              type="button"
-              className="suggestion-chip"
-              onClick={() => handleChipClick(prompt)}
-            >
-              <strong style={{ display: 'block', fontSize: '0.8125rem', color: 'var(--text-primary)' }}>{prompt.title}</strong>
-            </button>
-          ))}
-        </div>
-
         {/* Chaos Mode Toggle */}
-        <div style={{ display: 'flex', justifyContent: 'center', margin: '20px 0 8px' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', margin: '0 0 12px' }}>
           <button
             type="button"
             className={`chaos-btn${chaosMode ? ' chaos-btn--on' : ''}`}
@@ -94,7 +81,7 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
         </div>
 
         {/* Setup form */}
-        <form onSubmit={onRun} className="setup-form-grid">
+        <form onSubmit={onRun} className="setup-form-grid" style={{ marginBottom: '1.5rem', marginTop: '0.5rem' }}>
           <ModelPicker
             title="AI-1"
             accent="var(--ai1)"
@@ -118,9 +105,6 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
 
           <div className="col-span-full flex flex-wrap items-center justify-between gap-3 mt-2">
             <div>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                <strong>{remainingText}</strong>
-              </p>
               {!authReady && <p className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>Warming up the neurons...</p>}
               {authError && <p className="mt-1 text-xs" style={{ color: 'var(--danger)' }}>{authError}</p>}
             </div>
@@ -133,6 +117,24 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
             </button>
           </div>
         </form>
+
+        <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: '0.5rem' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', marginBottom: '0.5rem', textAlign: 'center' }}>
+            Or pick a quick scenario:
+          </p>
+          <div className="suggestion-chips">
+            {QUICK_PROMPTS.map((prompt) => (
+              <button
+                key={prompt.id}
+                type="button"
+                className="suggestion-chip"
+                onClick={() => handleChipClick(prompt)}
+              >
+                <strong style={{ display: 'block', fontSize: '0.8125rem', color: 'var(--text-primary)' }}>{prompt.title}</strong>
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
