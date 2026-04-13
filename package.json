@@ -15,6 +15,7 @@
   "description": "",
   "dependencies": {
     "@ai-sdk/groq": "^3.0.35",
+    "@heyputer/puter.js": "^2.2.15",
     "@vercel/analytics": "^2.0.1",
     "ai": "^6.0.154",
     "firebase": "^12.11.0",

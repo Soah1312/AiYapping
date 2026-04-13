@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useConversationStore } from '../store/conversationStore';
 import { MODEL_BY_ID, THINKING_MODELS } from '../lib/modelConfig';
-import { buildChaosTurnSystemPrompt, buildTurnSystemPrompt } from '../lib/prompts';
+import {
+  buildChaosTurnSystemPrompt,
+  buildTurnSystemPrompt,
+  buildUltraChaosTurnSystemPrompt,
+} from '../lib/prompts';
 import { useStream } from './useStream';
 
 const MIN_TYPING_BUBBLE_MS = 420;
@@ -210,6 +214,7 @@ export function useConversation() {
     status,
     isStreaming,
     chaosMode,
+    ultraChaosMode,
     startConversation,
     pauseConversation,
     resumeConversation,
@@ -298,7 +303,11 @@ export function useConversation() {
       const sideTurnNumber = side === 'ai1' ? ai1TurnCount + 1 : ai2TurnCount + 1;
       const openingSeed = side === 'ai1' ? setup.openingSeed1 : setup.openingSeed2;
 
-      const basePromptBuilder = chaosMode ? buildChaosTurnSystemPrompt : buildTurnSystemPrompt;
+      const basePromptBuilder = ultraChaosMode
+        ? buildUltraChaosTurnSystemPrompt
+        : chaosMode
+          ? buildChaosTurnSystemPrompt
+          : buildTurnSystemPrompt;
       const basePrompt = basePromptBuilder({
         topic: setup.topic,
         speakerModel,
@@ -414,11 +423,27 @@ export function useConversation() {
           : initialMessages;
 
         // Chaos mode at very high temperature can devolve into token salad on some providers.
-        // Keep chaos punchy but stable for GitHub Models.
-        const chaosTemperature = provider === 'github-models' ? 0.95 : 1.2;
+        // Keep chaos punchy but stable per provider capabilities.
+        const chaosTemperature = ultraChaosMode
+          ? provider === 'puter'
+            ? 1
+            : 1.2
+          : provider === 'github-models'
+            ? 0.95
+            : provider === 'puter'
+              ? 0.9
+              : 1.2;
+
+        const requestedTemperature = chaosMode
+          ? chaosTemperature
+          : (side === 'ai1' ? ai1Temperature : ai2Temperature);
+
+        const normalizedTemperature = provider === 'puter'
+          ? Math.max(0, Math.min(1, Number.isFinite(Number(requestedTemperature)) ? Number(requestedTemperature) : 0.7))
+          : requestedTemperature;
 
         const activeParams = {
-          temperature: chaosMode ? chaosTemperature : (side === 'ai1' ? ai1Temperature : ai2Temperature),
+          temperature: normalizedTemperature,
           max_tokens: speakerMaxTokens,
           ...(supportsTopP && { top_p: side === 'ai1' ? ai1TopP : ai2TopP })
         };
@@ -541,6 +566,7 @@ export function useConversation() {
       completeConversation,
       shouldStopBySideCap,
       chaosMode,
+      ultraChaosMode,
       sessionId,
       conversationKey,
       setStreamError,

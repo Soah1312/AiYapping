@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { streamPuterChat } from '../lib/puterClient';
 
 const HF_WARMUP_WAIT_MS = 20000;
 const HF_WARMUP_RETRIES = 1;
@@ -27,6 +28,10 @@ function classifyChatFailure(errorText, status, payloadText = '') {
   }
 
   if (normalized.includes('provider_auth_error')) {
+    return 'chat.provider.auth_error';
+  }
+
+  if (normalized.includes('puter sign-in required') || normalized.includes('puter_auth_required')) {
     return 'chat.provider.auth_error';
   }
 
@@ -216,6 +221,17 @@ export function useStream() {
       };
 
       try {
+        if (provider === 'puter') {
+          await streamPuterChat({
+            messages,
+            model,
+            temperature,
+            maxTokens: max_tokens,
+            onDelta,
+          });
+          return;
+        }
+
         let response;
         let attempts = 0;
 

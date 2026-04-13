@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react';
 import ModelPicker from './ModelPicker';
-import { MODEL_OPTIONS } from '../lib/modelConfig';
+import {
+  MODEL_OPTIONS,
+  ULTRA_CHAOS_OPUS_MODEL_ID,
+  ULTRA_CHAOS_SONNET_MODEL_ID,
+} from '../lib/modelConfig';
 import { useTheme } from '../context/ThemeContext';
 import { QUICK_PROMPTS } from '../lib/prompts';
 import { useConversationStore } from '../store/conversationStore';
+import { ensurePuterSignIn } from '../lib/puterClient';
 
 const getTimeBasedHeading = () => {
   const hour = new Date().getHours();
@@ -20,11 +25,25 @@ const getTimeBasedHeading = () => {
 
 export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, usage, authReady, authError, onOpenSettings }) {
   const { theme } = useTheme();
-  const { chaosMode, setChaosMode } = useConversationStore();
+  const {
+    chaosMode,
+    setChaosMode,
+    ultraChaosUnlocked,
+    setUltraChaosUnlocked,
+    ultraChaosMode,
+    setUltraChaosMode,
+  } = useConversationStore();
 
   const [headingText] = useState(() => getTimeBasedHeading());
+  const [chaosTapCount, setChaosTapCount] = useState(0);
+  const [chaosHint, setChaosHint] = useState('');
   const subText = 'Pick two AIs, give them a prompt. Buckle up for the roast.';
-  const remainingText = `${usage.remaining} yaps remaining. Use them wisely.`;
+
+  const visibleModelOptions = ultraChaosUnlocked
+    ? ultraChaosMode
+      ? MODEL_OPTIONS.filter((option) => option.id === ULTRA_CHAOS_OPUS_MODEL_ID || option.id === ULTRA_CHAOS_SONNET_MODEL_ID)
+      : MODEL_OPTIONS
+    : MODEL_OPTIONS.filter((option) => !option.requiresUltraChaos);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -44,6 +63,58 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
       openingSeed1: prompt.ai1Prompt,
       openingSeed2: prompt.ai2Prompt,
     });
+  }
+
+  async function handleChaosClick() {
+    if (ultraChaosUnlocked) {
+      const nextUltraMode = !ultraChaosMode;
+      setUltraChaosMode(nextUltraMode);
+      setChaosMode(nextUltraMode);
+
+      if (nextUltraMode) {
+        const authResult = await ensurePuterSignIn({ interactive: true });
+        if (!authResult.ok) {
+          setUltraChaosMode(false);
+          setChaosMode(false);
+          setChaosHint('Puter sign-in is required for Ultra Chaos.');
+          return;
+        }
+
+        patchSetup({
+          ai1Model: ULTRA_CHAOS_OPUS_MODEL_ID,
+          ai2Model: ULTRA_CHAOS_SONNET_MODEL_ID,
+        });
+        setChaosHint('Ultra Chaos active: Claude Opus 4.6 vs Claude Sonnet 4.6');
+      } else {
+        setChaosHint('Ultra Chaos off.');
+      }
+      return;
+    }
+
+    setChaosMode(!chaosMode);
+    const nextCount = chaosTapCount + 1;
+    setChaosTapCount(nextCount);
+
+    if (nextCount < 7) {
+      setChaosHint(`Chaos resonance ${nextCount}/7`);
+      return;
+    }
+
+    const authResult = await ensurePuterSignIn({ interactive: true });
+    if (!authResult.ok) {
+      setChaosHint('Ultra Chaos unlock failed: Puter sign-in was not completed.');
+      return;
+    }
+
+    setUltraChaosUnlocked(true);
+    setUltraChaosMode(true);
+    setChaosMode(true);
+    patchSetup({
+      ai1Model: ULTRA_CHAOS_OPUS_MODEL_ID,
+      ai2Model: ULTRA_CHAOS_SONNET_MODEL_ID,
+    });
+    setChaosTapCount(0);
+    setChaosHint('Ultra Chaos unlocked: Claude Opus 4.6 vs Claude Sonnet 4.6');
   }
 
   return (
@@ -69,16 +140,21 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
         <div style={{ display: 'flex', justifyContent: 'center', margin: '0 0 12px' }}>
           <button
             type="button"
-            className={`chaos-btn${chaosMode ? ' chaos-btn--on' : ''}`}
-            onClick={() => setChaosMode(!chaosMode)}
+            className={`chaos-btn${chaosMode ? ' chaos-btn--on' : ''}${ultraChaosMode ? ' chaos-btn--ultra' : ''}`}
+            onClick={handleChaosClick}
             aria-pressed={chaosMode}
           >
             <span className="chaos-btn-dot" aria-hidden="true" />
             <span className="chaos-btn-text">
-              Chaos Mode
+              {ultraChaosMode ? 'Ultra Chaos' : 'Chaos Mode'}
             </span>
           </button>
         </div>
+        {chaosHint && (
+          <p style={{ textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+            {chaosHint}
+          </p>
+        )}
 
         {/* Setup form */}
         <form onSubmit={onRun} className="setup-form-grid" style={{ marginBottom: '1.5rem', marginTop: '0.5rem' }}>
@@ -86,6 +162,7 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
             title="AI-1"
             accent="var(--ai1)"
             model={setup.ai1Model}
+            modelOptions={visibleModelOptions}
             openingSeed={setup.openingSeed1 || ''}
             seedLabel="Prompt for AI-1"
             seedPlaceholder="Prime the pump. What's your vibe and stance?"
@@ -96,6 +173,7 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
             title="AI-2"
             accent="var(--ai2)"
             model={setup.ai2Model}
+            modelOptions={visibleModelOptions}
             openingSeed={setup.openingSeed2 || ''}
             seedLabel="Prompt for AI-2"
             seedPlaceholder="Your turn. What's the counter-move?"

@@ -5,6 +5,7 @@ export default function ModelPicker({
   title,
   accent,
   model,
+  modelOptions,
   openingSeed,
   onOpeningSeedChange,
   seedLabel,
@@ -13,7 +14,8 @@ export default function ModelPicker({
   onModelChange,
   onPersonaChange,
 }) {
-  const activeModel = MODEL_BY_ID[model] || MODEL_OPTIONS[0];
+  const availableOptions = Array.isArray(modelOptions) && modelOptions.length > 0 ? modelOptions : MODEL_OPTIONS;
+  const activeModel = MODEL_BY_ID[model] || availableOptions[0] || MODEL_OPTIONS[0];
   const seedValue = typeof openingSeed === 'string' ? openingSeed : (persona || '');
   const handleSeedChange = onOpeningSeedChange || onPersonaChange;
   const activeProviderLabel =
@@ -23,20 +25,23 @@ export default function ModelPicker({
         ? 'NVIDIA'
         : activeModel.provider === 'openrouter'
           ? 'OpenRouter'
+          : activeModel.provider === 'puter'
+            ? 'Puter'
           : activeModel.provider === 'github-models'
             ? 'GitHub Models'
           : 'Groq';
 
-  const grouped = MODEL_OPTIONS.reduce(
+  const grouped = availableOptions.reduce(
     (acc, item) => {
       if (item.provider === 'huggingface') acc.huggingface.push(item);
       else if (item.provider === 'nvidia') acc.nvidia.push(item);
       else if (item.provider === 'openrouter') acc.openrouter.push(item);
+      else if (item.provider === 'puter') acc.puter.push(item);
       else if (item.provider === 'github-models') acc.githubModels.push(item);
       else acc.groq.push(item);
       return acc;
     },
-    { groq: [], huggingface: [], nvidia: [], openrouter: [], githubModels: [] },
+    { groq: [], huggingface: [], nvidia: [], openrouter: [], puter: [], githubModels: [] },
   );
 
   return (
@@ -72,6 +77,11 @@ export default function ModelPicker({
         {grouped.githubModels.length > 0 && (
           <optgroup label="GitHub Models">
             {grouped.githubModels.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+          </optgroup>
+        )}
+        {grouped.puter.length > 0 && (
+          <optgroup label="Puter">
+            {grouped.puter.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
           </optgroup>
         )}
         {grouped.huggingface.length > 0 && (

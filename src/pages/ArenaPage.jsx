@@ -4,7 +4,11 @@ import { ensureAnonymousUser } from '../lib/firebaseClient';
 import { useConversation } from '../hooks/useConversation';
 import { useConversationStore } from '../store/conversationStore';
 import { useTheme } from '../context/ThemeContext';
-import { MODEL_BY_ID } from '../lib/modelConfig';
+import {
+  MODEL_BY_ID,
+  ULTRA_CHAOS_OPUS_MODEL_ID,
+  ULTRA_CHAOS_SONNET_MODEL_ID,
+} from '../lib/modelConfig';
 
 import ClaudeShell from '../components/shells/ClaudeShell';
 import GptShell from '../components/shells/GptShell';
@@ -42,7 +46,16 @@ export default function ArenaPage() {
   const backendPersistedConversationRef = useRef('');
 
   const {
-    sessionId, conversationId, conversationKey, setup, summary, savedChats, activeSavedChatId, generatedChatTitle, chaosMode,
+    sessionId,
+    conversationId,
+    conversationKey,
+    setup,
+    summary,
+    savedChats,
+    activeSavedChatId,
+    generatedChatTitle,
+    chaosMode,
+    ultraChaosMode,
     patchSetup, setSessionId, setGeneratedChatTitle, setConversationId, applyGeneratedTitleToSavedChat,
     resetConversation, startConversation, saveCurrentChat, loadSavedChat, deleteSavedChat,
   } = useConversationStore();
@@ -361,7 +374,15 @@ export default function ArenaPage() {
     const s1 = (setup.openingSeed1 || '').trim().slice(0, 200);
     const s2 = (setup.openingSeed2 || '').trim().slice(0, 200);
     const topic = String(setup.topic || '').trim().slice(0, 120);
-    return { ...setup, topic, openingSeed1: s1, openingSeed2: s2, mode: 'chat' };
+    return {
+      ...setup,
+      topic,
+      openingSeed1: s1,
+      openingSeed2: s2,
+      mode: 'chat',
+      ai1Model: ultraChaosMode ? ULTRA_CHAOS_OPUS_MODEL_ID : setup.ai1Model,
+      ai2Model: ultraChaosMode ? ULTRA_CHAOS_SONNET_MODEL_ID : setup.ai2Model,
+    };
   }
 
   function handleRun(e) {
@@ -481,7 +502,9 @@ export default function ArenaPage() {
           <div className="claude-chat-header">
             <div className="claude-chat-header-left">
               <span className="status-badge claude-chat-pill">{ai1Label} vs {ai2Label}</span>
-              {chaosMode && <span className="chaos-badge">🔥 CHAOS</span>}
+              {ultraChaosMode
+                ? <span className="chaos-badge chaos-badge--ultra">ULTRA CHAOS</span>
+                : chaosMode && <span className="chaos-badge">CHAOS</span>}
               <span className="status-badge claude-chat-pill">Turns: {aiTurnCount}</span>
             </div>
             {theme === 'claude' && (

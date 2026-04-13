@@ -3130,6 +3130,23 @@ body {
 .chaos-btn--on:hover { background: rgba(239,68,68,0.11); }
 .chaos-btn--on .chaos-btn-dot { background: #ef4444; }
 
+.chaos-btn--ultra {
+  border-color: rgba(245, 158, 11, 0.55);
+  background: rgba(245, 158, 11, 0.12);
+}
+
+.chaos-btn--ultra:hover {
+  background: rgba(245, 158, 11, 0.16);
+}
+
+.chaos-btn--ultra .chaos-btn-dot {
+  background: #f59e0b;
+}
+
+.chaos-btn--ultra .chaos-btn-text {
+  color: #f59e0b;
+}
+
 /* label */
 .chaos-btn-text {
   font-size: 0.8125rem;
@@ -3147,6 +3164,12 @@ body {
 }
 [data-theme='claude'] .chaos-btn--on .chaos-btn-dot { background: #C15F3C; }
 [data-theme='claude'] .chaos-btn--on .chaos-btn-text { color: #C15F3C; }
+[data-theme='claude'] .chaos-btn--ultra {
+  border-color: rgba(180, 83, 9, 0.55);
+  background: rgba(180, 83, 9, 0.14);
+}
+[data-theme='claude'] .chaos-btn--ultra .chaos-btn-dot { background: #b45309; }
+[data-theme='claude'] .chaos-btn--ultra .chaos-btn-text { color: #b45309; }
 
 /* chaos badge */
 .chaos-badge {
@@ -3162,10 +3185,22 @@ body {
   font-weight: 600;
   letter-spacing: 0.04em;
 }
+
+.chaos-badge--ultra {
+  background: rgba(245, 158, 11, 0.14);
+  border-color: rgba(245, 158, 11, 0.32);
+  color: #f59e0b;
+}
+
 [data-theme='claude'] .chaos-badge {
   background: rgba(193,95,60,0.08);
   border-color: rgba(193,95,60,0.25);
   color: #C15F3C;
+}
+[data-theme='claude'] .chaos-badge--ultra {
+  background: rgba(180, 83, 9, 0.14);
+  border-color: rgba(180, 83, 9, 0.35);
+  color: #b45309;
 }
 
 /* ============================================================

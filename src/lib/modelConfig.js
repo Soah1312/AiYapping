@@ -1,5 +1,7 @@
 export const FREE_TURN_LIMIT = 999999;
 export const THINKING_MODELS = ['qwen3', 'qwq', 'deepseek-r1'];
+export const ULTRA_CHAOS_OPUS_MODEL_ID = 'puter-claude-opus-4-6';
+export const ULTRA_CHAOS_SONNET_MODEL_ID = 'puter-claude-sonnet-4-6';
 
 export const MODEL_OPTIONS = [
   {
@@ -105,6 +107,24 @@ export const MODEL_OPTIONS = [
     label: 'GPT-4.1 Mini',
     flavor: 'GitHub Models • Low Tier • Biggest OpenAI Low-Tier Option',
     icon: '/icons/openai-color.svg',
+  },
+  {
+    id: ULTRA_CHAOS_OPUS_MODEL_ID,
+    provider: 'puter',
+    model: 'claude-opus-4-6',
+    label: 'Claude Opus 4.6',
+    flavor: 'Puter • Ultra Chaos • User Auth Required',
+    icon: '/icons/claude-ai-icon.svg',
+    requiresUltraChaos: true,
+  },
+  {
+    id: ULTRA_CHAOS_SONNET_MODEL_ID,
+    provider: 'puter',
+    model: 'claude-sonnet-4-6',
+    label: 'Claude Sonnet 4.6',
+    flavor: 'Puter • Ultra Chaos • User Auth Required',
+    icon: '/icons/claude-ai-icon.svg',
+    requiresUltraChaos: true,
   },
 ];
 
