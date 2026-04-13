@@ -13,7 +13,7 @@ export const config = {
 };
 
 type ChatRequestBody = {
-  provider?: 'groq' | 'huggingface' | 'nvidia' | 'openrouter' | string;
+  provider?: 'groq' | 'huggingface' | 'nvidia' | 'openrouter' | 'github-models' | string;
   model?: string;
   modelId?: string;
   messages: Array<{ role: string; content: string }>;
@@ -45,6 +45,8 @@ const ACTIVE_PRIORITY_RETRY_TIMEOUT_MS = 5 * 60 * 1000;
 const ACTIVE_PRIORITY_RETRY_DELAY_MS = 8000;
 const ADMISSION_MAX_TURNS_FALLBACK = 20;
 const HF_CHAT_COMPLETIONS_URL = 'https://router.huggingface.co/v1/chat/completions';
+const GITHUB_MODELS_CHAT_COMPLETIONS_URL = 'https://models.github.ai/inference/chat/completions';
+const GITHUB_MODELS_API_VERSION = '2022-11-28';
 const HF_BAD_REQUEST_GROQ_FALLBACK_MODEL = 'llama-3.3-70b-versatile';
 
 type HfDeepSeekConfig = {
@@ -216,6 +218,16 @@ function resolveOpenRouterApiKeys() {
   return [...new Set(keys)];
 }
 
+function resolveGitHubModelsApiKeys() {
+  const keys = [
+    ...resolveApiKeysByPrefix('GITHUB_MODELS_KEY_', 'GITHUB_MODELS_API_KEY'),
+    normalizeApiKeyValue(process.env.GITHUB_MODELS_KEY),
+    normalizeApiKeyValue(process.env.GITHUB_TOKEN),
+  ].filter(Boolean);
+
+  return [...new Set(keys)];
+}
+
 function resolveDeepSeekR1Config(modelId: string): HfDeepSeekConfig | null {
   const normalized = String(modelId || '').trim().toLowerCase();
   const isDeepSeekR1 =
@@ -266,7 +278,13 @@ const GROQ_MODEL_MATCHERS = [
 ];
 
 function resolveProvider(provider: string | undefined, modelId: string) {
-  if (provider === 'groq' || provider === 'huggingface' || provider === 'nvidia' || provider === 'openrouter') {
+  if (
+    provider === 'groq'
+    || provider === 'huggingface'
+    || provider === 'nvidia'
+    || provider === 'openrouter'
+    || provider === 'github-models'
+  ) {
     return provider;
   }
 
@@ -283,6 +301,47 @@ function resolveProvider(provider: string | undefined, modelId: string) {
   }
 
   return modelId.includes('/') ? 'huggingface' : 'groq';
+}
+
+function extractGithubModelsDelta(payload: Record<string, unknown>) {
+  const firstChoice =
+    Array.isArray(payload.choices) && payload.choices[0] && typeof payload.choices[0] === 'object'
+      ? (payload.choices[0] as {
+        message?: { content?: string | Array<{ type?: string; text?: string }> };
+        text?: string;
+      })
+      : null;
+
+  const directContent = firstChoice?.message?.content;
+  if (typeof directContent === 'string') {
+    return directContent;
+  }
+
+  if (Array.isArray(directContent)) {
+    const merged = directContent
+      .map((part) => {
+        if (!part || typeof part !== 'object') {
+          return '';
+        }
+
+        return typeof part.text === 'string' ? part.text : '';
+      })
+      .join('');
+
+    if (merged.trim()) {
+      return merged;
+    }
+  }
+
+  if (typeof firstChoice?.text === 'string' && firstChoice.text.trim()) {
+    return firstChoice.text;
+  }
+
+  if (typeof payload.output_text === 'string' && payload.output_text.trim()) {
+    return payload.output_text;
+  }
+
+  return '';
 }
 
 function normalizeNvidiaModelId(modelId: string) {
@@ -1463,6 +1522,167 @@ async function createOpenRouterStreamResponse({
   });
 }
 
+async function createGitHubModelsStreamResponse({
+  modelId,
+  messages,
+  sessionId,
+  admission,
+}: {
+  modelId: string;
+  messages: Array<{ role: string; content: string }>;
+  sessionId: string;
+  admission?: AdmissionContext;
+}) {
+  const githubKeys = shuffleInPlace(resolveGitHubModelsApiKeys());
+
+  if (githubKeys.length === 0) {
+    return Response.json(
+      {
+        error:
+          'Missing GitHub Models API key. Set GITHUB_MODELS_KEY_1 (or GITHUB_MODELS_API_KEY) with models scope.',
+      },
+      { status: 500 },
+    );
+  }
+
+  const normalizedMessages = normalizeAlternatingMessages(messages);
+  let upstream: Response | null = null;
+  let lastErrorText = '';
+  let rateLimitedCount = 0;
+
+  for (let index = 0; index < githubKeys.length; index += 1) {
+    const apiKey = githubKeys[index];
+    const candidate = await fetch(GITHUB_MODELS_CHAT_COMPLETIONS_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': GITHUB_MODELS_API_VERSION,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: modelId,
+        messages: normalizedMessages,
+        stream: false,
+        max_tokens: admission?.max_tokens ?? 500,
+        ...(admission?.temperature !== undefined && { temperature: admission.temperature }),
+        ...(admission?.top_p !== undefined && { top_p: admission.top_p }),
+      }),
+    });
+
+    upstream = candidate;
+
+    if (candidate.ok) {
+      break;
+    }
+
+    lastErrorText = await candidate.text();
+    if (candidate.status === 429) {
+      rateLimitedCount += 1;
+      console.warn(`[api/chat] GitHub Models key ${keyLabel(apiKey, index)} rate-limited, rotating...`);
+      continue;
+    }
+
+    break;
+  }
+
+  if (!upstream) {
+    return Response.json({ error: 'GitHub Models request failed before reaching upstream.' }, { status: 500 });
+  }
+
+  if (!upstream.ok) {
+    if (upstream.status === 429 && rateLimitedCount === githubKeys.length) {
+      return Response.json(
+        {
+          error: 'GitHub Models is currently rate limited for this account. Please try again shortly.',
+          reason: 'all_keys_rate_limited',
+          retryAfter: 60,
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': '60',
+          },
+        },
+      );
+    }
+
+    const errorText = lastErrorText || (await upstream.text());
+    const reason =
+      upstream.status === 400
+        ? 'provider_bad_request'
+        : upstream.status === 401 || upstream.status === 403
+          ? 'provider_auth_error'
+          : 'provider_upstream_error';
+
+    return Response.json(
+      {
+        error: `GitHub Models error ${upstream.status}: ${errorText}`,
+        reason,
+        provider: 'github-models',
+        model: modelId,
+      },
+      { status: upstream.status },
+    );
+  }
+
+  let payload: Record<string, unknown> = {};
+  try {
+    payload = (await upstream.json()) as Record<string, unknown>;
+  } catch {
+    payload = {};
+  }
+
+  const responseText = extractGithubModelsDelta(payload);
+  const encoder = new TextEncoder();
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      const write = (eventPayload: Record<string, unknown>) => {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(eventPayload)}\n\n`));
+      };
+
+      try {
+        if (responseText) {
+          write({ delta: responseText });
+        }
+
+        await incrementUsage(sessionId);
+        if (admission) {
+          await markConversationTurnComplete({
+            conversationKey: admission.conversationKey,
+            sessionId: admission.sessionId,
+            maxTurns: admission.maxTurns,
+          });
+        }
+
+        controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+      } catch (error) {
+        if (admission) {
+          await releaseConversationAdmissionOnFailure({
+            conversationKey: admission.conversationKey,
+            sessionId: admission.sessionId,
+            reason: safeErrorMessage(error),
+          });
+        }
+
+        write({ error: String((error as Error)?.message || 'GitHub Models stream failed') });
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache, no-transform',
+      Connection: 'keep-alive',
+    },
+  });
+}
+
 async function performProviderRequestWithAdmission({
   invoke,
   admission,
@@ -1616,7 +1836,15 @@ export default async function handler(request: Request): Promise<Response> {
     }
 
     const providerStage =
-      provider === 'huggingface' ? 'huggingface-stream' : provider === 'nvidia' ? 'nvidia-stream' : provider === 'openrouter' ? 'openrouter-stream' : 'groq-stream';
+      provider === 'huggingface'
+        ? 'huggingface-stream'
+        : provider === 'nvidia'
+          ? 'nvidia-stream'
+          : provider === 'openrouter'
+            ? 'openrouter-stream'
+            : provider === 'github-models'
+              ? 'github-models-stream'
+              : 'groq-stream';
 
     const invokeProvider = async () => {
       if (provider === 'huggingface') {
@@ -1667,6 +1895,16 @@ export default async function handler(request: Request): Promise<Response> {
       if (provider === 'openrouter') {
         stage = providerStage;
         return createOpenRouterStreamResponse({
+          modelId,
+          messages: body.messages,
+          sessionId: body.sessionId,
+          admission: admissionContext,
+        });
+      }
+
+      if (provider === 'github-models') {
+        stage = providerStage;
+        return createGitHubModelsStreamResponse({
           modelId,
           messages: body.messages,
           sessionId: body.sessionId,

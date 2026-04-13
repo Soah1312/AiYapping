@@ -18,6 +18,10 @@ function classifyChatFailure(errorText, status, payloadText = '') {
     return 'chat.provider.all_keys_rate_limited';
   }
 
+  if (normalized.includes('github models is currently rate limited')) {
+    return 'chat.provider.rate_limited';
+  }
+
   if (normalized.includes('provider_bad_request')) {
     return 'chat.provider.bad_request';
   }

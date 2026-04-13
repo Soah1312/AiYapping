@@ -90,6 +90,22 @@ export const MODEL_OPTIONS = [
     flavor: 'OpenRouter • Free Tier • Gemma',
     icon: '/icons/gemma-color.svg',
   },
+  {
+    id: 'ghm-phi-4',
+    provider: 'github-models',
+    model: 'microsoft/phi-4',
+    label: 'Phi-4',
+    flavor: 'GitHub Models • Low Tier • Reasoning',
+    icon: '/icons/gemma-color.svg',
+  },
+  {
+    id: 'ghm-gpt-4.1-mini',
+    provider: 'github-models',
+    model: 'openai/gpt-4.1-mini',
+    label: 'GPT-4.1 Mini',
+    flavor: 'GitHub Models • Low Tier • Biggest OpenAI Low-Tier Option',
+    icon: '/icons/openai-color.svg',
+  },
 ];
 
 export const MODEL_BY_ID = MODEL_OPTIONS.reduce((acc, model) => {

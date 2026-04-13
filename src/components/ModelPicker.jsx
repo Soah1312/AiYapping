@@ -23,6 +23,8 @@ export default function ModelPicker({
         ? 'NVIDIA'
         : activeModel.provider === 'openrouter'
           ? 'OpenRouter'
+          : activeModel.provider === 'github-models'
+            ? 'GitHub Models'
           : 'Groq';
 
   const grouped = MODEL_OPTIONS.reduce(
@@ -30,10 +32,11 @@ export default function ModelPicker({
       if (item.provider === 'huggingface') acc.huggingface.push(item);
       else if (item.provider === 'nvidia') acc.nvidia.push(item);
       else if (item.provider === 'openrouter') acc.openrouter.push(item);
+      else if (item.provider === 'github-models') acc.githubModels.push(item);
       else acc.groq.push(item);
       return acc;
     },
-    { groq: [], huggingface: [], nvidia: [], openrouter: [] },
+    { groq: [], huggingface: [], nvidia: [], openrouter: [], githubModels: [] },
   );
 
   return (
@@ -64,6 +67,11 @@ export default function ModelPicker({
         {grouped.openrouter.length > 0 && (
           <optgroup label="OpenRouter">
             {grouped.openrouter.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+          </optgroup>
+        )}
+        {grouped.githubModels.length > 0 && (
+          <optgroup label="GitHub Models">
+            {grouped.githubModels.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
           </optgroup>
         )}
         {grouped.huggingface.length > 0 && (

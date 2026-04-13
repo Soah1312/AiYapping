@@ -173,6 +173,36 @@ export default defineConfig(({ mode }) => {
     process.env.OPENROUTER_KEY = env.OPENROUTER_KEY;
   }
 
+  for (const [key, value] of Object.entries(env)) {
+    if (!key.startsWith('GITHUB_MODELS_KEY_')) {
+      continue;
+    }
+
+    if (value && !process.env[key]) {
+      process.env[key] = value;
+    }
+  }
+
+  if (env.GITHUB_MODELS_API_KEY && !process.env.GITHUB_MODELS_API_KEY) {
+    process.env.GITHUB_MODELS_API_KEY = env.GITHUB_MODELS_API_KEY;
+  }
+
+  if (env.GITHUB_MODELS_KEY && !process.env.GITHUB_MODELS_KEY) {
+    process.env.GITHUB_MODELS_KEY = env.GITHUB_MODELS_KEY;
+  }
+
+  if (env.GITHUB_MODELS_TOKEN && !process.env.GITHUB_MODELS_TOKEN) {
+    process.env.GITHUB_MODELS_TOKEN = env.GITHUB_MODELS_TOKEN;
+  }
+
+  if (env.GITHUB_TOKEN && !process.env.GITHUB_TOKEN) {
+    process.env.GITHUB_TOKEN = env.GITHUB_TOKEN;
+  }
+
+  if (env.GH_TOKEN && !process.env.GH_TOKEN) {
+    process.env.GH_TOKEN = env.GH_TOKEN;
+  }
+
   if (env.MEOW_PASSWORD && !process.env.MEOW_PASSWORD) {
     process.env.MEOW_PASSWORD = env.MEOW_PASSWORD;
   }

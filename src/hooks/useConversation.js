@@ -289,7 +289,7 @@ export function useConversation() {
       const provider = speakerModelMeta?.provider || 'groq';
       const speakerLabel = speakerModelMeta?.label || speakerModel;
 
-      const isGroqOrOpenRouter = provider === 'groq' || provider === 'openrouter';
+      const supportsTopP = provider === 'groq' || provider === 'openrouter' || provider === 'github-models';
       const isGroq = provider === 'groq';
       const modelLower = speakerModel.toLowerCase();
       const isThinkingModel = THINKING_MODELS.some(m => modelLower.includes(m));
@@ -413,10 +413,14 @@ export function useConversation() {
           ? buildContextMessages({ transcript: transcript.slice(-6), systemPrompt: prompt, speakerSide: side })
           : initialMessages;
 
+        // Chaos mode at very high temperature can devolve into token salad on some providers.
+        // Keep chaos punchy but stable for GitHub Models.
+        const chaosTemperature = provider === 'github-models' ? 0.95 : 1.2;
+
         const activeParams = {
-          temperature: chaosMode ? 1.8 : (side === 'ai1' ? ai1Temperature : ai2Temperature),
+          temperature: chaosMode ? chaosTemperature : (side === 'ai1' ? ai1Temperature : ai2Temperature),
           max_tokens: speakerMaxTokens,
-          ...(isGroqOrOpenRouter && { top_p: side === 'ai1' ? ai1TopP : ai2TopP })
+          ...(supportsTopP && { top_p: side === 'ai1' ? ai1TopP : ai2TopP })
         };
 
         console.log(`[${provider}] Final params:`, activeParams);

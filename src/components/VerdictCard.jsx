@@ -16,7 +16,7 @@ const VerdictCard = ({ verdict }) => {
       <div className="verdict-header">
         <Scale className="verdict-gavel" aria-hidden="true" size={18} />
         <h3 className="verdict-title">The Verdict</h3>
-        <span className="verdict-badge">Claude Sonnet 4.6</span>
+        <span className="verdict-badge">GPT-4.1</span>
       </div>
       <div className="verdict-body">
         <pre className="verdict-text">{verdict}</pre>
