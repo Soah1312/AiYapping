@@ -49,22 +49,21 @@ export default function ModelPicker({
   );
 
   return (
-    <section className="surface-card" style={{ padding: '1rem', borderColor: accent ? `color-mix(in oklab, ${accent} 40%, var(--border))` : undefined }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '0.75rem' }}>
+    <section className="surface-card setup-model-card" style={{ borderColor: accent ? `color-mix(in oklab, ${accent} 42%, var(--border))` : undefined }}>
+      <div className="setup-model-header">
         <ModelAvatar icon={activeModel.icon} label={activeModel.label} size={32} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>{title}</p>
-          <p style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: '1px' }}>{activeModel.label} · {activeProviderLabel}</p>
+          <p className="setup-model-title">{title}</p>
+          <p className="setup-model-meta">{activeModel.label} · {activeProviderLabel}</p>
         </div>
       </div>
 
-      <label style={{ display: 'block', fontSize: '0.6875rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }} htmlFor={`${title}-model`}>
+      <label className="setup-model-label" htmlFor={`${title}-model`}>
         Model
       </label>
       <select
         id={`${title}-model`}
-        className="theme-input"
-        style={{ fontSize: '0.8125rem', padding: '0.5rem 0.625rem', marginBottom: '0.75rem' }}
+        className="theme-input setup-model-select"
         value={selectedValue}
         onChange={(e) => onModelChange(e.target.value)}
       >
@@ -100,14 +99,14 @@ export default function ModelPicker({
         )}
       </select>
 
-      <label style={{ display: 'block', fontSize: '0.6875rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }} htmlFor={`${title}-seed`}>
+      <label className="setup-model-label" htmlFor={`${title}-seed`}>
         {seedLabel || 'Prompt (required)'}
       </label>
       <textarea
         id={`${title}-seed`}
-        className="theme-input"
-        style={{ minHeight: '5rem', resize: 'none', fontSize: '0.8125rem', padding: '0.5rem 0.625rem' }}
+        className="theme-input setup-model-textarea"
         value={seedValue}
+        rows={3}
         onChange={(e) => handleSeedChange?.(e.target.value.slice(0, 200))}
         placeholder={seedPlaceholder || 'Describe how this AI should start speaking'}
       />

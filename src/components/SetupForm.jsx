@@ -93,7 +93,6 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
     const initialWidth = typeof window === 'undefined' ? 1280 : window.innerWidth;
     return pickRandomPrompts(getPromptDisplayCount(initialWidth));
   });
-  const subText = 'Pick two AIs, give them a prompt. Buckle up for the roast.';
 
   const visibleModelOptions = ultraChaosUnlocked
     ? ultraChaosMode
@@ -240,19 +239,10 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
       <div className="setup-hero-inner" style={{ position: 'relative' }}>
         {/* Heading */}
         <h1
-          className={`main-heading display-font ${theme === 'gemini' ? 'gemini-gradient-text' : ''}`}
-          style={{
-            fontSize: 'clamp(1.75rem, 4.5vw, 3rem)',
-            lineHeight: 1.15,
-            color: theme === 'gemini' ? undefined : 'var(--text-primary)',
-            marginBottom: '0.5rem',
-          }}
+          className={`main-heading display-font setup-heading ${theme === 'gemini' ? 'gemini-gradient-text' : ''}`}
         >
           {headingText}
         </h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.9375rem', lineHeight: 1.6, maxWidth: '32rem', margin: '0 auto', marginBottom: '1rem' }}>
-          {subText}
-        </p>
 
         {/* Chaos Mode Toggle */}
         <div style={{ display: 'flex', justifyContent: 'center', margin: '0 0 12px' }}>
@@ -275,7 +265,7 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
         )}
 
         {/* Setup form */}
-        <form onSubmit={onRun} className="setup-form-grid" style={{ marginBottom: '1.5rem', marginTop: '0.5rem' }}>
+        <form onSubmit={onRun} className="setup-form-grid" style={{ marginTop: '0.5rem' }}>
           <ModelPicker
             title="AI-1"
             accent="var(--ai1)"
@@ -299,50 +289,46 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
             onOpeningSeedChange={(openingSeed2) => patchSetup({ openingSeed2 })}
           />
 
-          <div className="setup-cta-stack">
-            <div className="setup-cta-status" aria-live="polite">
-              {!authReady && <p className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>Warming up the neurons...</p>}
-              {authError && <p className="mt-1 text-xs" style={{ color: 'var(--danger)' }}>{authError}</p>}
+          <div className="setup-footer-area">
+            <div className="setup-cta-stack">
+              <div className="setup-cta-status" aria-live="polite">
+                {!authReady && <p className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>Warming up the neurons...</p>}
+                {authError && <p className="mt-1 text-xs" style={{ color: 'var(--danger)' }}>{authError}</p>}
+              </div>
+
+              <button
+                type="submit"
+                className="btn-primary setup-launch-btn"
+                disabled={!canRun || starting}
+                title="Ctrl + Enter"
+              >
+                <span key={starting ? 'IGNITING' : actionWord} className="setup-launch-word">
+                  {starting ? 'IGNITING' : actionWord}
+                </span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
+
+              <p className="setup-cta-shortcut">Ctrl + Enter</p>
             </div>
 
-            <button
-              type="submit"
-              className="btn-primary setup-launch-btn"
-              disabled={!canRun || starting}
-              title="Ctrl + Enter"
-            >
-              <span key={starting ? 'IGNITING' : actionWord} className="setup-launch-word">
-                {starting ? 'IGNITING' : actionWord}
-              </span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </button>
-
-            <p className="setup-cta-shortcut">Ctrl + Enter</p>
+            <div className="setup-quick-prompts-wrapper">
+              <div className="suggestion-chips setup-quick-prompts" style={{ '--prompt-count': visiblePrompts.length }}>
+                {visiblePrompts.map((prompt) => (
+                  <button
+                    key={prompt.id}
+                    type="button"
+                    className="suggestion-chip"
+                    onClick={() => handleChipClick(prompt)}
+                  >
+                    <strong>{prompt.title}</strong>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </form>
-
-        <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: '0.5rem' }}>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', marginBottom: '0.5rem', textAlign: 'center' }}>
-            Or pick a quick scenario:
-          </p>
-          <div
-            className="suggestion-chips setup-quick-prompts"
-            style={{ '--prompt-count': visiblePrompts.length }}
-          >
-            {visiblePrompts.map((prompt) => (
-              <button
-                key={prompt.id}
-                type="button"
-                className="suggestion-chip"
-                onClick={() => handleChipClick(prompt)}
-              >
-                <strong style={{ display: 'block', fontSize: '0.8125rem', color: 'var(--text-primary)' }}>{prompt.title}</strong>
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
     </div>
   );
