@@ -36,10 +36,10 @@ const VerdictCard = ({ verdict }) => {
 
   return (
     <motion.div
-      className="verdict-card"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: 'easeOut' }}
+      className="verdict-card rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md shadow-2xl overflow-hidden"
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
     >
       <div className="verdict-header">
         <Scale className="verdict-gavel" aria-hidden="true" size={18} />

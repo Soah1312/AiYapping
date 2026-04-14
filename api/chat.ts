@@ -1607,7 +1607,18 @@ async function createGitHubModelsStreamResponse({
       );
     }
 
-    const errorText = lastErrorText || (await upstream.text());
+    let errorText = lastErrorText || (await upstream.text());
+    try {
+      const parsedErr = JSON.parse(errorText) as Record<string, any>;
+      if (parsedErr?.error?.message) {
+        errorText = String(parsedErr.error.message);
+      } else if (parsedErr?.message) {
+        errorText = String(parsedErr.message);
+      }
+    } catch {
+      // not JSON
+    }
+
     const reason =
       upstream.status === 400
         ? 'provider_bad_request'
@@ -1617,7 +1628,7 @@ async function createGitHubModelsStreamResponse({
 
     return Response.json(
       {
-        error: `GitHub Models error ${upstream.status}: ${errorText}`,
+        error: `GitHub Models: ${errorText}`,
         reason,
         provider: 'github-models',
         model: modelId,

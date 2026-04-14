@@ -143,12 +143,8 @@ function sanitizeSavedChats(chats) {
 }
 
 function buildSavedChatTitle(_setup, generatedTitle = '') {
-  const cleanTitle = String(generatedTitle || '').trim().slice(0, 220);
+  const cleanTitle = String(generatedTitle || '').trim().substr(0, 220);
   if (cleanTitle) {
-    const words = cleanTitle.match(/[A-Za-z0-9]+(?:['-][A-Za-z0-9]+)*/g) || [];
-    if (words.length > 0) {
-      return words.slice(0, 6).join(' ');
-    }
     return cleanTitle;
   }
 
@@ -156,13 +152,15 @@ function buildSavedChatTitle(_setup, generatedTitle = '') {
   const syntheticTopic = /^ai-1:/i.test(topic) || /\|\s*ai-2:/i.test(topic);
 
   if (topic && !syntheticTopic) {
-    const words = topic.match(/[A-Za-z0-9]+(?:['-][A-Za-z0-9]+)*/g) || [];
-    if (words.length > 0) {
-      return words.slice(0, 6).join(' ');
-    }
+    return topic.length > 60 ? topic.substr(0, 57) + '...' : topic;
   }
 
-  return 'AI model duel';
+  const prompt = String(_setup?.openingSeed1 || '').trim();
+  if (prompt) {
+    return prompt.length > 40 ? prompt.substr(0, 37) + '...' : prompt;
+  }
+
+  return 'AI Model Duel';
 }
 
 function buildSavedChatSnippet(transcript) {
