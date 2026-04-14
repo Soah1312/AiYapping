@@ -61,9 +61,10 @@ export default function MessageCard({ message, onRetry, readOnly = false }) {
 
   return (
     <motion.article
-      initial={{ opacity: 0, y: 6 }}
+      layout
+      initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2, ease: 'easeOut' }}
+      transition={{ duration: 0.3, ease: 'easeOut', layout: { duration: 0.3 } }}
       className={`msg-card msg-card--${message.side} ${isClaude ? 'claude-msg-card' : ''}`}
     >
       {/* Header row */}

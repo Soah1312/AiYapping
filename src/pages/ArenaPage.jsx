@@ -20,6 +20,7 @@ import ShareButton from '../components/ShareButton';
 import Toast from '../components/Toast';
 import VerdictCard from '../components/VerdictCard';
 import VerdictButton from '../components/VerdictButton';
+import TypingIndicator from '../components/TypingIndicator';
 
 const SIDEBAR_CHAT_TOPICS = [
   { id: 'singularity-race', title: 'Who Triggers Singularity First?', snippet: 'One predicts the path, one tries to derail it.', ai1: 'Defend the claim that your strategy reaches AGI singularity first. Use milestones, timelines, and hard tradeoffs.', ai2: 'Challenge every milestone as overhyped and argue why the other model will fail first under real-world constraints.' },
@@ -518,9 +519,10 @@ export default function ArenaPage() {
           <div className="chat-feed chat-scroll scrollbar-thin" ref={feedRef}>
             <div className="chat-feed-inner">
               {transcript.length === 0 && (
-                <div className="surface-card" style={{ padding: '1rem', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-                  The neurons are firing…
-                </div>
+                <motion.div layout className="surface-card flex items-center gap-2" style={{ padding: '1rem', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+                  <span className="font-medium">Initializing Arena</span>
+                  <TypingIndicator color="var(--text-muted)" />
+                </motion.div>
               )}
               {transcript.map((msg) => (
                 <MessageCard key={msg.id} message={msg} />
