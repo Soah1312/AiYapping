@@ -1,0 +1,14 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "build-after-google-removal",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"build"
+			]
+		}
+	]
+}
