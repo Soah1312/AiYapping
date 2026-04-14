@@ -9,6 +9,33 @@
 				"run",
 				"build"
 			]
+		},
+		{
+			"label": "build-share-title-change",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"build"
+			]
+		},
+		{
+			"label": "build-after-polish-title-fix",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"build"
+			]
+		},
+		{
+			"label": "build-overlap-fix",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"build"
+			]
 		}
 	]
 }

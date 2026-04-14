@@ -22,7 +22,8 @@ function transformSharedForDisplay(data: any) {
 
   // Transform space-optimized data back to display format
   return {
-    topic: data.t || 'Untitled Arena',
+    title: data.title || data.t || 'Untitled Arena',
+    topic: data.t || data.title || 'Untitled Arena',
     config: {
       mode: 'chat',
       model1,

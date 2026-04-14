@@ -3,7 +3,7 @@ import { useState } from 'react';
 import Toast from './Toast';
 import { transformConversationForShare, saveConversationShare, copyShareUrl } from '../lib/shareUtils';
 
-export default function ShareButton({ setup, transcript, summary }) {
+export default function ShareButton({ setup, transcript, summary, chatTitle }) {
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({ message: '', type: '' });
 
@@ -13,7 +13,7 @@ export default function ShareButton({ setup, transcript, summary }) {
     setLoading(true);
     try {
       // Transform to space-optimized format
-      const data = transformConversationForShare(setup, transcript, summary);
+      const data = transformConversationForShare(setup, transcript, summary, chatTitle);
 
       // Save to Firestore
       const shareId = await saveConversationShare(data);

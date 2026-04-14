@@ -3,7 +3,8 @@ import { nanoid } from 'nanoid';
 /**
  * Transforms current conversation state to space-optimized Firestore format
  */
-export function transformConversationForShare(setup, transcript, summary) {
+export function transformConversationForShare(setup, transcript, summary, chatTitle = '') {
+  const resolvedTitle = String(chatTitle || setup.topic || 'Untitled Arena').trim();
   const messages = transcript.map((msg) => ({
     r: msg.role, // 'user', 'assistant', 'system'
     c: msg.content,
@@ -13,6 +14,7 @@ export function transformConversationForShare(setup, transcript, summary) {
 
   return {
     id: nanoid(8),
+    title: resolvedTitle,
     t: setup.topic || 'Untitled Arena', // Topic
     m: {
       ai1: setup.ai1Model || '',

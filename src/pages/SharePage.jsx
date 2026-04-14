@@ -195,7 +195,6 @@ export default function SharePage() {
         const payload = await res.json();
         if (mounted) {
           setState({ loading: false, data: payload, notFound: false, error: false });
-          document.title = `${payload.topic || 'AI Duel'} - AiYapping`;
         }
       } catch {
         if (mounted) setState({ loading: false, data: null, notFound: false, error: true });
@@ -205,11 +204,27 @@ export default function SharePage() {
     return () => { mounted = false; };
   }, [id]);
 
+  useEffect(() => {
+    if (state.loading || !state.data) {
+      document.title = 'AiYapping';
+      return;
+    }
+
+    const resolvedTitle = String(state.data.title || state.data.topic || 'AI Duel').trim();
+    document.title = `${resolvedTitle} - AiYapping`;
+  }, [state.data, state.loading]);
+
   if (state.loading) return <LoadingView />;
   if (state.error) return <ErrorView />;
   if (state.notFound || !state.data) return <NotFoundView />;
 
-  const { topic, config, turnCount, transcript } = state.data;
+  const { title, topic, config, turnCount, transcript } = state.data;
+  const displayTitle = String(title || topic || 'AI Duel').trim();
+  const displayTopic = String(topic || '').trim();
+  const hasUsefulTopic =
+    Boolean(displayTopic)
+    && displayTopic !== displayTitle
+    && displayTopic.toLowerCase() !== 'untitled arena';
   const label1 = modelLabel(config?.model1);
   const label2 = modelLabel(config?.model2);
   const icon1 = MODEL_BY_ID[config?.model1]?.icon || inferIconPath(config?.model1);
@@ -242,7 +257,10 @@ export default function SharePage() {
         {/* conversation meta card */}
         <div className="cl-convo-meta">
           <p className="cl-convo-eyebrow">Shared conversation</p>
-          <h1 className="cl-convo-title">{topic || 'AI Duel'}</h1>
+          <h1 className="cl-convo-title">{displayTitle}</h1>
+          {hasUsefulTopic && (
+            <p className="cl-convo-subtitle">{displayTopic}</p>
+          )}
           <div className="cl-convo-pills">
             <span className="cl-pill">{label1}</span>
             <span className="cl-pill-vs">vs</span>

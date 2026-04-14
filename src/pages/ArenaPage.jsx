@@ -341,6 +341,9 @@ export default function ArenaPage() {
 
   const ai1Label = MODEL_BY_ID[setup.ai1Model]?.label || 'AI-1';
   const ai2Label = MODEL_BY_ID[setup.ai2Model]?.label || 'AI-2';
+  const activeSavedChat = activeSavedChatId ? savedChats.find((chat) => chat.id === activeSavedChatId) : null;
+  const shareChatTitle = String(activeSavedChat?.title || generatedChatTitle || setup.topic || 'Untitled Arena').trim();
+  const conversationDisplayTitle = shareChatTitle || 'Untitled Arena';
 
   const activeSidebarChat = SIDEBAR_CHAT_TOPICS.find(
     (c) => c.ai1 === setup.openingSeed1 && c.ai2 === setup.openingSeed2,
@@ -508,9 +511,9 @@ export default function ArenaPage() {
                 : chaosMode && <span className="chaos-badge">CHAOS</span>}
               <span className="status-badge claude-chat-pill">Turns: {aiTurnCount}</span>
             </div>
-            {theme === 'claude' && (
+            {theme === 'claude' && !activeSavedChatId && (
               <div className="claude-chat-header-right">
-                <ShareButton setup={setup} transcript={transcript} summary={summary} />
+                <ShareButton setup={setup} transcript={transcript} summary={summary} chatTitle={shareChatTitle} />
               </div>
             )}
           </div>
@@ -518,6 +521,10 @@ export default function ArenaPage() {
           {/* Message feed */}
           <div className="chat-feed chat-scroll scrollbar-thin" ref={feedRef}>
             <div className="chat-feed-inner">
+              <div className="conversation-title-strip" title={conversationDisplayTitle}>
+                <span className="conversation-title-kicker">Chat name</span>
+                <h2 className="conversation-title-text">{conversationDisplayTitle}</h2>
+              </div>
               {transcript.length === 0 && (
                 <motion.div layout className="surface-card flex items-center gap-2" style={{ padding: '1rem', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
                   <span className="font-medium">Initializing Arena</span>
@@ -539,7 +546,7 @@ export default function ArenaPage() {
                       onVerdictReceived={handleVerdictReceived}
                       hasVerdict={hasActiveVerdict}
                     />
-                    <ShareButton setup={setup} transcript={transcript} summary={summary} />
+                    <ShareButton setup={setup} transcript={transcript} summary={summary} chatTitle={shareChatTitle} />
                   </div>
                   {hasActiveVerdict && <VerdictCard verdict={activeVerdict} />}
                 </>
@@ -548,7 +555,7 @@ export default function ArenaPage() {
           </div>
 
           <AnimatePresence>
-            {showJumpButton && (
+            {showJumpButton && !isDuelComplete && (
               <motion.div
                 className="jump-to-latest-anchor"
                 initial={{ opacity: 0, y: 10 }}

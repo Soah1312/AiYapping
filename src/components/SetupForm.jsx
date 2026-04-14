@@ -10,6 +10,24 @@ import { QUICK_PROMPTS } from '../lib/prompts';
 import { useConversationStore } from '../store/conversationStore';
 import { ensurePuterSignIn } from '../lib/puterClient';
 
+const ACTION_WORDS = [
+  'LAUNCH',
+  'PROCEED',
+  'ADVANCE',
+  'START',
+  'BEGIN',
+  'ENGAGE',
+  'DEBATE',
+  'SPARK',
+  'TALK',
+  'CHAT',
+  'RUMBLE',
+  'DUEL',
+];
+
+const ACTION_WORD_FOR_PAGE_LOAD =
+  ACTION_WORDS[Math.floor(Math.random() * ACTION_WORDS.length)];
+
 const getTimeBasedHeading = () => {
   const hour = new Date().getHours();
 
@@ -21,6 +39,38 @@ const getTimeBasedHeading = () => {
   if (hour >= 2 && hour < 5) return 'Bro. Go to bed.';
 
   return 'Let the chaos begin.';
+};
+
+const getPromptDisplayCount = (width) => {
+  if (width < 430) return 2;
+  if (width < 768) return 3;
+  return 4;
+};
+
+const areSamePromptSet = (first, second) => {
+  if (!Array.isArray(first) || !Array.isArray(second) || first.length !== second.length) {
+    return false;
+  }
+
+  const firstIds = first.map((item) => item.id).sort();
+  const secondIds = second.map((item) => item.id).sort();
+  return firstIds.every((id, index) => id === secondIds[index]);
+};
+
+const pickRandomPrompts = (count, previousSelection = []) => {
+  if (!Array.isArray(QUICK_PROMPTS) || QUICK_PROMPTS.length === 0) {
+    return [];
+  }
+
+  const normalizedCount = Math.max(1, Math.min(count, QUICK_PROMPTS.length));
+  const shuffled = [...QUICK_PROMPTS].sort(() => Math.random() - 0.5);
+  let nextSelection = shuffled.slice(0, normalizedCount);
+
+  if (areSamePromptSet(nextSelection, previousSelection) && QUICK_PROMPTS.length > normalizedCount) {
+    nextSelection = shuffled.slice(1, normalizedCount + 1);
+  }
+
+  return nextSelection;
 };
 
 export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, usage, authReady, authError, onOpenSettings }) {
@@ -37,6 +87,12 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
   const [headingText] = useState(() => getTimeBasedHeading());
   const [chaosTapCount, setChaosTapCount] = useState(0);
   const [chaosHint, setChaosHint] = useState('');
+  const [actionWord] = useState(() => ACTION_WORD_FOR_PAGE_LOAD);
+  const [viewportWidth, setViewportWidth] = useState(() => (typeof window === 'undefined' ? 1280 : window.innerWidth));
+  const [visiblePrompts, setVisiblePrompts] = useState(() => {
+    const initialWidth = typeof window === 'undefined' ? 1280 : window.innerWidth;
+    return pickRandomPrompts(getPromptDisplayCount(initialWidth));
+  });
   const subText = 'Pick two AIs, give them a prompt. Buckle up for the roast.';
 
   const visibleModelOptions = ultraChaosUnlocked
@@ -56,6 +112,37 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onRun]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const handleResize = () => {
+      setViewportWidth(window.innerWidth);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    const promptCount = getPromptDisplayCount(viewportWidth);
+    setVisiblePrompts((previousSelection) => pickRandomPrompts(promptCount, previousSelection));
+  }, [viewportWidth]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const intervalId = window.setInterval(() => {
+      const promptCount = getPromptDisplayCount(window.innerWidth);
+      setVisiblePrompts((previousSelection) => pickRandomPrompts(promptCount, previousSelection));
+    }, 9000);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   useEffect(() => {
     if (!ultraChaosMode) {
@@ -212,18 +299,27 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
             onOpeningSeedChange={(openingSeed2) => patchSetup({ openingSeed2 })}
           />
 
-          <div className="col-span-full flex flex-wrap items-center justify-between gap-3 mt-2">
-            <div>
+          <div className="setup-cta-stack">
+            <div className="setup-cta-status" aria-live="polite">
               {!authReady && <p className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>Warming up the neurons...</p>}
               {authError && <p className="mt-1 text-xs" style={{ color: 'var(--danger)' }}>{authError}</p>}
             </div>
 
-            <button type="submit" className="btn-primary" disabled={!canRun || starting} title="Ctrl + Enter">
-              {starting ? 'Igniting...' : 'Let\'s go'}
+            <button
+              type="submit"
+              className="btn-primary setup-launch-btn"
+              disabled={!canRun || starting}
+              title="Ctrl + Enter"
+            >
+              <span key={starting ? 'IGNITING' : actionWord} className="setup-launch-word">
+                {starting ? 'IGNITING' : actionWord}
+              </span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="9 18 15 12 9 6" />
               </svg>
             </button>
+
+            <p className="setup-cta-shortcut">Ctrl + Enter</p>
           </div>
         </form>
 
@@ -231,8 +327,11 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
           <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', marginBottom: '0.5rem', textAlign: 'center' }}>
             Or pick a quick scenario:
           </p>
-          <div className="suggestion-chips">
-            {QUICK_PROMPTS.map((prompt) => (
+          <div
+            className="suggestion-chips setup-quick-prompts"
+            style={{ '--prompt-count': visiblePrompts.length }}
+          >
+            {visiblePrompts.map((prompt) => (
               <button
                 key={prompt.id}
                 type="button"

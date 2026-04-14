@@ -41,6 +41,13 @@ export default function GptShell({
             </svg>
             <span className="gpt-wordmark-text gpt-collapse-hide">Ai Yapping</span>
           </Link>
+          <button
+            className="gpt-icon-btn gpt-collapse-desktop gpt-sidebar-toggle"
+            onClick={() => setSidebarOpen((value) => !value)}
+            aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+          >
+            {sidebarOpen ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
+          </button>
         </div>
 
         <div className="gpt-sidebar-scroll scrollbar-thin">
@@ -106,13 +113,7 @@ export default function GptShell({
                 <line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" />
               </svg>
             </button>
-            <button
-              className="gpt-header-toggle"
-              onClick={() => setSidebarOpen((value) => !value)}
-              aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
-            >
-              {sidebarOpen ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
-            </button>
+            
             <Link to="/" className="brand-name flex items-center gap-2" style={{ fontWeight: '600', fontSize: '1.25rem', color: 'var(--text-primary)', textDecoration: 'none' }}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="url(#yap-grad-gpt)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="yap-logo">
                 <defs>
