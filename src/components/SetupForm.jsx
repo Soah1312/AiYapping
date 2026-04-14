@@ -88,27 +88,37 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
 
   async function handleChaosClick() {
     if (ultraChaosUnlocked) {
-      const nextUltraMode = !ultraChaosMode;
-      setUltraChaosMode(nextUltraMode);
-      setChaosMode(nextUltraMode);
+      // Once unlocked, cycle through: Off -> Chaos -> Ultra -> Off.
+      if (!chaosMode) {
+        setChaosMode(true);
+        setUltraChaosMode(false);
+        setChaosHint('Chaos Mode active. Tap again for Ultra Chaos.');
+        return;
+      }
 
-      if (nextUltraMode) {
+      if (chaosMode && !ultraChaosMode) {
         const authResult = await ensurePuterSignIn({ interactive: true });
         if (!authResult.ok) {
+          // Keep normal chaos active if ultra auth fails.
           setUltraChaosMode(false);
-          setChaosMode(false);
+          setChaosMode(true);
           setChaosHint('Puter sign-in is required for Ultra Chaos.');
           return;
         }
 
+        setChaosMode(true);
+        setUltraChaosMode(true);
         patchSetup({
           ai1Model: ULTRA_CHAOS_OPUS_MODEL_ID,
           ai2Model: ULTRA_CHAOS_SONNET_MODEL_ID,
         });
         setChaosHint('Ultra Chaos active: Claude Opus 4.6 vs Claude Sonnet 4.6');
-      } else {
-        setChaosHint('Ultra Chaos off.');
+        return;
       }
+
+      setUltraChaosMode(false);
+      setChaosMode(false);
+      setChaosHint('Chaos modes off.');
       return;
     }
 
