@@ -99,20 +99,26 @@ function SkeletonBubble({ right, width }) {
   );
 }
 
+function Logo() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="url(#yap-g-share)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <defs><linearGradient id="yap-g-share" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#f43f5e"/><stop offset="100%" stopColor="#f97316"/></linearGradient></defs>
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    </svg>
+  );
+}
+
 function LoadingView() {
   return (
     <div className="cl-shell" data-theme="claude">
       <header className="cl-header">
-        <Link to="/" className="cl-back-link"><ArrowLeft size={16} /> Back</Link>
+        <Link to="/" className="cl-back-link"><ArrowLeft size={16} aria-hidden="true" /> Back</Link>
         <div className="cl-header-brand">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="url(#yap-g-share)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <defs><linearGradient id="yap-g-share" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#f43f5e"/><stop offset="100%" stopColor="#f97316"/></linearGradient></defs>
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-          </svg>
+          <Logo />
           <span>AiYapping</span>
         </div>
       </header>
-      <main className="cl-feed">
+      <main className="cl-feed" aria-busy="true">
         <div className="cl-skeleton-header" />
         {[[180,'left'],[240,'right'],[160,'left'],[200,'right'],[140,'left']].map(([w,s],i)=>(
           <SkeletonBubble key={i} right={s==='right'} width={w} />
@@ -122,16 +128,37 @@ function LoadingView() {
   );
 }
 
+function ErrorView() {
+  return (
+    <div className="cl-shell" data-theme="claude">
+      <header className="cl-header">
+        <Link to="/" className="cl-back-link"><ArrowLeft size={16} aria-hidden="true" /> Back</Link>
+        <div className="cl-header-brand">
+          <Logo />
+          <span>AiYapping</span>
+        </div>
+      </header>
+      <main className="cl-feed cl-feed--center">
+        <div className="cl-notfound-card">
+          <p className="cl-notfound-eyebrow">Error</p>
+          <h1 className="cl-notfound-heading">Something went wrong</h1>
+          <p className="cl-notfound-body">We couldn't load this conversation due to a network error. Please try again later.</p>
+          <Link to="/" className="cl-cta-btn">
+            <Plus size={15} aria-hidden="true" /> Start your own Duel
+          </Link>
+        </div>
+      </main>
+    </div>
+  );
+}
+
 function NotFoundView() {
   return (
     <div className="cl-shell" data-theme="claude">
       <header className="cl-header">
-        <Link to="/" className="cl-back-link"><ArrowLeft size={16} /> Back</Link>
+        <Link to="/" className="cl-back-link"><ArrowLeft size={16} aria-hidden="true" /> Back</Link>
         <div className="cl-header-brand">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="url(#yap-g-share2)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <defs><linearGradient id="yap-g-share2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#f43f5e"/><stop offset="100%" stopColor="#f97316"/></linearGradient></defs>
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-          </svg>
+          <Logo />
           <span>AiYapping</span>
         </div>
       </header>
@@ -141,7 +168,7 @@ function NotFoundView() {
           <h1 className="cl-notfound-heading">Link expired or not found</h1>
           <p className="cl-notfound-body">Either the share link got nuked or you're looking for something that was never here.</p>
           <Link to="/" className="cl-cta-btn">
-            <Plus size={15} /> Start your own Duel
+            <Plus size={15} aria-hidden="true" /> Start your own Duel
           </Link>
         </div>
       </main>
@@ -154,34 +181,32 @@ function NotFoundView() {
 ══════════════════════════════════════════ */
 export default function SharePage() {
   const { id } = useParams();
-  const [state, setState] = useState({ loading: true, data: null, notFound: false });
+  const [state, setState] = useState({ loading: true, data: null, notFound: false, error: false });
   const bottomRef = useRef(null);
 
   useEffect(() => {
     let mounted = true;
     async function fetchShare() {
-      setState({ loading: true, data: null, notFound: false });
+      setState({ loading: true, data: null, notFound: false, error: false });
       try {
         const res = await fetch(`/api/share?id=${encodeURIComponent(id || '')}`);
-        if (res.status === 404) { if (mounted) setState({ loading: false, data: null, notFound: true }); return; }
+        if (res.status === 404) { if (mounted) setState({ loading: false, data: null, notFound: true, error: false }); return; }
         if (!res.ok) throw new Error('Failed');
         const payload = await res.json();
-        if (mounted) setState({ loading: false, data: payload, notFound: false });
+        if (mounted) {
+          setState({ loading: false, data: payload, notFound: false, error: false });
+          document.title = `${payload.topic || 'AI Duel'} - AiYapping`;
+        }
       } catch {
-        if (mounted) setState({ loading: false, data: null, notFound: true });
+        if (mounted) setState({ loading: false, data: null, notFound: false, error: true });
       }
     }
     void fetchShare();
     return () => { mounted = false; };
   }, [id]);
 
-  useEffect(() => {
-    if (state.data && bottomRef.current) {
-      bottomRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [state.data]);
-
   if (state.loading) return <LoadingView />;
+  if (state.error) return <ErrorView />;
   if (state.notFound || !state.data) return <NotFoundView />;
 
   const { topic, config, turnCount, transcript } = state.data;
@@ -199,18 +224,15 @@ export default function SharePage() {
       {/* ── TOPBAR ── */}
       <header className="cl-header">
         <Link to="/" className="cl-back-link">
-          <ArrowLeft size={16} />
+          <ArrowLeft size={16} aria-hidden="true" />
           Back
         </Link>
         <div className="cl-header-brand">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="url(#yap-g-s)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <defs><linearGradient id="yap-g-s" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#f43f5e"/><stop offset="100%" stopColor="#f97316"/></linearGradient></defs>
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-          </svg>
+          <Logo />
           <span>AiYapping</span>
         </div>
         <Link to="/" className="cl-header-cta">
-          <ExternalLink size={13} /> Try it yourself
+          <ExternalLink size={13} aria-hidden="true" /> Try it yourself
         </Link>
       </header>
 
@@ -267,7 +289,7 @@ export default function SharePage() {
       <footer className="cl-footer">
         <p className="cl-footer-text">This conversation was shared from AiYapping — watch AI models debate each other in real time.</p>
         <Link to="/" className="cl-cta-btn">
-          <Plus size={15} /> Start your own AI Duel
+          <Plus size={15} aria-hidden="true" /> Start your own AI Duel
         </Link>
       </footer>
 
