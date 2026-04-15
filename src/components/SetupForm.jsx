@@ -85,7 +85,7 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
   } = useConversationStore();
 
   const [headingText] = useState(() => getTimeBasedHeading());
-  const [chaosTapCount, setChaosTapCount] = useState(0);
+  const [sparkTapCount, setSparkTapCount] = useState(0);
   const [chaosHint, setChaosHint] = useState('');
   const [actionWord] = useState(() => ACTION_WORD_FOR_PAGE_LOAD);
   const [viewportWidth, setViewportWidth] = useState(() => (typeof window === 'undefined' ? 1280 : window.innerWidth));
@@ -172,65 +172,81 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
 
   async function handleChaosClick() {
     if (ultraChaosUnlocked) {
-      // Once unlocked, cycle through: Off -> Chaos -> Ultra -> Off.
+      // Cycle: Off -> Chaos -> Ultra -> Off
       if (!chaosMode) {
         setChaosMode(true);
         setUltraChaosMode(false);
-        setChaosHint('Chaos Mode active. Tap again for Ultra Chaos.');
-        return;
-      }
-
-      if (chaosMode && !ultraChaosMode) {
+        setChaosHint('Chaos Mode active.');
+      } else if (chaosMode && !ultraChaosMode) {
         const authResult = await ensurePuterSignIn({ interactive: true });
         if (!authResult.ok) {
-          // Keep normal chaos active if ultra auth fails.
           setUltraChaosMode(false);
           setChaosMode(true);
-          setChaosHint('Puter sign-in is required for Ultra Chaos.');
-          return;
+          setChaosHint('Puter sign-in required for Ultra.');
+        } else {
+          setUltraChaosMode(true);
+          patchSetup({
+            ai1Model: ULTRA_CHAOS_OPUS_MODEL_ID,
+            ai2Model: ULTRA_CHAOS_SONNET_MODEL_ID,
+          });
+          setChaosHint('Ultra Chaos active.');
         }
-
-        setChaosMode(true);
-        setUltraChaosMode(true);
+      } else {
+        setUltraChaosMode(false);
+        setUltraChaosUnlocked(false);
+        setChaosMode(false);
+        setChaosHint('Chaos modes off.');
         patchSetup({
-          ai1Model: ULTRA_CHAOS_OPUS_MODEL_ID,
-          ai2Model: ULTRA_CHAOS_SONNET_MODEL_ID,
+          ai1Model: DEFAULT_SETUP.ai1Model,
+          ai2Model: DEFAULT_SETUP.ai2Model,
         });
-        setChaosHint('Ultra Chaos active: Claude Opus 4.6 vs Claude Sonnet 4.6');
+      }
+      return;
+    }
+
+    // Normal Toggle
+    setChaosMode(!chaosMode);
+    setChaosHint(chaosMode ? 'Chaos Mode off.' : 'Chaos Mode active.');
+  }
+
+  async function handleSparkClick(e) {
+    if (e) e.preventDefault();
+    
+    // Secret Trigger Logic
+    const prompt1Empty = !setup.openingSeed1?.trim();
+    const prompt2Empty = !setup.openingSeed2?.trim();
+
+    if (prompt1Empty && prompt2Empty) {
+      const nextCount = sparkTapCount + 1;
+      setSparkTapCount(nextCount);
+      
+      if (nextCount < 7) {
         return;
       }
 
-      setUltraChaosMode(false);
-      setUltraChaosUnlocked(false);
-      setChaosMode(false);
-      setChaosHint('Chaos modes off.');
+      // 7th click - Unlock Ultra
+      const authResult = await ensurePuterSignIn({ interactive: true });
+      if (!authResult.ok) {
+        setSparkTapCount(0);
+        return;
+      }
+
+      setUltraChaosUnlocked(true);
+      setUltraChaosMode(true);
+      setChaosMode(true);
+      patchSetup({
+        ai1Model: ULTRA_CHAOS_OPUS_MODEL_ID,
+        ai2Model: ULTRA_CHAOS_SONNET_MODEL_ID,
+      });
+      setSparkTapCount(0);
+      setChaosHint('Ultra Chaos unlocked: Claude Opus vs Sonnet');
       return;
     }
 
-    setChaosMode(!chaosMode);
-    const nextCount = chaosTapCount + 1;
-    setChaosTapCount(nextCount);
-
-    if (nextCount < 7) {
-      setChaosHint(`Chaos resonance ${nextCount}/7`);
-      return;
-    }
-
-    const authResult = await ensurePuterSignIn({ interactive: true });
-    if (!authResult.ok) {
-      setChaosHint('Ultra Chaos unlock failed: Puter sign-in was not completed.');
-      return;
-    }
-
-    setUltraChaosUnlocked(true);
-    setUltraChaosMode(true);
-    setChaosMode(true);
-    patchSetup({
-      ai1Model: ULTRA_CHAOS_OPUS_MODEL_ID,
-      ai2Model: ULTRA_CHAOS_SONNET_MODEL_ID,
-    });
-    setChaosTapCount(0);
-    setChaosHint('Ultra Chaos unlocked: Claude Opus 4.6 vs Claude Sonnet 4.6');
+    // Normal Submission
+    setSparkTapCount(0);
+    if (!canRun || starting) return;
+    onRun(e);
   }
 
   return (
@@ -264,7 +280,7 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
         )}
 
         {/* Setup form */}
-        <form onSubmit={onRun} className="setup-form-grid" style={{ marginTop: '0.5rem' }}>
+        <form onSubmit={handleSparkClick} className="setup-form-grid" style={{ marginTop: '0.5rem' }}>
           <ModelPicker
             title="AI-1"
             accent="var(--ai1)"
@@ -297,8 +313,8 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
 
               <button
                 type="submit"
-                className="btn-primary setup-launch-btn"
-                disabled={!canRun || starting}
+                className={`btn-primary setup-launch-btn${(!canRun || starting) ? ' btn-primary--not-ready shadow-none opacity-50' : ''}`}
+                style={{ cursor: (!canRun || starting) ? 'not-allowed' : 'pointer' }}
                 title="Ctrl + Enter"
               >
                 <span key={starting ? 'IGNITING' : actionWord} className="setup-launch-word">
