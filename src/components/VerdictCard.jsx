@@ -44,7 +44,7 @@ const VerdictCard = ({ verdict }) => {
       <div className="verdict-header">
         <Scale className="verdict-gavel" aria-hidden="true" size={18} />
         <h3 className="verdict-title">The Verdict</h3>
-        <span className="verdict-badge">GPT-4.1</span>
+        <span className="verdict-badge">GPT-4o</span>
       </div>
       <div className="verdict-body">
         {normalized.winner && (

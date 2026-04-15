@@ -101,10 +101,10 @@ export const MODEL_OPTIONS = [
     icon: '/icons/gemma-color.svg',
   },
   {
-    id: 'ghm-gpt-4.1-mini',
+    id: 'ghm-gpt-4o-mini',
     provider: 'github-models',
-    model: 'openai/gpt-4.1-mini',
-    label: 'GPT-4.1 Mini',
+    model: 'openai/gpt-4o-mini',
+    label: 'GPT-4o Mini',
     flavor: 'GitHub Models • Low Tier • Biggest OpenAI Low-Tier Option',
     icon: '/icons/openai-color.svg',
   },

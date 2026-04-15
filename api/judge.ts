@@ -3,7 +3,7 @@ export const config = {
 };
 
 const GITHUB_MODELS_URL = 'https://models.github.ai/inference/chat/completions';
-const VERDICT_MODEL = 'openai/gpt-4.1';
+const VERDICT_MODEL = 'gpt-4o';
 
 function normalizeApiKeyValue(value: unknown): string {
   if (typeof value !== 'string') {

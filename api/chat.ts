@@ -304,6 +304,11 @@ function resolveProvider(provider: string | undefined, modelId: string) {
   return modelId.includes('/') ? 'huggingface' : 'groq';
 }
 
+function normalizeGithubModelsId(modelId: string) {
+  const parts = modelId.split('/');
+  return parts.length > 1 ? parts[1] : modelId;
+}
+
 function extractGithubModelsDelta(payload: Record<string, unknown>) {
   const firstChoice =
     Array.isArray(payload.choices) && payload.choices[0] && typeof payload.choices[0] === 'object'
@@ -1562,7 +1567,7 @@ async function createGitHubModelsStreamResponse({
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: modelId,
+        model: normalizeGithubModelsId(modelId),
         messages: normalizedMessages,
         stream: false,
         max_tokens: admission?.max_tokens ?? 500,
