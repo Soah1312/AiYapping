@@ -179,7 +179,7 @@ export default function MeowPage() {
   }, [stats]);
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-[#0f0c0a] via-academia-bg-light to-academia-bg text-text">
+    <main className="h-screen overflow-y-auto bg-gradient-to-br from-[#0f0c0a] via-academia-bg-light to-academia-bg text-text">
       <div className="w-full mx-auto px-4 py-6">
         {!isAuthenticated ? (
           <div className="flex items-center justify-center min-h-[80vh] p-4">
