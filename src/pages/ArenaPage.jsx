@@ -261,6 +261,8 @@ export default function ArenaPage() {
         if (title && !cancelled) {
           setGeneratedChatTitle(title);
           applyGeneratedTitleToSavedChat(requestedConversationKey, title);
+          // Force an early save so the chat appears in the sidebar 'Recent Chats' immediately
+          saveCurrentChat({ title });
         }
       } catch (error) {
         console.error('[arena/title] Title generation threw client-side error.', {
