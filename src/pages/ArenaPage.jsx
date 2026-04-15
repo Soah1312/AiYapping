@@ -260,6 +260,8 @@ export default function ArenaPage() {
         if (title && !cancelled) {
           setGeneratedChatTitle(title);
           applyGeneratedTitleToSavedChat(requestedConversationKey, title);
+          // Force an early save so the chat appears in the sidebar 'Recent Chats' immediately
+          saveCurrentChat({ title });
         }
       } catch (error) {
         console.error('[arena/title] Title generation threw client-side error.', {
@@ -520,7 +522,18 @@ export default function ArenaPage() {
             <div className="chat-feed-inner">
               <div className="conversation-title-strip" title={conversationDisplayTitle}>
                 <span className="conversation-title-kicker">Chat name</span>
-                <h2 className="conversation-title-text">{conversationDisplayTitle}</h2>
+                <AnimatePresence mode="wait">
+                  <motion.h2
+                    key={conversationDisplayTitle}
+                    initial={{ opacity: 0, filter: 'blur(4px)', y: 2 }}
+                    animate={{ opacity: 1, filter: 'blur(0px)', y: 0 }}
+                    exit={{ opacity: 0, filter: 'blur(4px)', y: -2 }}
+                    transition={{ duration: 0.4, ease: 'easeOut' }}
+                    className="conversation-title-text"
+                  >
+                    {conversationDisplayTitle}
+                  </motion.h2>
+                </AnimatePresence>
               </div>
               {transcript.length === 0 && (
                 <motion.div layout className="surface-card flex items-center gap-2" style={{ padding: '1rem', fontSize: '0.875rem', color: 'var(--text-muted)' }}>

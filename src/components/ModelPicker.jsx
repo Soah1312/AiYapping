@@ -18,7 +18,7 @@ export default function ModelPicker({
   const selectedFromVisibleOptions = availableOptions.find(
     (option) => option.id === model || option.model === model,
   );
-  const activeModel = selectedFromVisibleOptions || MODEL_BY_ID[model] || availableOptions[0] || MODEL_OPTIONS[0];
+  const activeModel = selectedFromVisibleOptions || availableOptions[0] || MODEL_OPTIONS[0];
   const selectedValue = selectedFromVisibleOptions?.id || activeModel.id;
   const seedValue = typeof openingSeed === 'string' ? openingSeed : (persona || '');
   const handleSeedChange = onOpeningSeedChange || onPersonaChange;

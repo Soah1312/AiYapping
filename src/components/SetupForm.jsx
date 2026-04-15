@@ -10,23 +10,8 @@ import { QUICK_PROMPTS } from '../lib/prompts';
 import { useConversationStore } from '../store/conversationStore';
 import { ensurePuterSignIn } from '../lib/puterClient';
 
-const ACTION_WORDS = [
-  'LAUNCH',
-  'PROCEED',
-  'ADVANCE',
-  'START',
-  'BEGIN',
-  'ENGAGE',
-  'DEBATE',
-  'SPARK',
-  'TALK',
-  'CHAT',
-  'RUMBLE',
-  'DUEL',
-];
-
-const ACTION_WORD_FOR_PAGE_LOAD =
-  ACTION_WORDS[Math.floor(Math.random() * ACTION_WORDS.length)];
+// Dark Academia launch word
+const SPARK_ACTION_WORD = 'SPARK';
 
 const getTimeBasedHeading = () => {
   const hour = new Date().getHours();
@@ -83,9 +68,8 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
   } = useConversationStore();
 
   const [headingText] = useState(() => getTimeBasedHeading());
-  const [chaosTapCount, setChaosTapCount] = useState(0);
+  const [sparkTapCount, setSparkTapCount] = useState(0);
   const [chaosHint, setChaosHint] = useState('');
-  const [actionWord] = useState(() => ACTION_WORD_FOR_PAGE_LOAD);
   const [viewportWidth, setViewportWidth] = useState(() => (typeof window === 'undefined' ? 1280 : window.innerWidth));
   const [visiblePrompts, setVisiblePrompts] = useState(() => {
     const initialWidth = typeof window === 'undefined' ? 1280 : window.innerWidth;
@@ -147,35 +131,48 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
     });
   }
 
-  async function handleChaosClick() {
+  function handleChaosClick() {
     setChaosMode(!chaosMode);
+    setChaosHint(chaosMode ? 'Chaos Mode off.' : 'Chaos Mode active.');
+  }
 
-    if (ultraChaosUnlocked) {
-      setChaosHint(chaosMode ? 'Chaos mode deactivated.' : 'Chaos Mode active.');
+  async function handleSparkClick(e) {
+    if (e) e.preventDefault();
+    
+    // Secret Trigger Logic
+    const prompt1Empty = !setup.openingSeed1?.trim();
+    const prompt2Empty = !setup.openingSeed2?.trim();
+
+    if (prompt1Empty && prompt2Empty && !ultraChaosUnlocked) {
+      const nextCount = sparkTapCount + 1;
+      setSparkTapCount(nextCount);
+      
+      if (nextCount < 7) {
+        return;
+      }
+
+      // 7th click - Unlock Ultra
+      const authResult = await ensurePuterSignIn({ interactive: true });
+      if (!authResult.ok) {
+        setSparkTapCount(0);
+        return;
+      }
+
+      setUltraChaosUnlocked(true);
+      setChaosMode(true);
+      patchSetup({
+        ai1Model: ULTRA_CHAOS_OPUS_MODEL_ID,
+        ai2Model: ULTRA_CHAOS_SONNET_MODEL_ID,
+      });
+      setSparkTapCount(0);
+      setChaosHint('Ultra Chaos unlocked: Claude Opus vs Sonnet');
       return;
     }
 
-    const nextCount = chaosTapCount + 1;
-    setChaosTapCount(nextCount);
-
-    if (nextCount < 7) {
-      setChaosHint(chaosMode ? 'Chaos mode deactivated.' : 'Chaos Mode active.');
-      return;
-    }
-
-    const authResult = await ensurePuterSignIn({ interactive: true });
-    if (!authResult.ok) {
-      setChaosHint('Ultra mode unlock failed: Puter sign-in required.');
-      return;
-    }
-
-    setUltraChaosUnlocked(true);
-    setChaosTapCount(0);
-    setChaosHint('Ultra Chaos models unlocked in the picker! 🌪️');
-    patchSetup({
-      ai1Model: ULTRA_CHAOS_OPUS_MODEL_ID,
-      ai2Model: ULTRA_CHAOS_SONNET_MODEL_ID,
-    });
+    // Normal Submission
+    setSparkTapCount(0);
+    if (!canRun || starting) return;
+    onRun(e);
   }
 
   return (
@@ -209,7 +206,7 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
         )}
 
         {/* Setup form */}
-        <form onSubmit={onRun} className="setup-form-grid" style={{ marginTop: '0.5rem' }}>
+        <form onSubmit={handleSparkClick} className="setup-form-grid" style={{ marginTop: '0.5rem' }}>
           <ModelPicker
             title="AI-1"
             accent="var(--ai1)"
@@ -242,12 +239,12 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
 
               <button
                 type="submit"
-                className="btn-primary setup-launch-btn"
-                disabled={!canRun || starting}
+                className={`btn-primary setup-launch-btn${(!canRun || starting) ? ' btn-primary--not-ready shadow-none opacity-50' : ''}`}
+                style={{ cursor: (!canRun || starting) ? 'not-allowed' : 'pointer' }}
                 title="Ctrl + Enter"
               >
-                <span key={starting ? 'IGNITING' : actionWord} className="setup-launch-word">
-                  {starting ? 'IGNITING' : actionWord}
+                <span key={starting ? 'IGNITING' : 'SPARK'} className="setup-launch-word">
+                  {starting ? 'IGNITING' : 'SPARK'}
                 </span>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="9 18 15 12 9 6" />
