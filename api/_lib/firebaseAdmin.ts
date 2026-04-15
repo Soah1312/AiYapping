@@ -140,6 +140,7 @@ export async function getAdminDashboardStatsPrivileged() {
     const data = entry.data() as Record<string, unknown>;
     return {
       userId: entry.id,
+      injectionsCount: Number.isFinite(Number(data.injectionsCount)) ? Number(data.injectionsCount) : 0,
       totalApiCalls: Number.isFinite(Number(data.turnsUsed)) ? Number(data.turnsUsed) : 0,
       lastReset: normalizeTimestamp(data.lastReset),
       updatedAt: normalizeTimestamp(data.updatedAt),
@@ -190,6 +191,13 @@ export async function getAdminDashboardStatsPrivileged() {
   const perUserApiCalls = [...usageRows].sort(
     (a, b) => b.totalApiCalls - a.totalApiCalls || a.userId.localeCompare(b.userId),
   );
+
+  const totalInjections = usageRows.reduce((acc, row) => acc + (row.injectionsCount || 0), 0);
+
+  const perUserInjections = [...usageRows]
+    .filter(row => (row.injectionsCount || 0) > 0)
+    .map(({ userId, injectionsCount }) => ({ userId, injectionsCount }))
+    .sort((a, b) => b.injectionsCount - a.injectionsCount || a.userId.localeCompare(b.userId));
 
   const recentChats = [...conversations]
     .sort((a, b) => parseIsoMs(b.updatedAt || b.createdAt) - parseIsoMs(a.updatedAt || a.createdAt))
@@ -285,6 +293,8 @@ export async function getAdminDashboardStatsPrivileged() {
     recentChats,
     perUserApiCalls,
     perUserVisits,
+    totalInjections,
+    perUserInjections,
     avgTurnsPerDuel,
     completionRatePct,
     completedDuels,

@@ -517,6 +517,36 @@ function shouldMirrorDevConversationStore() {
   return typeof process !== 'undefined' && process.env?.NODE_ENV !== 'production';
 }
 
+export async function recordInjectionAttempt(sessionId: string) {
+  try {
+    const db = getDb();
+    const usageRef = doc(db, 'usage', sessionId);
+    const snapshot = await getDoc(usageRef);
+
+    let currentInjections = 0;
+    if (snapshot.exists()) {
+      const data = snapshot.data();
+      currentInjections = Number(data.injectionsCount) || 0;
+    }
+
+    await setDoc(
+      usageRef,
+      {
+        injectionsCount: currentInjections + 1,
+        lastInjectionAt: nowIso(),
+        updatedAt: nowIso(),
+      },
+      { merge: true },
+    );
+  } catch (error) {
+    if (shouldUseLocalFallback(error)) {
+      // no-op for local fallback
+      return;
+    }
+    console.error('Failed to log injection:', error);
+  }
+}
+
 function getLocalUsage(sessionId: string) {
   const stamp = todayStamp();
   const existing = devUsageStore.get(sessionId);

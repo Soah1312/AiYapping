@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, BarChart3, MessageCircle, Zap, Eye, AlertTriangle } from 'lucide-react';
+import { Users, BarChart3, MessageCircle, Zap, Eye, AlertTriangle, ShieldAlert } from 'lucide-react';
 
 function AcademiaStatCard({ label, value, icon }) {
   return (
@@ -251,6 +251,7 @@ export default function MeowPage() {
                 <AcademiaStatCard label="Total Users" value={stats.users ?? 0} icon={<Users size={28} strokeWidth={1.5} className="text-academia-gold opacity-60" />} />
                 <AcademiaStatCard label="Total Visits" value={stats.totalVisits ?? 0} icon={<BarChart3 size={28} strokeWidth={1.5} className="text-academia-gold opacity-60" />} />
                 <AcademiaStatCard label="Recent Chats" value={Array.isArray(stats.recentChats) ? stats.recentChats.length : 0} icon={<MessageCircle size={28} strokeWidth={1.5} className="text-academia-gold opacity-60" />} />
+                <AcademiaStatCard label="Prompt Injections" value={stats.totalInjections ?? 0} icon={<ShieldAlert size={28} strokeWidth={1.5} className="text-red-400 opacity-60" />} />
                 {metricCards.map((metric) => (
                   <AcademiaStatCard key={metric.label} label={metric.label} value={metric.value} />
                 ))}
@@ -274,6 +275,27 @@ export default function MeowPage() {
                       {(stats.recentChats || []).length === 0 && (
                         <div className="text-center py-8 px-4 text-academia-gold-muted">
                           <p className="m-0 text-[0.85rem] font-academia-body">The records are silent.</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Prompt Injections Leaderboard */}
+                <div className="flex flex-col">
+                  <div className="rounded-md p-6 bg-gradient-to-br from-academia-bg-light to-academia-bg border-2 border-academia-gold-muted flex flex-col flex-1 shadow-[0_8px_24px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.02)]">
+                    <div className="flex items-center gap-2 mb-5">
+                      <ShieldAlert size={18} strokeWidth={1.5} className="text-red-400 opacity-70 shrink-0" />
+                      <h3 className="m-0 text-base font-bold font-academia-display text-academia-parchment">Security Transgressions</h3>
+                    </div>
+
+                    <div className="grid gap-3 flex-1">
+                      {(stats.perUserInjections || []).slice(0, 8).map((row) => (
+                        <AcademiaMetric key={row.userId} labelId={row.userId} value={row.injectionsCount} highlight={true} />
+                      ))}
+                      {(stats.perUserInjections || []).length === 0 && (
+                        <div className="text-center py-8 px-4 text-academia-gold-muted">
+                          <p className="m-0 text-[0.85rem] font-academia-body">No breaches detected.</p>
                         </div>
                       )}
                     </div>

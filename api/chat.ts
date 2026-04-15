@@ -2,6 +2,7 @@ import {
   acquireConversationAdmission,
   getUsageStatus,
   incrementUsage,
+  recordInjectionAttempt,
   markConversationTurnComplete,
   refreshConversationLease,
   releaseConversationAdmissionOnFailure,
@@ -1729,45 +1730,58 @@ async function performProviderRequestWithAdmission({
       return response;
     }
 
-    if (response.status !== 429) {
-      return response;
-    }
+    if (response.status === 429) {
+      const clonedResponse = response.clone();
+      const payload = await parseResponseJsonSafe(clonedResponse);
+      const reason = String(payload?.reason || '');
+      const errorText = String(payload?.error || '');
+      const isProviderSaturated =
+        reason === 'all_keys_rate_limited'
+        || errorText.includes('All AI engines are currently yapping too hard');
 
-    const payload = await parseResponseJsonSafe(response);
-    const reason = String(payload?.reason || '');
-    const errorText = String(payload?.error || '');
-    const isProviderSaturated =
-      reason === 'all_keys_rate_limited'
-      || errorText.includes('All AI engines are currently yapping too hard');
+      if (!isProviderSaturated) {
+        await releaseConversationAdmissionOnFailure({
+          conversationKey: admission.conversationKey,
+          sessionId: admission.sessionId,
+          reason: `provider_429_nonretryable_${reason || 'unknown'}`,
+        });
+        return response;
+      }
 
-    if (!isProviderSaturated) {
-      await releaseConversationAdmissionOnFailure({
+      const elapsedMs = Date.now() - startedAt;
+      if (elapsedMs >= ACTIVE_PRIORITY_RETRY_TIMEOUT_MS) {
+        await releaseConversationAdmissionOnFailure({
+          conversationKey: admission.conversationKey,
+          sessionId: admission.sessionId,
+          reason: 'provider_rate_limit_timeout',
+        });
+
+        return buildRetryTimeoutResponse({ requestId, stage });
+      }
+
+      await refreshConversationLease({
         conversationKey: admission.conversationKey,
         sessionId: admission.sessionId,
-        reason: `provider_429_nonretryable_${reason || 'unknown'}`,
-      });
-      return response;
-    }
-
-    const elapsedMs = Date.now() - startedAt;
-    if (elapsedMs >= ACTIVE_PRIORITY_RETRY_TIMEOUT_MS) {
-      await releaseConversationAdmissionOnFailure({
-        conversationKey: admission.conversationKey,
-        sessionId: admission.sessionId,
-        reason: 'provider_rate_limit_timeout',
       });
 
-      return buildRetryTimeoutResponse({ requestId, stage });
+      const jitterMs = Math.floor(Math.random() * 1500);
+      await wait(ACTIVE_PRIORITY_RETRY_DELAY_MS + jitterMs);
+      continue;
     }
 
-    await refreshConversationLease({
-      conversationKey: admission.conversationKey,
-      sessionId: admission.sessionId,
-    });
-
-    const jitterMs = Math.floor(Math.random() * 1500);
-    await wait(ACTIVE_PRIORITY_RETRY_DELAY_MS + jitterMs);
+    return response;
   }
+}
+
+function sanitizeMessageContent(content: string): string {
+  if (typeof content !== 'string') return content;
+  
+  let s = content.replace(/[{}]/g, '');
+  s = s.replace(/(ignore|disregard|forget|bypass|reset|drop)\s+(all\s+)?(previous\s+)?(instructions?|system prompt|rules|context|persona)/gi, '');
+  s = s.replace(/(you are now|act as)\s+(a|an)/gi, '');
+  s = s.replace(/do\s+not\s+follow/gi, '');
+  
+  return s.trim();
 }
 
 export default async function handler(request: Request): Promise<Response> {
@@ -1793,6 +1807,23 @@ export default async function handler(request: Request): Promise<Response> {
         },
         { status: 400 },
       );
+    }
+    
+    let injectionDetected = false;
+    body.messages = body.messages.map(msg => {
+      const original = msg.content ?? '';
+      const sanitized = sanitizeMessageContent(original);
+      if (original !== sanitized && original.length > sanitized.length) {
+        injectionDetected = true;
+      }
+      return { ...msg, content: sanitized };
+    });
+
+    if (injectionDetected) {
+      // Intentionally not awaiting in foreground to avoid slowing down response, 
+      // but in edge environments fire-and-forget might be killed early. 
+      // Better to await it so it completes.
+      await recordInjectionAttempt(body.sessionId);
     }
 
     stage = 'resolve-provider';
