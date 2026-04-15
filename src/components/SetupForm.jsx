@@ -94,10 +94,8 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
     return pickRandomPrompts(getPromptDisplayCount(initialWidth));
   });
 
-  const visibleModelOptions = ultraChaosUnlocked
-    ? ultraChaosMode
-      ? MODEL_OPTIONS.filter((option) => option.id === ULTRA_CHAOS_OPUS_MODEL_ID || option.id === ULTRA_CHAOS_SONNET_MODEL_ID)
-      : MODEL_OPTIONS
+  const visibleModelOptions = ultraChaosMode
+    ? MODEL_OPTIONS.filter((option) => option.id === ULTRA_CHAOS_OPUS_MODEL_ID || option.id === ULTRA_CHAOS_SONNET_MODEL_ID)
     : MODEL_OPTIONS.filter((option) => !option.requiresUltraChaos);
 
   useEffect(() => {
@@ -203,6 +201,7 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
       }
 
       setUltraChaosMode(false);
+      setUltraChaosUnlocked(false);
       setChaosMode(false);
       setChaosHint('Chaos modes off.');
       return;
