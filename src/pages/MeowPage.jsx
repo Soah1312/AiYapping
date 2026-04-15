@@ -1,187 +1,93 @@
-import { useMemo, useState } from 'react';
-import { Users, BarChart3, MessageCircle, Zap, Eye } from 'lucide-react';
+import { useMemo, useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
+import { Users, BarChart3, MessageCircle, Zap, Eye, AlertTriangle } from 'lucide-react';
 
-// Dark Academia Stat Card
 function AcademiaStatCard({ label, value, icon }) {
   return (
-    <div style={{
-      borderRadius: '0.25rem',
-      padding: '1.25rem 1.25rem',
-      background: 'linear-gradient(135deg, #1a1410 0%, #141110 100%)',
-      border: '2px solid #8b7355',
-      position: 'relative',
-      overflow: 'hidden',
-      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.02)',
-      transition: 'all 0.3s ease'
-    }}
-    onMouseEnter={(e) => {
-      e.currentTarget.style.background = 'linear-gradient(135deg, #231a14 0%, #1f1714 100%)';
-      e.currentTarget.style.borderColor = '#cd853f';
-      e.currentTarget.style.boxShadow = '0 12px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.02)';
-    }}
-    onMouseLeave={(e) => {
-      e.currentTarget.style.background = 'linear-gradient(135deg, #1a1410 0%, #141110 100%)';
-      e.currentTarget.style.borderColor = '#8b7355';
-      e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.02)';
-    }}
-    >
+    <div className="relative overflow-hidden rounded-md p-5 bg-gradient-to-br from-academia-bg-light to-academia-bg border-2 border-academia-gold-muted shadow-[0_8px_24px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.02)] transition-all duration-300 hover:from-academia-bg-hover hover:to-[#1f1714] hover:border-academia-gold hover:shadow-[0_12px_32px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.02)] group">
+      
       {/* Decorative top border */}
-      <div style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        height: '1px',
-        background: 'linear-gradient(90deg, transparent, #cd853f, transparent)',
-        opacity: 0.4
-      }} />
+      <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-academia-gold to-transparent opacity-40" />
       
       {/* Decorative corner accents */}
-      <div style={{
-        position: 'absolute',
-        top: '1rem',
-        right: '1rem',
-        width: '20px',
-        height: '2px',
-        background: '#cd853f',
-        opacity: 0.4
-      }} />
-      <div style={{
-        position: 'absolute',
-        top: '1rem',
-        right: '1rem',
-        width: '2px',
-        height: '20px',
-        background: '#cd853f',
-        opacity: 0.4
-      }} />
+      <div className="absolute top-4 right-4 w-5 h-[2px] bg-academia-gold opacity-40" />
+      <div className="absolute top-4 right-4 w-[2px] h-5 bg-academia-gold opacity-40" />
 
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-        <div style={{ flex: 1 }}>
-          <p style={{ 
-            margin: 0, 
-            fontSize: '0.6rem', 
-            color: '#a0826d',
-            fontWeight: 500, 
-            letterSpacing: '0.15em', 
-            textTransform: 'uppercase',
-            fontFamily: 'Cinzel, "Copperplate", serif'
-          }}>{label}</p>
-          <p style={{ 
-            margin: '0.75rem 0 0', 
-            fontSize: '2rem', 
-            fontWeight: 700, 
-            color: '#e8dcc8',
-            fontFamily: 'Playfair Display, Lora, "Libre Baskerville", serif',
-            lineHeight: 1.1,
-            letterSpacing: '-0.02em'
-          }}>{value}</p>
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <p className="m-0 text-[0.6rem] text-academia-gold-light font-medium tracking-[0.15em] uppercase font-academia-label">
+            {label}
+          </p>
+          <p className="mt-3 mb-0 text-3xl font-bold text-academia-parchment font-academia-display leading-tight tracking-[-0.02em]">
+            {value}
+          </p>
         </div>
-        {icon && <div style={{ fontSize: '0', opacity: 0.6, marginLeft: '1rem' }}>{icon}</div>}
+        {icon && <div className="text-[0] opacity-60 ml-4 group-hover:opacity-100 transition-opacity duration-300">{icon}</div>}
       </div>
     </div>
   );
 }
 
-// Dark Academia Chat Item
-function AcademiaChat ({ chat }) {
+function AcademiaChat({ chat }) {
   return (
-    <div style={{
-      borderRadius: '0.25rem',
-      padding: '1rem 1.25rem',
-      background: 'linear-gradient(135deg, rgba(20, 17, 16, 0.4) 0%, rgba(26, 20, 16, 0.6) 100%)',
-      border: '1px solid #8b7355',
-      borderLeft: '3px solid #cd853f',
-      transition: 'all 0.2s ease',
-      position: 'relative'
-    }}
-    onMouseEnter={(e) => {
-      e.currentTarget.style.background = 'linear-gradient(135deg, rgba(32, 26, 21, 0.6) 0%, rgba(32, 26, 21, 0.8) 100%)';
-      e.currentTarget.style.borderColor = '#a0826d';
-      e.currentTarget.style.borderLeftColor = '#cd853f';
-    }}
-    onMouseLeave={(e) => {
-      e.currentTarget.style.background = 'linear-gradient(135deg, rgba(20, 17, 16, 0.4) 0%, rgba(26, 20, 16, 0.6) 100%)';
-      e.currentTarget.style.borderColor = '#8b7355';
-    }}
+    <Link 
+      to={`/share/${chat.id}`} 
+      target="_blank" 
+      rel="noopener noreferrer"
+      className="block decoration-transparent rounded-md p-4 bg-gradient-to-br from-[#141110]/40 to-[#1a1410]/60 border border-academia-gold-muted border-l-[3px] border-l-academia-gold transition-all duration-200 relative hover:from-[#201a15]/60 hover:to-[#201a15]/80 hover:border-academia-gold-light hover:border-l-academia-gold"
     >
-      <p style={{ 
-        margin: 0, 
-        fontWeight: 600, 
-        fontSize: '0.95rem', 
-        color: '#e8dcc8',
-        fontFamily: 'Merriweather, "Source Serif Pro", Garamond, serif'
-      }}>
+      <p className="m-0 font-semibold text-[0.95rem] text-academia-parchment font-academia-body">
         {chat.topic || 'Untitled Conversation'}
       </p>
-      <div style={{ marginTop: '0.625rem', display: 'flex', gap: '1.25rem', flexWrap: 'wrap', fontSize: '0.75rem', color: '#8b7355' }}>
-        <span style={{ fontFamily: 'Space Mono, Monaco, Menlo, monospace' }}>ID: {chat.ownerId?.slice(0, 8)}...</span>
-        <span style={{ fontFamily: 'Cinzel, "Copperplate", serif', letterSpacing: '0.05em' }}>{chat.turnCount} turns</span>
+      <div className="mt-2.5 flex gap-5 flex-wrap text-xs text-academia-gold-muted">
+        <span className="font-academia-mono">ID: {chat.ownerId?.slice(0, 8)}...</span>
+        <span className="font-academia-label tracking-[0.05em]">{chat.turnCount} turns</span>
         {chat.updatedAt && <span>{new Date(chat.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>}
       </div>
-    </div>
+    </Link>
   );
 }
 
-// Dark Academia Metric Item
-function AcademiaMetric({ userId, value }) {
+function AcademiaMetric({ labelId, value, highlight }) {
   return (
-    <div style={{
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: '0.875rem 1rem',
-      borderRadius: '0.25rem',
-      background: 'linear-gradient(90deg, rgba(20, 17, 16, 0.3) 0%, rgba(26, 20, 16, 0.3) 100%)',
-      border: '1px solid rgba(139, 115, 85, 0.3)',
-      transition: 'all 0.2s ease',
-      fontFamily: 'Merriweather, "Source Serif Pro", Garamond, serif'
-    }}
-    onMouseEnter={(e) => {
-      e.currentTarget.style.background = 'linear-gradient(90deg, rgba(32, 26, 21, 0.5) 0%, rgba(32, 26, 21, 0.5) 100%)';
-      e.currentTarget.style.borderColor = '#8b7355';
-    }}
-    onMouseLeave={(e) => {
-      e.currentTarget.style.background = 'linear-gradient(90deg, rgba(20, 17, 16, 0.3) 0%, rgba(26, 20, 16, 0.3) 100%)';
-      e.currentTarget.style.borderColor = 'rgba(139, 115, 85, 0.3)';
-    }}
-    >
-      <span style={{ fontSize: '0.8rem', color: '#a0826d', fontFamily: 'Space Mono, Monaco, Menlo, monospace', flexShrink: 0, maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-        {userId}
+    <div className="flex justify-between items-center py-3.5 px-4 rounded-md bg-gradient-to-r from-academia-bg/30 to-academia-bg/50 border border-academia-gold-muted/30 transition-all duration-200 font-academia-body hover:from-academia-bg-hover/50 hover:to-academia-bg-hover/50 hover:border-academia-gold-muted">
+      <span className={`text-xs text-academia-gold-light font-academia-mono shrink-0 max-w-[200px] overflow-hidden text-ellipsis ${highlight ? 'text-red-400' : ''}`}>
+        {labelId}
       </span>
-      <div style={{ textAlign: 'right' }}>
-        <span style={{ fontWeight: 700, fontSize: '1rem', color: '#e8dcc8' }}>{value}</span>
+      <div className="text-right">
+        <span className="font-bold text-base text-academia-parchment">{value}</span>
       </div>
     </div>
   );
 }
 
 export default function MeowPage() {
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useState(() => sessionStorage.getItem('meow_key') || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [stats, setStats] = useState(null);
 
-  const unlocked = Boolean(stats);
+  // Auto-polling
+  const timerRef = useRef(null);
 
-  async function fetchStats(event) {
-    if (event?.preventDefault) {
-      event.preventDefault();
+  async function fetchStats(providedPassword = password, checkAuth = true) {
+    if (!providedPassword) {
+        setError('Password required.');
+        return;
     }
 
     setLoading(true);
-    setError('');
+    if (checkAuth) setError('');
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      controller.abort();
-    }, 20000);
+    const timeoutId = setTimeout(() => controller.abort(), 20000);
 
     try {
       const response = await fetch('/api/admin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ password: providedPassword }),
         signal: controller.signal,
       });
 
@@ -197,20 +103,25 @@ export default function MeowPage() {
       }
 
       setStats(payload);
-      console.info('[meow] Admin stats loaded', {
-        generatedAt: payload?.generatedAt,
-        users: payload?.users,
-        totalVisits: payload?.totalVisits,
-        recentChats: Array.isArray(payload?.recentChats) ? payload.recentChats.length : 0,
-        perUserApiCalls: Array.isArray(payload?.perUserApiCalls) ? payload.perUserApiCalls.length : 0,
-        perUserVisits: Array.isArray(payload?.perUserVisits) ? payload.perUserVisits.length : 0,
-      });
+      if (!isAuthenticated) {
+        setIsAuthenticated(true);
+        sessionStorage.setItem('meow_key', providedPassword);
+      }
+      setError('');
     } catch (nextError) {
-      setStats(null);
-      if (nextError?.name === 'AbortError') {
-        setError('Admin request timed out. Please try again.');
+      if (!isAuthenticated || checkAuth) {
+        setStats(null);
+        setIsAuthenticated(false);
+        sessionStorage.removeItem('meow_key');
+        
+        if (nextError?.name === 'AbortError') {
+          setError('Admin request timed out. Please try again.');
+        } else {
+          setError(String(nextError?.message || 'Access denied'));
+        }
       } else {
-        setError(String(nextError?.message || 'Access denied'));
+        // We are authenticated but bg poll failed
+        console.warn('[meow] Background polling failed', nextError);
       }
     } finally {
       clearTimeout(timeoutId);
@@ -218,19 +129,40 @@ export default function MeowPage() {
     }
   }
 
-  const generatedAt = useMemo(() => {
-    if (!stats?.generatedAt) {
-      return '';
-    }
+  const handleLogin = (e) => {
+    e?.preventDefault?.();
+    fetchStats(password, true);
+  };
 
+  useEffect(() => {
+    if (password && !isAuthenticated && !loading && !error) {
+       // Auto-login on mount if key exists
+       fetchStats(password, true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+        timerRef.current = setInterval(() => {
+            fetchStats(password, false);
+        }, 30000);
+    } else if (timerRef.current) {
+        clearInterval(timerRef.current);
+    }
+    
+    return () => {
+        if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [isAuthenticated, password]);
+
+  const generatedAt = useMemo(() => {
+    if (!stats?.generatedAt) return '';
     const date = new Date(stats.generatedAt);
     return Number.isNaN(date.getTime()) ? '' : date.toLocaleString();
   }, [stats]);
 
   const metricCards = useMemo(() => {
-    if (!stats) {
-      return [];
-    }
+    if (!stats) return [];
 
     const asNumber = (value) => (Number.isFinite(Number(value)) ? Number(value) : null);
     const avgTurns = asNumber(stats.avgTurnsPerDuel);
@@ -239,72 +171,29 @@ export default function MeowPage() {
     const p95Latency = asNumber(stats.p95TurnLatencyMs);
 
     return [
-      {
-        label: 'Avg Turns / Duel',
-        value: avgTurns === null ? '--' : avgTurns.toFixed(1),
-      },
-      {
-        label: 'Completion Rate',
-        value: completionRate === null ? '--' : `${completionRate.toFixed(1)}%`,
-      },
-      {
-        label: 'Error Rate',
-        value: errorRate === null ? '--' : `${errorRate.toFixed(1)}%`,
-      },
-      {
-        label: 'P95 Turn Latency',
-        value: p95Latency === null ? '--' : `${(p95Latency / 1000).toFixed(2)}s`,
-      },
+      { label: 'Avg Turns / Duel', value: avgTurns === null ? '--' : avgTurns.toFixed(1) },
+      { label: 'Completion Rate', value: completionRate === null ? '--' : `${completionRate.toFixed(1)}%` },
+      { label: 'Error Rate', value: errorRate === null ? '--' : `${errorRate.toFixed(1)}%` },
+      { label: 'P95 Turn Latency', value: p95Latency === null ? '--' : `${(p95Latency / 1000).toFixed(2)}s` },
     ];
   }, [stats]);
 
   return (
-    <main style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #0f0c0a 0%, #1a1410 50%, #141110 100%)', color: 'var(--text-primary)' }}>
-      <div style={{ width: '100%', margin: '0 auto', padding: '1.5rem 1rem' }}>
-        {!unlocked ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', padding: '1rem' }}>
-            <div style={{
-              borderRadius: '0.375rem',
-              padding: '2rem 1.5rem',
-              background: 'linear-gradient(135deg, #1a1410 0%, #232320 100%)',
-              border: '2px solid #8b7355',
-              boxShadow: '0 12px 40px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.02)',
-              width: '100%',
-              maxWidth: '360px'
-            }}>
-              <h2 style={{ 
-                margin: 0, 
-                fontSize: '1.25rem', 
-                fontWeight: 600, 
-                textAlign: 'center', 
-                marginBottom: '0.25rem', 
-                fontFamily: 'Playfair Display, Lora, "Libre Baskerville", serif',
-                color: '#e8dcc8'
-              }}>
+    <main className="min-h-screen bg-gradient-to-br from-[#0f0c0a] via-academia-bg-light to-academia-bg text-text">
+      <div className="w-full mx-auto px-4 py-6">
+        {!isAuthenticated ? (
+          <div className="flex items-center justify-center min-h-[80vh] p-4">
+            <div className="rounded-md p-8 bg-gradient-to-br from-academia-bg-light to-[#232320] border-2 border-academia-gold-muted shadow-[0_12px_40px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.02)] w-full max-w-[360px]">
+              <h2 className="m-0 text-xl font-semibold text-center mb-1 font-academia-display text-academia-parchment">
                 Admin Access
               </h2>
-              <p style={{
-                textAlign: 'center',
-                fontSize: '0.8rem',
-                color: '#8b7355',
-                margin: '0 0 1.5rem 0',
-                fontFamily: 'Merriweather, "Source Serif Pro", Garamond, serif'
-              }}>
+              <p className="text-center text-sm text-academia-gold-muted m-0 mb-6 font-academia-body">
                 Enter password
               </p>
 
-              <form onSubmit={fetchStats} style={{ display: 'grid', gap: '1.25rem' }}>
+              <form onSubmit={handleLogin} className="grid gap-5">
                 <div>
-                  <label htmlFor="meow-password" style={{ 
-                    display: 'block', 
-                    fontSize: '0.7rem', 
-                    fontWeight: 600, 
-                    color: '#a0826d', 
-                    textTransform: 'uppercase', 
-                    letterSpacing: '0.1em', 
-                    fontFamily: 'Cinzel, "Copperplate", serif',
-                    marginBottom: '0.5rem'
-                  }}>
+                  <label htmlFor="meow-password" className="block text-[0.7rem] font-semibold text-academia-gold-light uppercase tracking-[0.1em] font-academia-label mb-2">
                     Password
                   </label>
                   <input
@@ -314,40 +203,12 @@ export default function MeowPage() {
                     onChange={(event) => setPassword(event.target.value)}
                     placeholder="••••••••"
                     autoComplete="current-password"
-                    style={{
-                      width: '100%',
-                      padding: '0.875rem 1rem',
-                      borderRadius: '0.25rem',
-                      border: '1px solid #8b7355',
-                      background: 'linear-gradient(135deg, #141110 0%, #1a1410 100%)',
-                      boxShadow: 'inset 1px 1px 2px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.1)',
-                      fontSize: '0.95rem',
-                      fontFamily: 'Merriweather, "Source Serif Pro", Garamond, serif',
-                      color: '#e8dcc8',
-                      transition: 'all 0.2s ease',
-                      outline: 'none'
-                    }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = '#cd853f';
-                      e.currentTarget.style.boxShadow = 'inset 1px 1px 2px rgba(0, 0, 0, 0.2), 0 0 6px rgba(205, 133, 63, 0.2)';
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.borderColor = '#8b7355';
-                      e.currentTarget.style.boxShadow = 'inset 1px 1px 2px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.1)';
-                    }}
+                    className="w-full px-4 py-3.5 rounded-md border border-academia-gold-muted bg-gradient-to-br from-academia-bg to-academia-bg-light shadow-[inset_1px_1px_2px_rgba(0,0,0,0.2),0_1px_2px_rgba(0,0,0,0.1)] text-[0.95rem] font-academia-body text-academia-parchment transition-all duration-200 outline-none focus:border-academia-gold focus:shadow-[inset_1px_1px_2px_rgba(0,0,0,0.2),0_0_6px_rgba(205,133,63,0.2)]"
                   />
                 </div>
 
                 {error && (
-                  <div style={{
-                    padding: '0.75rem 1rem',
-                    borderRadius: '0.25rem',
-                    background: 'rgba(139, 115, 85, 0.08)',
-                    border: '1px solid #8b7355',
-                    color: '#f87171',
-                    fontSize: '0.8rem',
-                    fontFamily: 'Merriweather, "Source Serif Pro", Garamond, serif'
-                  }}>
+                  <div className="py-3 px-4 rounded-md bg-academia-gold-muted/10 border border-academia-gold-muted text-red-400 text-sm font-academia-body">
                     {error}
                   </div>
                 )}
@@ -355,232 +216,150 @@ export default function MeowPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  style={{
-                    padding: '0.875rem 1.25rem',
-                    borderRadius: '0.25rem',
-                    fontWeight: 600,
-                    fontSize: '0.9rem',
-                    fontFamily: 'Merriweather, "Source Serif Pro", Garamond, serif',
-                    background: 'linear-gradient(135deg, #8b7355 0%, #a0826d 100%)',
-                    color: '#e8dcc8',
-                    border: 'none',
-                    cursor: loading ? 'not-allowed' : 'pointer',
-                    opacity: loading ? 0.65 : 1,
-                    transition: 'all 0.2s ease',
-                    width: '100%',
-                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-                    letterSpacing: '0.03em'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!loading) {
-                      e.currentTarget.style.background = 'linear-gradient(135deg, #9d8a75 0%, #b39687 100%)';
-                      e.currentTarget.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.2)';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!loading) {
-                      e.currentTarget.style.background = 'linear-gradient(135deg, #8b7355 0%, #a0826d 100%)';
-                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
-                    }
-                  }}
+                  className="py-3.5 px-5 rounded-md font-semibold text-sm font-academia-body bg-gradient-to-br from-academia-gold-muted to-academia-gold-light text-academia-parchment border-none cursor-pointer disabled:opacity-65 transition-all duration-200 w-full shadow-[0_4px_12px_rgba(0,0,0,0.2)] tracking-[0.03em] hover:not-disabled:from-[#9d8a75] hover:not-disabled:to-[#b39687] hover:not-disabled:shadow-[0_6px_16px_rgba(0,0,0,0.2)]"
                 >
-                  {loading ? 'Signing in...' : 'Sign In'}
+                  {loading ? 'Authenticating...' : 'Sign In'}
                 </button>
               </form>
             </div>
           </div>
         ) : (
-          <>
-            {/* Control Bar */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
-              <div>
-                <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, fontFamily: 'Playfair Display, Lora, "Libre Baskerville", serif', color: '#e8dcc8' }}>Admin Dashboard</h2>
-                {generatedAt && (
-                  <p style={{ margin: '0.35rem 0 0', fontSize: '0.8rem', color: '#8b7355', fontFamily: 'Merriweather, "Source Serif Pro", Garamond, serif' }}>
-                    Last sync: {generatedAt}
-                  </p>
-                )}
+          stats ? (
+            <>
+              {/* Control Bar */}
+              <div className="flex justify-between items-center gap-4 mb-8 flex-wrap">
+                <div>
+                  <h2 className="m-0 text-2xl font-bold font-academia-display text-academia-parchment">Admin Dashboard</h2>
+                  {generatedAt && (
+                    <p className="m-0 mt-1.5 text-sm text-academia-gold-muted font-academia-body">
+                      Last sync: {generatedAt} {loading && <span className="ml-2 animate-pulse text-academia-gold-light">Polling...</span>}
+                    </p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => fetchStats(password, true)}
+                  disabled={loading}
+                  className="py-3 px-5 rounded-md font-semibold text-sm font-academia-body bg-gradient-to-br from-academia-gold-muted to-academia-gold-light text-academia-parchment border-none cursor-pointer disabled:opacity-65 transition-all duration-200 shadow-[0_4px_12px_rgba(0,0,0,0.2)] hover:not-disabled:from-[#9d8a75] hover:not-disabled:to-[#b39687] hover:not-disabled:shadow-[0_6px_16px_rgba(0,0,0,0.2)]"
+                >
+                  {loading ? 'Syncing...' : 'Force Refresh'}
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={fetchStats}
-                disabled={loading}
-                style={{
-                  padding: '0.7rem 1.25rem',
-                  borderRadius: '0.25rem',
-                  fontWeight: 600,
-                  fontSize: '0.8rem',
-                  fontFamily: 'Merriweather, "Source Serif Pro", Garamond, serif',
-                  background: 'linear-gradient(135deg, #8b7355 0%, #a0826d 100%)',
-                  color: '#e8dcc8',
-                  border: 'none',
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  opacity: loading ? 0.65 : 1,
-                  transition: 'all 0.2s ease',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)'
-                }}
-                onMouseEnter={(e) => {
-                  if (!loading) {
-                    e.currentTarget.style.background = 'linear-gradient(135deg, #9d8a75 0%, #b39687 100%)';
-                    e.currentTarget.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.2)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!loading) {
-                    e.currentTarget.style.background = 'linear-gradient(135deg, #8b7355 0%, #a0826d 100%)';
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
-                  }
-                }}
-              >
-                {loading ? 'Syncing...' : 'Refresh'}
-              </button>
-            </div>
 
-            {/* Stat Cards */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-              gap: '1.25rem',
-              marginBottom: '2rem'
-            }}>
-              <AcademiaStatCard label="Total Users" value={stats.users ?? 0} icon={<Users size={28} strokeWidth={1.5} color="#cd853f" style={{ opacity: 0.6 }} />} />
-              <AcademiaStatCard label="Total Visits" value={stats.totalVisits ?? 0} icon={<BarChart3 size={28} strokeWidth={1.5} color="#cd853f" style={{ opacity: 0.6 }} />} />
-              <AcademiaStatCard label="Recent Chats" value={Array.isArray(stats.recentChats) ? stats.recentChats.length : 0} icon={<MessageCircle size={28} strokeWidth={1.5} color="#cd853f" style={{ opacity: 0.6 }} />} />
-              {metricCards.map((metric) => (
-                <AcademiaStatCard key={metric.label} label={metric.label} value={metric.value} />
-              ))}
-            </div>
+              {/* Stat Cards */}
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-5 mb-8">
+                <AcademiaStatCard label="Total Users" value={stats.users ?? 0} icon={<Users size={28} strokeWidth={1.5} className="text-academia-gold opacity-60" />} />
+                <AcademiaStatCard label="Total Visits" value={stats.totalVisits ?? 0} icon={<BarChart3 size={28} strokeWidth={1.5} className="text-academia-gold opacity-60" />} />
+                <AcademiaStatCard label="Recent Chats" value={Array.isArray(stats.recentChats) ? stats.recentChats.length : 0} icon={<MessageCircle size={28} strokeWidth={1.5} className="text-academia-gold opacity-60" />} />
+                {metricCards.map((metric) => (
+                  <AcademiaStatCard key={metric.label} label={metric.label} value={metric.value} />
+                ))}
+              </div>
 
-            {/* Content Grid */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-              gap: '1.5rem'
-            }}>
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <div style={{
-                  borderRadius: '0.25rem',
-                  padding: '1.5rem',
-                  background: 'linear-gradient(135deg, #1a1410 0%, #141110 100%)',
-                  border: '2px solid #8b7355',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  flex: 1,
-                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.02)'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
-                    <MessageCircle size={18} strokeWidth={1.5} color="#cd853f" style={{ opacity: 0.7, flexShrink: 0 }} />
-                    <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, fontFamily: 'Playfair Display, Lora, "Libre Baskerville", serif', color: '#e8dcc8' }}>Recent Chats</h3>
+              {/* Content Grid */}
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-6">
+                
+                {/* Recent Chats */}
+                <div className="flex flex-col">
+                  <div className="rounded-md p-6 bg-gradient-to-br from-academia-bg-light to-academia-bg border-2 border-academia-gold-muted flex flex-col flex-1 shadow-[0_8px_24px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.02)]">
+                    <div className="flex items-center gap-2 mb-5">
+                      <MessageCircle size={18} strokeWidth={1.5} className="text-academia-gold opacity-70 shrink-0" />
+                      <h3 className="m-0 text-base font-bold font-academia-display text-academia-parchment">Recent Active Chats</h3>
+                    </div>
+
+                    <div className="grid gap-3 flex-1">
+                      {(stats.recentChats || []).slice(0, 8).map((chat) => (
+                        <AcademiaChat key={chat.id} chat={chat} />
+                      ))}
+                      {(stats.recentChats || []).length === 0 && (
+                        <div className="text-center py-8 px-4 text-academia-gold-muted">
+                          <p className="m-0 text-[0.85rem] font-academia-body">The records are silent.</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
+                </div>
 
-                  <div style={{ display: 'grid', gap: '0.75rem', flex: 1 }}>
-                    {(stats.recentChats || []).slice(0, 8).map((chat) => (
-                      <AcademiaChat key={chat.id} chat={chat} />
-                    ))}
-                    {(stats.recentChats || []).length === 0 && (
-                      <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#8b7355' }}>
-                        <p style={{ margin: 0, fontSize: '0.85rem', fontFamily: 'Merriweather, "Source Serif Pro", Garamond, serif' }}>No chats</p>
-                      </div>
-                    )}
+                {/* API Usage */}
+                <div className="flex flex-col">
+                  <div className="rounded-md p-6 bg-gradient-to-br from-academia-bg-light to-academia-bg border-2 border-academia-gold-muted flex flex-col flex-1 shadow-[0_8px_24px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.02)]">
+                    <div className="flex items-center gap-2 mb-5">
+                      <Zap size={18} strokeWidth={1.5} className="text-academia-gold opacity-70 shrink-0" />
+                      <h3 className="m-0 text-base font-bold font-academia-display text-academia-parchment">API Usage (Leaderboard)</h3>
+                    </div>
+
+                    <div className="grid gap-3 flex-1">
+                      {(stats.perUserApiCalls || []).slice(0, 8).map((row) => (
+                        <AcademiaMetric key={row.userId} labelId={row.userId} value={row.totalApiCalls} />
+                      ))}
+                      {(stats.perUserApiCalls || []).length === 0 && (
+                        <div className="text-center py-8 px-4 text-academia-gold-muted">
+                          <p className="m-0 text-[0.85rem] font-academia-body">No API traces detected.</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* User Visits */}
+                <div className="flex flex-col">
+                  <div className="rounded-md p-6 bg-gradient-to-br from-academia-bg-light to-academia-bg border-2 border-academia-gold-muted flex flex-col flex-1 shadow-[0_8px_24px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.02)]">
+                    <div className="flex items-center gap-2 mb-5">
+                      <Eye size={18} strokeWidth={1.5} className="text-academia-gold opacity-70 shrink-0" />
+                      <h3 className="m-0 text-base font-bold font-academia-display text-academia-parchment">Frequent Scholars</h3>
+                    </div>
+
+                    <div className="grid gap-3 flex-1">
+                      {(stats.perUserVisits || []).slice(0, 8).map((row) => (
+                        <AcademiaMetric key={row.userId} labelId={row.userId} value={row.visits} />
+                      ))}
+                      {(stats.perUserVisits || []).length === 0 && (
+                        <div className="text-center py-8 px-4 text-academia-gold-muted">
+                          <p className="m-0 text-[0.85rem] font-academia-body">The library is empty.</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Model Error Rates */}
+                <div className="flex flex-col">
+                  <div className="rounded-md p-6 bg-gradient-to-br from-academia-bg-light to-academia-bg border-2 border-academia-gold-muted flex flex-col flex-1 shadow-[0_8px_24px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.02)]">
+                    <div className="flex items-center gap-2 mb-5">
+                      <AlertTriangle size={18} strokeWidth={1.5} className="text-academia-gold opacity-70 shrink-0" />
+                      <h3 className="m-0 text-base font-bold font-academia-display text-academia-parchment">Model Instability Core</h3>
+                    </div>
+
+                    <div className="grid gap-3 flex-1">
+                      {(stats.modelErrorRates || []).slice(0, 8).map((row) => {
+                         const pct = Number.isFinite(Number(row.errorRatePct)) ? Number(row.errorRatePct).toFixed(1) : '0.0';
+                         const isHighErr = parseFloat(pct) > 5;
+                         return (
+                           <AcademiaMetric
+                             key={row.model}
+                             labelId={row.model}
+                             value={`${pct}% (${row.errorTurns}/${row.totalTurns})`}
+                             highlight={isHighErr}
+                           />
+                         );
+                      })}
+                      {(stats.modelErrorRates || []).length === 0 && (
+                        <div className="text-center py-8 px-4 text-academia-gold-muted">
+                          <p className="m-0 text-[0.85rem] font-academia-body">No anomalies detected.</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-
-              {/* API Usage */}
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <div style={{
-                  borderRadius: '0.25rem',
-                  padding: '1.5rem',
-                  background: 'linear-gradient(135deg, #1a1410 0%, #141110 100%)',
-                  border: '2px solid #8b7355',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  flex: 1,
-                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.02)'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
-                    <Zap size={18} strokeWidth={1.5} color="#cd853f" style={{ opacity: 0.7, flexShrink: 0 }} />
-                    <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, fontFamily: 'Playfair Display, Lora, "Libre Baskerville", serif', color: '#e8dcc8' }}>API Usage</h3>
-                  </div>
-
-                  <div style={{ display: 'grid', gap: '0.75rem', flex: 1 }}>
-                    {(stats.perUserApiCalls || []).slice(0, 8).map((row) => (
-                      <AcademiaMetric key={row.userId} userId={row.userId} value={row.totalApiCalls} />
-                    ))}
-                    {(stats.perUserApiCalls || []).length === 0 && (
-                      <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#8b7355' }}>
-                        <p style={{ margin: 0, fontSize: '0.85rem', fontFamily: 'Merriweather, "Source Serif Pro", Garamond, serif' }}>No API calls</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* User Visits */}
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <div style={{
-                  borderRadius: '0.25rem',
-                  padding: '1.5rem',
-                  background: 'linear-gradient(135deg, #1a1410 0%, #141110 100%)',
-                  border: '2px solid #8b7355',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  flex: 1,
-                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.02)'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
-                    <Eye size={18} strokeWidth={1.5} color="#cd853f" style={{ opacity: 0.7, flexShrink: 0 }} />
-                    <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, fontFamily: 'Playfair Display, Lora, "Libre Baskerville", serif', color: '#e8dcc8' }}>User Visits</h3>
-                  </div>
-
-                  <div style={{ display: 'grid', gap: '0.75rem', flex: 1 }}>
-                    {(stats.perUserVisits || []).slice(0, 8).map((row) => (
-                      <AcademiaMetric key={row.userId} userId={row.userId} value={row.visits} />
-                    ))}
-                    {(stats.perUserVisits || []).length === 0 && (
-                      <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#8b7355' }}>
-                        <p style={{ margin: 0, fontSize: '0.85rem', fontFamily: 'Merriweather, "Source Serif Pro", Garamond, serif' }}>No visits</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Model Error Rates */}
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <div style={{
-                  borderRadius: '0.25rem',
-                  padding: '1.5rem',
-                  background: 'linear-gradient(135deg, #1a1410 0%, #141110 100%)',
-                  border: '2px solid #8b7355',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  flex: 1,
-                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.02)'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
-                    <Zap size={18} strokeWidth={1.5} color="#cd853f" style={{ opacity: 0.7, flexShrink: 0 }} />
-                    <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, fontFamily: 'Playfair Display, Lora, "Libre Baskerville", serif', color: '#e8dcc8' }}>Model Error Rates</h3>
-                  </div>
-
-                  <div style={{ display: 'grid', gap: '0.75rem', flex: 1 }}>
-                    {(stats.modelErrorRates || []).slice(0, 8).map((row) => (
-                      <AcademiaMetric
-                        key={row.model}
-                        userId={row.model}
-                        value={`${Number.isFinite(Number(row.errorRatePct)) ? Number(row.errorRatePct).toFixed(1) : '0.0'}% (${row.errorTurns}/${row.totalTurns})`}
-                      />
-                    ))}
-                    {(stats.modelErrorRates || []).length === 0 && (
-                      <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#8b7355' }}>
-                        <p style={{ margin: 0, fontSize: '0.85rem', fontFamily: 'Merriweather, "Source Serif Pro", Garamond, serif' }}>No model errors tracked yet</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
+            </>
+          ) : (
+            <div className="flex items-center justify-center min-h-[40vh]">
+              <div className="text-academia-gold-muted animate-pulse font-academia-body tracking-wider uppercase text-sm">
+                Compiling Records...
               </div>
             </div>
-          </>
+          )
         )}
       </div>
     </main>
