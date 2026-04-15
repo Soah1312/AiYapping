@@ -10,23 +10,8 @@ import { QUICK_PROMPTS } from '../lib/prompts';
 import { useConversationStore } from '../store/conversationStore';
 import { ensurePuterSignIn } from '../lib/puterClient';
 
-const ACTION_WORDS = [
-  'LAUNCH',
-  'PROCEED',
-  'ADVANCE',
-  'START',
-  'BEGIN',
-  'ENGAGE',
-  'DEBATE',
-  'SPARK',
-  'TALK',
-  'CHAT',
-  'RUMBLE',
-  'DUEL',
-];
-
-const ACTION_WORD_FOR_PAGE_LOAD =
-  ACTION_WORDS[Math.floor(Math.random() * ACTION_WORDS.length)];
+// Dark Academia launch word
+const SPARK_ACTION_WORD = 'SPARK';
 
 const getTimeBasedHeading = () => {
   const hour = new Date().getHours();
@@ -87,7 +72,6 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
   const [headingText] = useState(() => getTimeBasedHeading());
   const [sparkTapCount, setSparkTapCount] = useState(0);
   const [chaosHint, setChaosHint] = useState('');
-  const [actionWord] = useState(() => ACTION_WORD_FOR_PAGE_LOAD);
   const [viewportWidth, setViewportWidth] = useState(() => (typeof window === 'undefined' ? 1280 : window.innerWidth));
   const [visiblePrompts, setVisiblePrompts] = useState(() => {
     const initialWidth = typeof window === 'undefined' ? 1280 : window.innerWidth;
@@ -317,8 +301,8 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
                 style={{ cursor: (!canRun || starting) ? 'not-allowed' : 'pointer' }}
                 title="Ctrl + Enter"
               >
-                <span key={starting ? 'IGNITING' : actionWord} className="setup-launch-word">
-                  {starting ? 'IGNITING' : actionWord}
+                <span key={starting ? 'IGNITING' : 'SPARK'} className="setup-launch-word">
+                  {starting ? 'IGNITING' : 'SPARK'}
                 </span>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="9 18 15 12 9 6" />
