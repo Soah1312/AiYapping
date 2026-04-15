@@ -192,7 +192,6 @@ export const useConversationStore = create(persist((set, get) => ({
   activeSavedChatId: null,
   chaosMode: false,
   ultraChaosUnlocked: false,
-  ultraChaosMode: false,
 
   setSetup: (nextSetup) => set({ setup: nextSetup }),
 
@@ -202,7 +201,6 @@ export const useConversationStore = create(persist((set, get) => ({
   setGeneratedChatTitle: (generatedChatTitle) => set({ generatedChatTitle: String(generatedChatTitle || '').trim() }),
   setChaosMode: (chaosMode) => set({ chaosMode: Boolean(chaosMode) }),
   setUltraChaosUnlocked: (ultraChaosUnlocked) => set({ ultraChaosUnlocked: Boolean(ultraChaosUnlocked) }),
-  setUltraChaosMode: (ultraChaosMode) => set({ ultraChaosMode: Boolean(ultraChaosMode) }),
 
   applyGeneratedTitleToSavedChat: (conversationKey, generatedTitle) =>
     set((state) => {
@@ -260,7 +258,6 @@ export const useConversationStore = create(persist((set, get) => ({
       activeSavedChatId: null,
       chaosMode: current.chaosMode,
       ultraChaosUnlocked: current.ultraChaosUnlocked,
-      ultraChaosMode: current.ultraChaosMode,
     });
   },
 
@@ -482,7 +479,6 @@ export const useConversationStore = create(persist((set, get) => ({
     activeSavedChatId: state.activeSavedChatId,
     chaosMode: state.chaosMode,
     ultraChaosUnlocked: state.ultraChaosUnlocked,
-    ultraChaosMode: state.ultraChaosMode,
   }),
   merge: (persistedState, currentState) => {
     const persisted = persistedState || {};
@@ -513,7 +509,6 @@ export const useConversationStore = create(persist((set, get) => ({
       isStreaming: false,
       savedChats: safeSavedChats,
       ultraChaosUnlocked: Boolean(persisted.ultraChaosUnlocked),
-      ultraChaosMode: Boolean(persisted.ultraChaosMode),
       activeSavedChatId:
         typeof persisted.activeSavedChatId === 'string'
         && safeSavedChats.some((chat) => chat.id === persisted.activeSavedChatId)

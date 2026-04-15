@@ -214,7 +214,6 @@ export function useConversation() {
     status,
     isStreaming,
     chaosMode,
-    ultraChaosMode,
     startConversation,
     pauseConversation,
     resumeConversation,
@@ -295,10 +294,11 @@ export function useConversation() {
       const speakerLabel = speakerModelMeta?.label || speakerModel;
 
       const supportsTopP = provider === 'groq' || provider === 'openrouter' || provider === 'github-models';
+      const isPuterModel = provider === 'puter';
       const isGroq = provider === 'groq';
       const modelLower = speakerModel.toLowerCase();
       const isThinkingModel = THINKING_MODELS.some(m => modelLower.includes(m));
-      const speakerMaxTokens = ultraChaosMode
+      const speakerMaxTokens = isPuterModel
         ? 260
         : chaosMode
           ? 200
@@ -307,7 +307,7 @@ export function useConversation() {
       const sideTurnNumber = side === 'ai1' ? ai1TurnCount + 1 : ai2TurnCount + 1;
       const openingSeed = side === 'ai1' ? setup.openingSeed1 : setup.openingSeed2;
 
-      const basePromptBuilder = ultraChaosMode
+      const basePromptBuilder = isPuterModel
         ? buildUltraChaosTurnSystemPrompt
         : chaosMode
           ? buildChaosTurnSystemPrompt
@@ -428,15 +428,11 @@ export function useConversation() {
 
         // Chaos mode at very high temperature can devolve into token salad on some providers.
         // Keep chaos punchy but stable per provider capabilities.
-        const chaosTemperature = ultraChaosMode
-          ? provider === 'puter'
-            ? 1
-            : 1.2
+        const chaosTemperature = isPuterModel
+          ? 1
           : provider === 'github-models'
             ? 0.95
-            : provider === 'puter'
-              ? 0.9
-              : 1.2;
+            : 1.2;
 
         const requestedTemperature = chaosMode
           ? chaosTemperature
@@ -570,7 +566,6 @@ export function useConversation() {
       completeConversation,
       shouldStopBySideCap,
       chaosMode,
-      ultraChaosMode,
       sessionId,
       conversationKey,
       setStreamError,

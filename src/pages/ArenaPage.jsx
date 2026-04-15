@@ -56,7 +56,6 @@ export default function ArenaPage() {
     activeSavedChatId,
     generatedChatTitle,
     chaosMode,
-    ultraChaosMode,
     patchSetup, setSessionId, setGeneratedChatTitle, setConversationId, applyGeneratedTitleToSavedChat,
     resetConversation, startConversation, saveCurrentChat, loadSavedChat, deleteSavedChat,
   } = useConversationStore();
@@ -384,8 +383,8 @@ export default function ArenaPage() {
       openingSeed1: s1,
       openingSeed2: s2,
       mode: 'chat',
-      ai1Model: ultraChaosMode ? ULTRA_CHAOS_OPUS_MODEL_ID : setup.ai1Model,
-      ai2Model: ultraChaosMode ? ULTRA_CHAOS_SONNET_MODEL_ID : setup.ai2Model,
+      ai1Model: setup.ai1Model,
+      ai2Model: setup.ai2Model,
     };
   }
 
@@ -506,9 +505,7 @@ export default function ArenaPage() {
           <div className="claude-chat-header">
             <div className="claude-chat-header-left">
               <span className="status-badge claude-chat-pill">{ai1Label} vs {ai2Label}</span>
-              {ultraChaosMode
-                ? <span className="chaos-badge chaos-badge--ultra">ULTRA CHAOS</span>
-                : chaosMode && <span className="chaos-badge">CHAOS</span>}
+              {chaosMode && <span className="chaos-badge">CHAOS</span>}
               <span className="status-badge claude-chat-pill">Turns: {aiTurnCount}</span>
             </div>
             {theme === 'claude' && !activeSavedChatId && (

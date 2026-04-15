@@ -79,9 +79,7 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
     chaosMode,
     setChaosMode,
     ultraChaosUnlocked,
-    setUltraChaosUnlocked,
-    ultraChaosMode,
-    setUltraChaosMode,
+    setUltraChaosUnlocked
   } = useConversationStore();
 
   const [headingText] = useState(() => getTimeBasedHeading());
@@ -95,9 +93,7 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
   });
 
   const visibleModelOptions = ultraChaosUnlocked
-    ? ultraChaosMode
-      ? MODEL_OPTIONS.filter((option) => option.id === ULTRA_CHAOS_OPUS_MODEL_ID || option.id === ULTRA_CHAOS_SONNET_MODEL_ID)
-      : MODEL_OPTIONS
+    ? MODEL_OPTIONS
     : MODEL_OPTIONS.filter((option) => !option.requiresUltraChaos);
 
   useEffect(() => {
@@ -143,27 +139,6 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
     return () => window.clearInterval(intervalId);
   }, []);
 
-  useEffect(() => {
-    if (!ultraChaosMode) {
-      return;
-    }
-
-    const needsSync = setup.ai1Model !== ULTRA_CHAOS_OPUS_MODEL_ID
-      || setup.ai2Model !== ULTRA_CHAOS_SONNET_MODEL_ID;
-
-    if (needsSync) {
-      patchSetup({
-        ai1Model: ULTRA_CHAOS_OPUS_MODEL_ID,
-        ai2Model: ULTRA_CHAOS_SONNET_MODEL_ID,
-      });
-    }
-  }, [
-    patchSetup,
-    setup.ai1Model,
-    setup.ai2Model,
-    ultraChaosMode,
-  ]);
-
   function handleChipClick(prompt) {
     patchSetup({
       topic: prompt.title,
@@ -173,65 +148,34 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
   }
 
   async function handleChaosClick() {
+    setChaosMode(!chaosMode);
+
     if (ultraChaosUnlocked) {
-      // Once unlocked, cycle through: Off -> Chaos -> Ultra -> Off.
-      if (!chaosMode) {
-        setChaosMode(true);
-        setUltraChaosMode(false);
-        setChaosHint('Chaos Mode active. Tap again for Ultra Chaos.');
-        return;
-      }
-
-      if (chaosMode && !ultraChaosMode) {
-        const authResult = await ensurePuterSignIn({ interactive: true });
-        if (!authResult.ok) {
-          // Keep normal chaos active if ultra auth fails.
-          setUltraChaosMode(false);
-          setChaosMode(true);
-          setChaosHint('Puter sign-in is required for Ultra Chaos.');
-          return;
-        }
-
-        setChaosMode(true);
-        setUltraChaosMode(true);
-        patchSetup({
-          ai1Model: ULTRA_CHAOS_OPUS_MODEL_ID,
-          ai2Model: ULTRA_CHAOS_SONNET_MODEL_ID,
-        });
-        setChaosHint('Ultra Chaos active: Claude Opus 4.6 vs Claude Sonnet 4.6');
-        return;
-      }
-
-      setUltraChaosMode(false);
-      setChaosMode(false);
-      setChaosHint('Chaos modes off.');
+      setChaosHint(chaosMode ? 'Chaos mode deactivated.' : 'Chaos Mode active.');
       return;
     }
 
-    setChaosMode(!chaosMode);
     const nextCount = chaosTapCount + 1;
     setChaosTapCount(nextCount);
 
     if (nextCount < 7) {
-      setChaosHint(`Chaos resonance ${nextCount}/7`);
+      setChaosHint(chaosMode ? 'Chaos mode deactivated.' : 'Chaos Mode active.');
       return;
     }
 
     const authResult = await ensurePuterSignIn({ interactive: true });
     if (!authResult.ok) {
-      setChaosHint('Ultra Chaos unlock failed: Puter sign-in was not completed.');
+      setChaosHint('Ultra mode unlock failed: Puter sign-in required.');
       return;
     }
 
     setUltraChaosUnlocked(true);
-    setUltraChaosMode(true);
-    setChaosMode(true);
+    setChaosTapCount(0);
+    setChaosHint('Ultra Chaos models unlocked in the picker! 🌪️');
     patchSetup({
       ai1Model: ULTRA_CHAOS_OPUS_MODEL_ID,
       ai2Model: ULTRA_CHAOS_SONNET_MODEL_ID,
     });
-    setChaosTapCount(0);
-    setChaosHint('Ultra Chaos unlocked: Claude Opus 4.6 vs Claude Sonnet 4.6');
   }
 
   return (
@@ -248,13 +192,13 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
         <div style={{ display: 'flex', justifyContent: 'center', margin: '0 0 12px' }}>
           <button
             type="button"
-            className={`chaos-btn${chaosMode ? ' chaos-btn--on' : ''}${ultraChaosMode ? ' chaos-btn--ultra' : ''}`}
+            className={`chaos-btn${chaosMode ? ' chaos-btn--on' : ''}`}
             onClick={handleChaosClick}
             aria-pressed={chaosMode}
           >
             <span className="chaos-btn-dot" aria-hidden="true" />
             <span className="chaos-btn-text">
-              {ultraChaosMode ? 'Ultra Chaos' : 'Chaos Mode'}
+              Chaos Mode
             </span>
           </button>
         </div>
