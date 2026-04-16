@@ -11,6 +11,8 @@ import {
   setDoc,
   updateDoc,
   where,
+  getCountFromServer,
+  orderBy,
 } from 'firebase/firestore/lite';
 
 const DAILY_TURN_LIMIT = 999999;
@@ -1147,15 +1149,37 @@ export async function getAdminDashboardStats() {
 
   try {
     const db = getDb();
-    const [usageSnapshot, conversationSnapshot] = await Promise.all([
+    
+    // Check cache first
+    const cacheRef = doc(db, 'admin', 'analytics');
+    const cacheDoc = await getDoc(cacheRef);
+    if (cacheDoc.exists()) {
+      const cachedData = cacheDoc.data();
+      if (cachedData && Date.now() - parseIsoMs(cachedData.generatedAt || '') < 1000 * 60 * 10) {
+        return cachedData.stats;
+      }
+    }
+
+    const [usageCountResult, conversationCountResult, usageSnapshot, recentConversationsSnapshot] = await Promise.all([
+      getCountFromServer(collection(db, 'usage')),
+      getCountFromServer(collection(db, 'conversations')),
       getDocs(collection(db, 'usage')),
-      getDocs(collection(db, 'conversations')),
+      getDocs(query(collection(db, 'conversations'), orderBy('createdAt', 'desc'), limit(200))),
     ]);
 
     const usageRows = usageSnapshot.docs.map((entry) => mapUsage(entry.id, entry.data() as Record<string, unknown>));
-    const conversations = conversationSnapshot.docs.map((entry) => mapConversation(entry.id, entry.data() as Record<string, unknown>));
+    const conversations = recentConversationsSnapshot.docs.map((entry) => mapConversation(entry.id, entry.data() as Record<string, unknown>));
 
-    return summarize({ usageRows, conversations });
+    const stats = summarize({ usageRows, conversations });
+    stats.totalVisits = conversationCountResult.data().count;
+    stats.users = usageCountResult.data().count;
+
+    await setDoc(cacheRef, {
+      stats,
+      generatedAt: nowIso(),
+    });
+
+    return stats;
   } catch (error) {
     if (shouldUseLocalFallback(error)) {
       const usageRows = [...devUsageStore.entries()].map(([id, value]) => mapUsage(id, value as Record<string, unknown>));

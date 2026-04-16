@@ -457,11 +457,23 @@ export const useConversationStore = create(persist((set, get) => ({
     return true;
   },
 
-  deleteSavedChat: (savedChatId) =>
+  deleteSavedChat: async (savedChatId) => {
+    const currentState = get();
     set((state) => ({
       savedChats: state.savedChats.filter((chat) => chat.id !== savedChatId),
       activeSavedChatId: state.activeSavedChatId === savedChatId ? null : state.activeSavedChatId,
-    })),
+    }));
+
+    try {
+      await fetch('/api/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId: savedChatId, sessionId: currentState.sessionId }),
+      });
+    } catch (err) {
+      console.error('Failed to sync delete to backend:', err);
+    }
+  },
 }), {
   name: STORE_NAME,
   storage: createJSONStorage(getStorage),

@@ -131,10 +131,21 @@ export function hasFirebaseAdminEnv() {
 export async function getAdminDashboardStatsPrivileged() {
   const db = getFirestore(getAdminApp());
 
-  const [usageSnapshot, conversationSnapshot] = await Promise.all([
+  const cacheDoc = await db.collection('admin').doc('analytics').get();
+  const cachedData = cacheDoc.data();
+  if (cachedData && Date.now() - parseIsoMs(cachedData.generatedAt) < 1000 * 60 * 10) {
+    return cachedData.stats;
+  }
+
+  const [usageCountResult, conversationCountResult, usageSnapshot, recentConversationsSnapshot] = await Promise.all([
+    db.collection('usage').count().get(),
+    db.collection('conversations').count().get(),
     db.collection('usage').get(),
-    db.collection('conversations').get(),
+    db.collection('conversations').orderBy('createdAt', 'desc').limit(200).get(),
   ]);
+
+  const usersCount = usageCountResult.data().count;
+  const totalVisitsCount = conversationCountResult.data().count;
 
   const usageRows = usageSnapshot.docs.map((entry) => {
     const data = entry.data() as Record<string, unknown>;
@@ -147,7 +158,7 @@ export async function getAdminDashboardStatsPrivileged() {
     };
   });
 
-  const conversations = conversationSnapshot.docs.map((entry) => {
+  const conversations = recentConversationsSnapshot.docs.map((entry) => {
     const data = entry.data() as Record<string, unknown>;
     const transcript = Array.isArray(data.transcript)
       ? (data.transcript as Array<Record<string, unknown>>)
@@ -279,17 +290,9 @@ export async function getAdminDashboardStatsPrivileged() {
     .sort((a, b) => b.errorRatePct - a.errorRatePct || b.totalTurns - a.totalTurns || a.model.localeCompare(b.model))
     .slice(0, 10);
 
-  const uniqueUsers = new Set<string>();
-  for (const row of usageRows) {
-    uniqueUsers.add(row.userId);
-  }
-  for (const chat of conversations) {
-    uniqueUsers.add(chat.ownerId);
-  }
-
-  return {
-    users: uniqueUsers.size,
-    totalVisits: conversations.length,
+  const stats = {
+    users: usersCount,
+    totalVisits: totalVisitsCount,
     recentChats,
     perUserApiCalls,
     perUserVisits,
@@ -308,4 +311,11 @@ export async function getAdminDashboardStatsPrivileged() {
     modelErrorRates,
     generatedAt: nowIso(),
   };
+
+  await db.collection('admin').doc('analytics').set({
+    stats,
+    generatedAt: nowIso(),
+  });
+
+  return stats;
 }
