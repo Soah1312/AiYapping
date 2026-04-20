@@ -1093,108 +1093,6 @@ async function createGroqStreamResponse({
     );
   }
 
-  let upstream: Response | null = null;
-  let selectedKey = '';
-  let rateLimitedCount = 0;
-  let lastErrorText = '';
-  let dropTopP = false;
-
-  for (let index = 0; index < groqKeys.length; index += 1) {
-    const apiKey = groqKeys[index];
-    const candidate = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        Accept: 'text/event-stream, application/json',
-      },
-      body: JSON.stringify({
-        model: modelId,
-        messages: normalizedMessages,
-        stream: true,
-        max_tokens: admission?.max_tokens ?? 500,
-        ...(admission?.temperature !== undefined && { temperature: admission.temperature }),
-        ...(admission?.top_p !== undefined && !dropTopP && { top_p: admission.top_p }),
-        ...(admission?.thinking !== undefined && { thinking: admission.thinking }),
-      }),
-    });
-
-    upstream = candidate;
-
-    if (candidate.ok) {
-      selectedKey = apiKey;
-      break;
-    }
-
-    lastErrorText = await candidate.text();
-
-    if (candidate.status === 429) {
-      rateLimitedCount += 1;
-      console.warn(`[api/chat] Groq key ${keyLabel(apiKey, index)} rate-limited, rotating...`);
-      continue;
-    }
-
-    if (candidate.status === 400 && !dropTopP) {
-      const lowerError = lastErrorText.toLowerCase();
-      if (lowerError.includes('top_p') || lowerError.includes('parameter') || lowerError.includes('sampling')) {
-        dropTopP = true;
-        index -= 1; // Retry the same key
-        continue;
-      }
-    }
-
-    if (candidate.status === 400 || candidate.status >= 500) {
-      break;
-    }
-
-    break;
-  }
-
-  if (!upstream) {
-    return Response.json({ error: 'Groq request failed before reaching upstream.' }, { status: 500 });
-  }
-
-  if (!upstream.ok) {
-    if (upstream.status === 429 && rateLimitedCount === groqKeys.length) {
-      return Response.json(
-        {
-          error: 'All AI engines are currently yapping too hard. Please try again in 60s.',
-          reason: 'all_keys_rate_limited',
-          retryAfter: 60,
-        },
-        {
-          status: 429,
-          headers: {
-            'Retry-After': '60',
-          },
-        },
-      );
-    }
-
-    const errorText = lastErrorText || (await upstream.text());
-    const reason =
-      upstream.status === 400
-        ? 'provider_bad_request'
-        : upstream.status === 401 || upstream.status === 403
-          ? 'provider_auth_error'
-          : 'provider_upstream_error';
-
-    return Response.json(
-      {
-        error: `Groq error ${upstream.status}: ${errorText}`,
-        reason,
-        provider: 'groq',
-        model: modelId,
-      },
-      { status: upstream.status },
-    );
-  }
-
-  if (!upstream.body) {
-    return Response.json({ error: 'Groq stream body is empty.' }, { status: 500 });
-  }
-
-  const upstreamBody = upstream.body;
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
 
@@ -1205,6 +1103,131 @@ async function createGroqStreamResponse({
       };
 
       try {
+        let upstream: Response | null = null;
+        let selectedKey = '';
+        let rateLimitedCount = 0;
+        let lastErrorText = '';
+        let dropTopP = false;
+
+        for (let index = 0; index < groqKeys.length; index += 1) {
+          const apiKey = groqKeys[index];
+          const abortController = new AbortController();
+          const timeoutId = setTimeout(() => abortController.abort(), 8500);
+
+          let candidate: Response;
+          try {
+            candidate = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${apiKey}`,
+                'Content-Type': 'application/json',
+                Accept: 'text/event-stream, application/json',
+              },
+              signal: abortController.signal,
+              body: JSON.stringify({
+                model: modelId,
+                messages: normalizedMessages,
+                stream: true,
+                max_tokens: admission?.max_tokens ?? 500,
+                ...(admission?.temperature !== undefined && { temperature: admission.temperature }),
+                ...(admission?.top_p !== undefined && !dropTopP && { top_p: admission.top_p }),
+                ...(admission?.thinking !== undefined && { thinking: admission.thinking }),
+              }),
+            });
+          } catch (error) {
+            lastErrorText = safeErrorMessage(error);
+            clearTimeout(timeoutId);
+
+            const lowerError = lastErrorText.toLowerCase();
+            const timeoutHit = lowerError.includes('aborted') || lowerError.includes('timeout');
+            if (timeoutHit) {
+              console.warn(`[api/chat] Groq key ${keyLabel(apiKey, index)} timed out before stream started.`, {
+                modelId,
+                turnType: admission?.turnType,
+                turnNumber: admission?.turnNumber,
+              });
+              continue;
+            }
+
+            throw error;
+          } finally {
+            clearTimeout(timeoutId);
+          }
+
+          upstream = candidate;
+
+          if (candidate.ok) {
+            selectedKey = apiKey;
+            break;
+          }
+
+          lastErrorText = await candidate.text();
+
+          if (candidate.status === 429) {
+            rateLimitedCount += 1;
+            console.warn(`[api/chat] Groq key ${keyLabel(apiKey, index)} rate-limited, rotating...`);
+            continue;
+          }
+
+          if (candidate.status === 400 && !dropTopP) {
+            const lowerError = lastErrorText.toLowerCase();
+            if (lowerError.includes('top_p') || lowerError.includes('parameter') || lowerError.includes('sampling')) {
+              dropTopP = true;
+              index -= 1;
+              continue;
+            }
+          }
+
+          if (candidate.status === 400 || candidate.status >= 500) {
+            break;
+          }
+
+          break;
+        }
+
+        if (!upstream) {
+          write({
+            error: 'Groq request failed before reaching upstream.',
+            reason: 'provider_upstream_error',
+            provider: 'groq',
+            model: modelId,
+          });
+          return;
+        }
+
+        if (!upstream.ok) {
+          if (upstream.status === 429 && rateLimitedCount === groqKeys.length) {
+            write({
+              error: 'All AI engines are currently yapping too hard. Please try again in 60s.',
+              reason: 'all_keys_rate_limited',
+              retryAfter: 60,
+            });
+            return;
+          }
+
+          const errorText = lastErrorText || (await upstream.text());
+          const reason =
+            upstream.status === 400
+              ? 'provider_bad_request'
+              : upstream.status === 401 || upstream.status === 403
+                ? 'provider_auth_error'
+                : 'provider_upstream_error';
+
+          write({
+            error: `Groq error ${upstream.status}: ${errorText}`,
+            reason,
+            provider: 'groq',
+            model: modelId,
+          });
+          return;
+        }
+
+        if (!upstream.body) {
+          write({ error: 'Groq stream body is empty.' });
+          return;
+        }
+
+        const upstreamBody = upstream.body;
         const reader = upstreamBody.getReader();
         let buffer = '';
 
@@ -1269,7 +1292,7 @@ async function createGroqStreamResponse({
         }
         write({
           error: String((error as Error)?.message || 'Groq stream failed'),
-          key: selectedKey ? keyLabel(selectedKey, groqKeys.indexOf(selectedKey)) : undefined,
+          key: undefined,
         });
       } finally {
         controller.close();
