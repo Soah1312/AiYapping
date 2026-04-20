@@ -48,12 +48,15 @@ function sanitizeSetup(setup) {
     return { ...DEFAULT_SETUP };
   }
 
+  const legacySlowAi1Models = new Set(['groq-qwen3-32b']);
+  const legacySlowAi2Models = new Set(['nvidia-mistral-large-3-675b', 'mistralai/mistral-large-3-675b-instruct-2512']);
+
   const ai1Model = typeof setup.ai1Model === 'string' && MODEL_BY_ID[setup.ai1Model]
-    ? setup.ai1Model
+    ? (legacySlowAi1Models.has(setup.ai1Model) ? DEFAULT_SETUP.ai1Model : setup.ai1Model)
     : DEFAULT_SETUP.ai1Model;
 
   const ai2Model = typeof setup.ai2Model === 'string' && MODEL_BY_ID[setup.ai2Model]
-    ? setup.ai2Model
+    ? (legacySlowAi2Models.has(setup.ai2Model) ? DEFAULT_SETUP.ai2Model : setup.ai2Model)
     : DEFAULT_SETUP.ai2Model;
 
   return {

@@ -143,8 +143,8 @@ MODEL_BY_ID['hf-space-deepseek-r1'] = MODEL_BY_ID['hf-deepseek-r1'];
 MODEL_BY_ID['hf-space:deepseek-r1'] = MODEL_BY_ID['hf-deepseek-r1'];
 
 export const DEFAULT_SETUP = {
-  ai1Model: 'groq-qwen3-32b',
-  ai2Model: 'nvidia-mistral-large-3-675b',
+  ai1Model: 'groq-llama-4-scout-17b',
+  ai2Model: 'groq-llama-3.3-70b',
   persona1: '',
   persona2: '',
   openingSeed1: '',
