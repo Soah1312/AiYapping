@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { hapticLight } from '../lib/haptics';
 
 const MODES = [
   { id: 'debate', label: 'Debate Mode' },

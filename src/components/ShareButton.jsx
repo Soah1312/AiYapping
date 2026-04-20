@@ -1,4 +1,5 @@
 import { Share2, Loader } from 'lucide-react';
+import { hapticMedium } from '../lib/haptics';
 import { useState } from 'react';
 import Toast from './Toast';
 import { transformConversationForShare, saveConversationShare, copyShareUrl } from '../lib/shareUtils';
@@ -37,7 +38,7 @@ export default function ShareButton({ setup, transcript, summary, chatTitle }) {
     <>
       <button
         type="button"
-        onClick={handleShare}
+        onClick={(e) => { hapticMedium(); handleShare(e); }}
         disabled={loading}
         className="btn-primary"
         style={{ 

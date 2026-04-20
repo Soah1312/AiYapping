@@ -17,19 +17,19 @@ export default function DuelControls({
 
         <div className="flex items-center gap-2 ml-auto">
           {status === 'paused' ? (
-            <button type="button" className="btn-primary" style={{ fontSize: '0.8125rem', padding: '0.375rem 0.75rem', minHeight: '36px' }} onClick={onResume}>Keep going</button>
+            <button type="button" className="btn-primary" style={{ fontSize: '0.8125rem', padding: '0.375rem 0.75rem', minHeight: '36px' }} onClick={(e) => { hapticMedium(); onResume(e); }}>Keep going</button>
           ) : status === 'running' ? (
-            <button type="button" className="btn-secondary" style={{ fontSize: '0.8125rem', padding: '0.375rem 0.75rem', minHeight: '36px' }} onClick={onPause}>Hold up</button>
+            <button type="button" className="btn-secondary" style={{ fontSize: '0.8125rem', padding: '0.375rem 0.75rem', minHeight: '36px' }} onClick={(e) => { hapticMedium(); onPause(e); }}>Hold up</button>
           ) : null}
           {(status === 'running' || status === 'paused') && (
-            <button type="button" className="btn-secondary" style={{ fontSize: '0.8125rem', padding: '0.375rem 0.75rem', minHeight: '36px' }} onClick={onStop}>Abort</button>
+            <button type="button" className="btn-secondary" style={{ fontSize: '0.8125rem', padding: '0.375rem 0.75rem', minHeight: '36px' }} onClick={(e) => { hapticMedium(); onStop(e); }}>Abort</button>
           )}
           {status === 'completed' && (
             <button
               type="button"
               className="btn-primary"
               style={{ fontSize: '0.8125rem', padding: '0.375rem 0.75rem', minHeight: '36px' }}
-              onClick={onNewChat}
+              onClick={(e) => { hapticMedium(); onNewChat(e); }}
             >
               Round 2
             </button>

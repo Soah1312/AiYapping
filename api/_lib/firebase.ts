@@ -13,7 +13,7 @@ import {
   where,
   getCountFromServer,
   orderBy,
-} from 'firebase/firestore/lite';
+} from 'firebase/firestore';
 
 const DAILY_TURN_LIMIT = 999999;
 const ACTIVE_CONVERSATION_DOC_PATH = ['runtime_control', 'active_conversation'] as const;

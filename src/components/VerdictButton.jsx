@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { hapticMedium } from '../lib/haptics';
 import { motion } from 'framer-motion';
 import { Loader2, Scale } from 'lucide-react';
 import { getJudgeVerdict } from '../lib/judge';
@@ -82,7 +83,7 @@ const VerdictButton = ({
 
       <button
         type="button"
-        onClick={handleGetVerdict}
+        onClick={(e) => { hapticMedium(); handleGetVerdict(e); }}
         disabled={isDisabled}
         className={`verdict-btn ${!chaosMode ? 'verdict-btn--locked' : ''}`}
       >

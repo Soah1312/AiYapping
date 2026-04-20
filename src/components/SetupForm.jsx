@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { hapticLight, hapticMedium } from '../lib/haptics';
 import ModelPicker from './ModelPicker';
 import {
   MODEL_OPTIONS,
@@ -190,7 +191,7 @@ export default function SetupForm({ setup, patchSetup, onRun, starting, canRun, 
           <button
             type="button"
             className={`chaos-btn${chaosMode ? ' chaos-btn--on' : ''}`}
-            onClick={handleChaosClick}
+            onClick={(e) => { hapticMedium(); handleChaosClick(e); }}
             aria-pressed={chaosMode}
           >
             <span className="chaos-btn-dot" aria-hidden="true" />

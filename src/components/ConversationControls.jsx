@@ -1,4 +1,5 @@
 import { Pause, Play, Square, CornerDownLeft } from 'lucide-react';
+import { hapticMedium } from '../lib/haptics';
 
 export default function ConversationControls({
   status,
@@ -36,7 +37,7 @@ export default function ConversationControls({
           {paused ? (
             <button
               type="button"
-              onClick={onResume}
+              onClick={(e) => { hapticMedium(); onResume(e); }}
               className="btn-primary"
               style={{ fontSize: '0.75rem', padding: '0.375rem 0.875rem' }}
             >
@@ -45,7 +46,7 @@ export default function ConversationControls({
           ) : (
             <button
               type="button"
-              onClick={onPause}
+              onClick={(e) => { hapticMedium(); onPause(e); }}
               className="btn-secondary"
               style={{ fontSize: '0.75rem', padding: '0.375rem 0.75rem' }}
             >
@@ -55,7 +56,7 @@ export default function ConversationControls({
 
           <button
             type="button"
-            onClick={onOpenRedirect}
+            onClick={(e) => { hapticMedium(); onOpenRedirect(e); }}
             className="btn-secondary"
             style={{ fontSize: '0.75rem', padding: '0.375rem 0.75rem' }}
           >
@@ -65,7 +66,7 @@ export default function ConversationControls({
           {allowManualStop && (
             <button
               type="button"
-              onClick={onStop}
+              onClick={(e) => { hapticMedium(); onStop(e); }}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',

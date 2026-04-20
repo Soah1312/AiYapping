@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { hapticLight } from '../lib/haptics';
 import { useTheme } from '../context/ThemeContext';
 
 const THEME_CONFIG = {

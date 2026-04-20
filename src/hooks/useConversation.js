@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { hapticStreaming } from '../lib/haptics';
 import { useConversationStore } from '../store/conversationStore';
 import { MODEL_BY_ID, THINKING_MODELS } from '../lib/modelConfig';
 import {
@@ -385,6 +386,7 @@ export function useConversation() {
                 content: displayedContent,
                 status: 'streaming',
               });
+              hapticStreaming();
               try {
                 await wait(WORD_REVEAL_INTERVAL_MS, controller.signal);
               } catch {
