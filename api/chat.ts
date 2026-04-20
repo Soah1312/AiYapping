@@ -42,8 +42,10 @@ type AdmissionContext = {
   thinking?: any;
 };
 
-const ACTIVE_PRIORITY_RETRY_TIMEOUT_MS = 5 * 60 * 1000;
-const ACTIVE_PRIORITY_RETRY_DELAY_MS = 8000;
+// Keep retries shorter than typical serverless execution limits to avoid platform 504 timeouts.
+const ACTIVE_PRIORITY_RETRY_TIMEOUT_MS = 20 * 1000;
+const ACTIVE_PRIORITY_RETRY_DELAY_MS = 1500;
+const PROVIDER_INVOKE_TIMEOUT_MS = 18 * 1000;
 const ADMISSION_MAX_TURNS_FALLBACK = 20;
 const HF_CHAT_COMPLETIONS_URL = 'https://router.huggingface.co/v1/chat/completions';
 const GITHUB_MODELS_CHAT_COMPLETIONS_URL = 'https://models.github.ai/inference/chat/completions';
@@ -59,6 +61,24 @@ function wait(ms: number) {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
   });
+}
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error(message));
+    }, timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
 }
 
 function normalizeTurnType(body: ChatRequestBody) {
@@ -135,7 +155,7 @@ function buildRetryTimeoutResponse({
 
   return Response.json(
     {
-      error: 'Active duel timed out after waiting 5 minutes for provider capacity. Resume to retry.',
+      error: 'Active duel timed out after waiting for provider capacity. Resume to retry.',
       reason: 'active_conversation_retry_timeout',
       requestId,
       stage,
@@ -1716,7 +1736,11 @@ async function performProviderRequestWithAdmission({
   while (true) {
     let response: Response;
     try {
-      response = await invoke();
+      response = await withTimeout(
+        invoke(),
+        PROVIDER_INVOKE_TIMEOUT_MS,
+        'Provider request timed out before response.',
+      );
     } catch (error) {
       await releaseConversationAdmissionOnFailure({
         conversationKey: admission.conversationKey,

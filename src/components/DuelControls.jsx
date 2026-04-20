@@ -1,3 +1,5 @@
+import { hapticMedium } from '../lib/haptics';
+
 export default function DuelControls({ 
   status, 
   onPause, 

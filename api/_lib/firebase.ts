@@ -11,7 +11,6 @@ import {
   setDoc,
   updateDoc,
   where,
-  getCountFromServer,
   orderBy,
 } from 'firebase/firestore';
 
@@ -509,8 +508,28 @@ function isPermissionDenied(error: unknown) {
   return message.includes('permission-denied') || message.includes('missing or insufficient permissions');
 }
 
+function isRecoverableFirestoreRuntimeError(error: unknown) {
+  const message = String((error as { message?: string })?.message || error || '').toLowerCase();
+
+  return (
+    message.includes('internal assertion failed')
+    || message.includes('unexpected state')
+    || message.includes('referenceerror: navigator is not defined')
+    || message.includes('navigator is not defined')
+    || message.includes('[firebase-getdb]')
+    || message.includes('failed-precondition')
+    || message.includes('service unavailable')
+    || message.includes('unavailable')
+  );
+}
+
 function shouldUseLocalFallback(error: unknown) {
   const notProd = typeof process !== 'undefined' && process.env?.NODE_ENV !== 'production';
+
+  // In production, keep chat functional even when Firestore client SDK fails in Edge runtime.
+  if (isRecoverableFirestoreRuntimeError(error)) {
+    return true;
+  }
 
   return notProd && isPermissionDenied(error);
 }
@@ -520,33 +539,11 @@ function shouldMirrorDevConversationStore() {
 }
 
 export async function recordInjectionAttempt(sessionId: string) {
-  try {
-    const db = getDb();
-    const usageRef = doc(db, 'usage', sessionId);
-    const snapshot = await getDoc(usageRef);
-
-    let currentInjections = 0;
-    if (snapshot.exists()) {
-      const data = snapshot.data();
-      currentInjections = Number(data.injectionsCount) || 0;
-    }
-
-    await setDoc(
-      usageRef,
-      {
-        injectionsCount: currentInjections + 1,
-        lastInjectionAt: nowIso(),
-        updatedAt: nowIso(),
-      },
-      { merge: true },
-    );
-  } catch (error) {
-    if (shouldUseLocalFallback(error)) {
-      // no-op for local fallback
-      return;
-    }
-    console.error('Failed to log injection:', error);
-  }
+  const current = devUsageStore.get(sessionId) || { turnsUsed: 0, lastReset: todayStamp(), updatedAt: nowIso() };
+  devUsageStore.set(sessionId, {
+    ...current,
+    updatedAt: nowIso(),
+  });
 }
 
 function getLocalUsage(sessionId: string) {
@@ -714,81 +711,11 @@ function getDb() {
 }
 
 export async function getUsageStatus(sessionId: string) {
-  try {
-    const db = getDb();
-    const usageRef = doc(db, 'usage', sessionId);
-    const snapshot = await getDoc(usageRef);
-    const stamp = todayStamp();
-
-    if (!snapshot.exists()) {
-      await setDoc(usageRef, {
-        turnsUsed: 0,
-        lastReset: stamp,
-        updatedAt: nowIso(),
-      });
-
-      return {
-        remaining: DAILY_TURN_LIMIT,
-        limit: DAILY_TURN_LIMIT,
-        turnsUsed: 0,
-      };
-    }
-
-    const data = snapshot.data() as { turnsUsed?: number; lastReset?: string };
-    let turnsUsed = Number(data.turnsUsed || 0);
-
-    if (data.lastReset !== stamp) {
-      turnsUsed = 0;
-      await updateDoc(usageRef, {
-        turnsUsed: 0,
-        lastReset: stamp,
-        updatedAt: nowIso(),
-      });
-    }
-
-    return {
-      remaining: Math.max(0, DAILY_TURN_LIMIT - turnsUsed),
-      limit: DAILY_TURN_LIMIT,
-      turnsUsed,
-    };
-  } catch (error) {
-    if (shouldUseLocalFallback(error)) {
-      return getLocalUsage(sessionId);
-    }
-
-    throw error;
-  }
+  return getLocalUsage(sessionId);
 }
 
 export async function incrementUsage(sessionId: string) {
-  try {
-    const db = getDb();
-    const usageRef = doc(db, 'usage', sessionId);
-    const status = await getUsageStatus(sessionId);
-    const nextTurnsUsed = status.turnsUsed + 1;
-
-    await setDoc(
-      usageRef,
-      {
-        turnsUsed: nextTurnsUsed,
-        lastReset: todayStamp(),
-        updatedAt: nowIso(),
-      },
-      { merge: true },
-    );
-
-    return {
-      remaining: Math.max(0, DAILY_TURN_LIMIT - nextTurnsUsed),
-      limit: DAILY_TURN_LIMIT,
-      turnsUsed: nextTurnsUsed,
-    };
-  } catch (error) {
-    if (shouldUseLocalFallback(error)) {
-      return incrementLocalUsage(sessionId);
-    }
-
-    throw error;
-  }
+  return incrementLocalUsage(sessionId);
 }
 
 type ConversationConfig = {
@@ -994,10 +921,8 @@ export async function getAdminDashboardStats() {
 
   const summarize = ({
     conversations,
-    usageRows,
   }: {
     conversations: Array<{ id: string; ownerId: string; topic: string; turnCount: number; updatedAt: string; createdAt: string; transcript: Array<Record<string, unknown>> }>;
-    usageRows: Array<{ userId: string; totalApiCalls: number; lastReset: string; updatedAt: string }>;
   }) => {
     const toNumber = (value: unknown) => {
       const parsed = Number(value);
@@ -1023,9 +948,17 @@ export async function getAdminDashboardStats() {
       .map(([userId, visits]) => ({ userId, visits }))
       .sort((a, b) => b.visits - a.visits || a.userId.localeCompare(b.userId));
 
-    const perUserApiCalls = [...usageRows].sort(
-      (a, b) => b.totalApiCalls - a.totalApiCalls || a.userId.localeCompare(b.userId),
-    );
+    const apiCallsByUser = new Map<string, number>();
+    for (const chat of conversations) {
+      apiCallsByUser.set(chat.ownerId, (apiCallsByUser.get(chat.ownerId) || 0) + Math.max(0, toNumber(chat.turnCount)));
+    }
+
+    const perUserApiCalls = [...apiCallsByUser.entries()]
+      .map(([userId, totalApiCalls]) => ({ userId, totalApiCalls }))
+      .sort((a, b) => b.totalApiCalls - a.totalApiCalls || a.userId.localeCompare(b.userId));
+
+    const totalInjections = 0;
+    const perUserInjections: Array<{ userId: string; injectionsCount: number }> = [];
 
     const recentChats = [...conversations]
       .sort((a, b) => parseIsoMs(b.updatedAt || b.createdAt) - parseIsoMs(a.updatedAt || a.createdAt))
@@ -1119,9 +1052,6 @@ export async function getAdminDashboardStats() {
       .slice(0, 10);
 
     const uniqueUsers = new Set<string>();
-    for (const row of usageRows) {
-      uniqueUsers.add(row.userId);
-    }
     for (const chat of conversations) {
       uniqueUsers.add(chat.ownerId);
     }
@@ -1133,6 +1063,8 @@ export async function getAdminDashboardStats() {
       perUserApiCalls,
       perUserVisits,
       avgTurnsPerDuel,
+      totalInjections,
+      perUserInjections,
       completionRatePct,
       completedDuels,
       interruptedDuels,
@@ -1160,19 +1092,12 @@ export async function getAdminDashboardStats() {
       }
     }
 
-    const [usageCountResult, conversationCountResult, usageSnapshot, recentConversationsSnapshot] = await Promise.all([
-      getCountFromServer(collection(db, 'usage')),
-      getCountFromServer(collection(db, 'conversations')),
-      getDocs(collection(db, 'usage')),
-      getDocs(query(collection(db, 'conversations'), orderBy('createdAt', 'desc'), limit(200))),
-    ]);
-
-    const usageRows = usageSnapshot.docs.map((entry) => mapUsage(entry.id, entry.data() as Record<string, unknown>));
+    const recentConversationsSnapshot = await getDocs(
+      query(collection(db, 'conversations'), orderBy('createdAt', 'desc'), limit(200)),
+    );
     const conversations = recentConversationsSnapshot.docs.map((entry) => mapConversation(entry.id, entry.data() as Record<string, unknown>));
 
-    const stats = summarize({ usageRows, conversations });
-    stats.totalVisits = conversationCountResult.data().count;
-    stats.users = usageCountResult.data().count;
+    const stats = summarize({ conversations });
 
     await setDoc(cacheRef, {
       stats,
@@ -1182,9 +1107,8 @@ export async function getAdminDashboardStats() {
     return stats;
   } catch (error) {
     if (shouldUseLocalFallback(error)) {
-      const usageRows = [...devUsageStore.entries()].map(([id, value]) => mapUsage(id, value as Record<string, unknown>));
       const conversations = [...devConversationStore.entries()].map(([id, value]) => mapConversation(id, value as Record<string, unknown>));
-      return summarize({ usageRows, conversations });
+      return summarize({ conversations });
     }
 
     throw error;

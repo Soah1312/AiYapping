@@ -137,26 +137,7 @@ export async function getAdminDashboardStatsPrivileged() {
     return cachedData.stats;
   }
 
-  const [usageCountResult, conversationCountResult, usageSnapshot, recentConversationsSnapshot] = await Promise.all([
-    db.collection('usage').count().get(),
-    db.collection('conversations').count().get(),
-    db.collection('usage').get(),
-    db.collection('conversations').orderBy('createdAt', 'desc').limit(200).get(),
-  ]);
-
-  const usersCount = usageCountResult.data().count;
-  const totalVisitsCount = conversationCountResult.data().count;
-
-  const usageRows = usageSnapshot.docs.map((entry) => {
-    const data = entry.data() as Record<string, unknown>;
-    return {
-      userId: entry.id,
-      injectionsCount: Number.isFinite(Number(data.injectionsCount)) ? Number(data.injectionsCount) : 0,
-      totalApiCalls: Number.isFinite(Number(data.turnsUsed)) ? Number(data.turnsUsed) : 0,
-      lastReset: normalizeTimestamp(data.lastReset),
-      updatedAt: normalizeTimestamp(data.updatedAt),
-    };
-  });
+  const recentConversationsSnapshot = await db.collection('conversations').orderBy('createdAt', 'desc').limit(200).get();
 
   const conversations = recentConversationsSnapshot.docs.map((entry) => {
     const data = entry.data() as Record<string, unknown>;
@@ -199,16 +180,17 @@ export async function getAdminDashboardStatsPrivileged() {
     .map(([userId, visits]) => ({ userId, visits }))
     .sort((a, b) => b.visits - a.visits || a.userId.localeCompare(b.userId));
 
-  const perUserApiCalls = [...usageRows].sort(
-    (a, b) => b.totalApiCalls - a.totalApiCalls || a.userId.localeCompare(b.userId),
-  );
+  const apiCallsByUser = new Map<string, number>();
+  for (const chat of conversations) {
+    apiCallsByUser.set(chat.ownerId, (apiCallsByUser.get(chat.ownerId) || 0) + Math.max(0, Number(chat.turnCount) || 0));
+  }
 
-  const totalInjections = usageRows.reduce((acc, row) => acc + (row.injectionsCount || 0), 0);
+  const perUserApiCalls = [...apiCallsByUser.entries()]
+    .map(([userId, totalApiCalls]) => ({ userId, totalApiCalls }))
+    .sort((a, b) => b.totalApiCalls - a.totalApiCalls || a.userId.localeCompare(b.userId));
 
-  const perUserInjections = [...usageRows]
-    .filter(row => (row.injectionsCount || 0) > 0)
-    .map(({ userId, injectionsCount }) => ({ userId, injectionsCount }))
-    .sort((a, b) => b.injectionsCount - a.injectionsCount || a.userId.localeCompare(b.userId));
+  const totalInjections = 0;
+  const perUserInjections: Array<{ userId: string; injectionsCount: number }> = [];
 
   const recentChats = [...conversations]
     .sort((a, b) => parseIsoMs(b.updatedAt || b.createdAt) - parseIsoMs(a.updatedAt || a.createdAt))
@@ -290,9 +272,14 @@ export async function getAdminDashboardStatsPrivileged() {
     .sort((a, b) => b.errorRatePct - a.errorRatePct || b.totalTurns - a.totalTurns || a.model.localeCompare(b.model))
     .slice(0, 10);
 
+  const uniqueUsers = new Set<string>();
+  for (const chat of conversations) {
+    uniqueUsers.add(chat.ownerId);
+  }
+
   const stats = {
-    users: usersCount,
-    totalVisits: totalVisitsCount,
+    users: uniqueUsers.size,
+    totalVisits: conversations.length,
     recentChats,
     perUserApiCalls,
     perUserVisits,

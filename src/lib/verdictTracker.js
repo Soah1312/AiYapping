@@ -1,6 +1,3 @@
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { getFirebaseAuth, getFirebaseDb } from './firebaseClient';
-
 const DAILY_LIMIT = 3;
 
 const getTodayKey = () => {
@@ -43,66 +40,14 @@ const setLocalUsage = (count) => {
 };
 
 export const getVerdictUsage = async () => {
-  try {
-    const auth = getFirebaseAuth();
-    const user = auth.currentUser;
-    if (!user) {
-      const local = getLocalUsage();
-      return {
-        used: local.count,
-        remaining: Math.max(0, DAILY_LIMIT - local.count),
-      };
-    }
-
-    const todayKey = getTodayKey();
-    const ref = doc(getFirebaseDb(), 'verdictUsage', `${user.uid}_${todayKey}`);
-    const snap = await getDoc(ref);
-
-    if (!snap.exists()) {
-      return { used: 0, remaining: DAILY_LIMIT };
-    }
-
-    const used = Math.max(0, Number(snap.data()?.count || 0));
-    setLocalUsage(used);
-    return { used, remaining: Math.max(0, DAILY_LIMIT - used) };
-  } catch (error) {
-    console.warn('Failed to get verdict usage:', error);
-    const local = getLocalUsage();
-    return {
-      used: local.count,
-      remaining: Math.max(0, DAILY_LIMIT - local.count),
-    };
-  }
+  const local = getLocalUsage();
+  return {
+    used: local.count,
+    remaining: Math.max(0, DAILY_LIMIT - local.count),
+  };
 };
 
 export const incrementVerdictUsage = async () => {
-  try {
-    const auth = getFirebaseAuth();
-    const user = auth.currentUser;
-
-    if (!user) {
-      const local = getLocalUsage();
-      setLocalUsage(local.count + 1);
-      return;
-    }
-
-    const todayKey = getTodayKey();
-    const ref = doc(getFirebaseDb(), 'verdictUsage', `${user.uid}_${todayKey}`);
-    const snap = await getDoc(ref);
-    const currentCount = snap.exists() ? Math.max(0, Number(snap.data()?.count || 0)) : 0;
-    const nextCount = currentCount + 1;
-
-    await setDoc(ref, {
-      count: nextCount,
-      uid: user.uid,
-      date: todayKey,
-      lastUpdated: new Date().toISOString(),
-    });
-
-    setLocalUsage(nextCount);
-  } catch (error) {
-    console.warn('Failed to increment verdict usage:', error);
-    const local = getLocalUsage();
-    setLocalUsage(local.count + 1);
-  }
+  const local = getLocalUsage();
+  setLocalUsage(local.count + 1);
 };

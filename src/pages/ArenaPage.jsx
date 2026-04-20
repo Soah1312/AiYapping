@@ -107,96 +107,14 @@ export default function ArenaPage() {
       });
     }
 
-    if (!sessionId || !conversationKey || activeSavedChatId) {
-      return;
-    }
-
-    const persistenceMarker = `${conversationKey}:${transcript.length}`;
-    if (backendPersistedConversationRef.current === persistenceMarker) {
-      return;
-    }
-
-    backendPersistedConversationRef.current = persistenceMarker;
-
-    const payload = {
-      sessionId,
-      conversationId: conversationId || undefined,
-      topic: setup.topic || generatedChatTitle || 'Untitled Arena',
-      config: {
-        model1: setup.ai1Model,
-        model2: setup.ai2Model,
-        mode: setup.mode === 'debate' ? 'debate' : 'chat',
-      },
-      transcript: transcript.map((message) => ({
-        role: message.role,
-        content: String(message.content || ''),
-        model: message.model || '',
-        timestamp: message.timestamp,
-        side: message.side,
-        status: message.status,
-        finishedAt: message.finishedAt || null,
-        interrupted: Boolean(message.interrupted),
-      })),
-      verdict: summary?.verdict
-        ? {
-          winner: summary.verdict,
-          reason: summary.consensus || '',
-        }
-        : null,
-    };
-
-    (async () => {
-      try {
-        const response = await fetch('/api/save', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-
-        let body = null;
-        try {
-          body = await response.json();
-        } catch {
-          body = null;
-        }
-
-        if (!response.ok) {
-          throw new Error(String(body?.error || `Save failed (${response.status})`));
-        }
-
-        if (body?.conversationId) {
-          setConversationId(body.conversationId);
-        }
-
-        console.info('[arena] Duel persisted for admin stats', {
-          conversationKey,
-          conversationId: body?.conversationId || conversationId || null,
-          turnCount: transcript.length,
-        });
-      } catch (error) {
-        backendPersistedConversationRef.current = '';
-        console.warn('[arena] Failed to persist duel for admin stats', {
-          conversationKey,
-          error: String(error?.message || error),
-        });
-      }
-    })();
+    // Keep completed conversations local-only.
+    // Firestore persistence happens only when the user clicks Share.
+    return;
   }, [
     activeSavedChatId,
-    conversationId,
-    conversationKey,
     generatedChatTitle,
     saveCurrentChat,
-    sessionId,
-    setConversationId,
-    setup.ai1Model,
-    setup.ai2Model,
-    setup.mode,
-    setup.topic,
     status,
-    summary?.consensus,
-    summary?.verdict,
-    transcript,
   ]);
 
   /* ── Generate chat title with Mistral once a duel starts ── */

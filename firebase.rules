@@ -1,31 +1,10 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /verdictUsage/{docId} {
-      allow read: if request.auth != null && (resource == null || resource.data.uid == request.auth.uid);
-      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
-      allow update: if request.auth != null && resource.data.uid == request.auth.uid && request.resource.data.uid == request.auth.uid;
-      allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
-    }
-
-    match /runtime_control/{docId} {
-      allow read, write: if docId == 'active_conversation';
-    }
-
-    match /usage/{uid} {
-      allow read, write: if request.auth == null || (request.auth != null && request.auth.uid == uid);
-    }
-
-    match /conversations/{conversationId} {
-      allow read: if resource.data.shareId != null;
-      allow create: if request.auth == null || (request.auth != null && request.resource.data.ownerId == request.auth.uid);
-      allow update, delete: if request.auth == null || (request.auth != null && resource.data.ownerId == request.auth.uid);
-    }
-
-    match /shared_yaps/{shareId} {
-      allow read: if true;
-      allow create: if true;
-      allow update, delete: if false;
+    // Client-side Firestore access is disabled.
+    // All Firestore operations are expected to happen through server routes/Admin SDK.
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
